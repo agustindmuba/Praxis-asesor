@@ -1,0 +1,130 @@
+"""Punto de entrada HTTP del backend Praxis Asesor.
+
+Define la instancia de FastAPI, monta routers y expone health checks.
+"""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import Any
+
+import redis.asyncio as aioredis
+import structlog
+from fastapi import FastAPI, status
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+
+from praxis import __version__
+from praxis.config import get_settings
+from praxis.infrastructure.db.engine import engine
+
+log = structlog.get_logger()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Hooks de arranque/apagado del proceso."""
+    settings = get_settings()
+    log.info("praxis.startup", env=settings.env, version=__version__)
+    yield
+    log.info("praxis.shutdown")
+
+
+app = FastAPI(
+    title="Praxis Asesor — Backend",
+    version=__version__,
+    description=(
+        "API HTTP del backend de Praxis Asesor. Documentación interactiva en "
+        "`/docs` (Swagger) y `/redoc`."
+    ),
+    lifespan=lifespan,
+)
+
+
+# -----------------------------------------------------------------------------
+# Health checks
+# -----------------------------------------------------------------------------
+
+
+@app.get("/health", tags=["health"], summary="Liveness probe")
+async def health() -> dict[str, str]:
+    """Liveness: el proceso está vivo y respondiendo HTTP.
+
+    No chequea dependencias externas; pensado para que el orquestador
+    (Railway, Kubernetes, etc.) decida si reiniciar el contenedor.
+    """
+    return {"status": "ok", "version": __version__}
+
+
+@app.get("/ready", tags=["health"], summary="Readiness probe")
+async def ready() -> JSONResponse:
+    """Readiness: la app puede atender requests reales.
+
+    Verifica conectividad con Postgres y Redis. Si alguno falla, devuelve
+    503 con detalle por componente. Pensado para que el LB no rutee tráfico
+    a una réplica que todavía no está lista.
+    """
+    settings = get_settings()
+    checks: dict[str, dict[str, str]] = {}
+
+    # Postgres.
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        checks["database"] = {"status": "ok"}
+    except Exception as exc:
+        checks["database"] = {"status": "error", "detail": str(exc)}
+
+    # Redis.
+    redis_client = aioredis.from_url(str(settings.redis_url))  # type: ignore[no-untyped-call]
+    try:
+        pong = await redis_client.ping()
+        checks["redis"] = {
+            "status": "ok" if pong else "error",
+            "detail": "" if pong else "ping=false",
+        }
+    except Exception as exc:
+        checks["redis"] = {"status": "error", "detail": str(exc)}
+    finally:
+        await redis_client.aclose()
+
+    all_ok = all(c["status"] == "ok" for c in checks.values())
+    return JSONResponse(
+        status_code=status.HTTP_200_OK if all_ok else status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={
+            "status": "ok" if all_ok else "degraded",
+            "version": __version__,
+            "checks": checks,
+        },
+    )
+
+
+# -----------------------------------------------------------------------------
+# Routers de feature (se agregan a medida que se implementan)
+# -----------------------------------------------------------------------------
+
+# from praxis.api.routers import expedientes
+# app.include_router(expedientes.router, prefix="/api/v1/expedientes")
+
+
+# -----------------------------------------------------------------------------
+# CLI helper: levantar dev server sin invocar uvicorn directo.
+# -----------------------------------------------------------------------------
+
+
+def run_dev() -> Any:
+    """Atajo para `uv run python -m praxis.api.main` durante desarrollo."""
+    import uvicorn
+
+    uvicorn.run(
+        "praxis.api.main:app",
+        host="127.0.0.1",
+        port=8000,
+        reload=True,
+        log_level=get_settings().log_level.lower(),
+    )
+
+
+if __name__ == "__main__":
+    run_dev()
