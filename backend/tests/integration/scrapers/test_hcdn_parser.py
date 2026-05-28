@@ -151,8 +151,33 @@ def test_parser_html_invalido_lanza() -> None:
 # --- Sanity: tipo inferido ---------------------------------------------------
 
 
-def test_parser_tipo_default_ley_si_no_hay_marcador() -> None:
+def test_parser_tipo_default_proyecto_ley_si_no_hay_marcador() -> None:
+    # Origen=DIPUTADO + extracto sin marcadores explícitos de
+    # declaración/resolución/comunicación → default PROYECTO_LEY.
     numero = NumeroExpediente.parse_hcdn("1497-D-2024")
     expediente = parse_resultado_hcdn(_load("hcdn_1497-D-2024.html"), numero)
-    # Sin marcador explícito de "declaración" o "resolución" → default LEY.
-    assert expediente.tipo == TipoExpediente.LEY
+    assert expediente.tipo == TipoExpediente.PROYECTO_LEY
+
+
+def test_parser_0001_pe_2024_tipo_es_mensaje_pe_por_default_conservador() -> None:
+    """Amendment 1 ADR 0002 §6: origen=EJECUTIVO aplica heurística refinada.
+
+    Hallazgo concreto sobre este fixture (inspección directa del HTML):
+    - extracto: "ABORDAJE INTEGRAL DEL CRIMEN ORGANIZADO."
+    - sumario:  "AMBITO DE APLICACION; COMISION DE LOS DELITOS TIPIFICADOS..."
+    - Regex \\bmensaje\\b en (extracto+sumario): NO match.
+    - "proyecto de ley" en (extracto+sumario): NO match.
+    - "proyecto de" en (extracto+sumario): NO match.
+
+    Las menciones a "MENSAJE NRO: 0015/24 Y PROYECTO DE LEY" sí aparecen
+    en el HTML, pero en `<h4>` y celdas del trámite — fuera de los divs
+    `dp-texto` y `sumario\\d+` que el parser lee. Por eso este fixture
+    cae al default conservador del Amendment 1 §6 rama 3: MENSAJE_PE.
+
+    Aserción exacta: el resultado debe ser MENSAJE_PE por la rama default,
+    no por match positivo de la regex. Si el parser empieza a leer más
+    contexto del HTML y este test rompe, hay que actualizarlo conscientemente.
+    """
+    numero = NumeroExpediente.parse_hcdn("0001-PE-2024")
+    expediente = parse_resultado_hcdn(_load("hcdn_0001-PE-2024.html"), numero)
+    assert expediente.tipo == TipoExpediente.MENSAJE_PE

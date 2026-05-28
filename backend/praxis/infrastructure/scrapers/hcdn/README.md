@@ -44,6 +44,14 @@ Para correr contra el portal vivo (no en CI):
 uv run pytest -m network
 ```
 
+## Mejoras futuras / conocidas
+
+- **Detección de "MENSAJE NRO:" en `<h4>` para precisar `TipoExpediente` en expedientes PE/JGM.** Hallazgo concreto del Amendment 1 ADR 0002: el fixture `hcdn_0001-PE-2024.html` contiene `<h4>MENSAJE NRO: 0015/24 Y PROYECTO DE LEY</h4>` pero el parser no lo lee — solo lee `div.dp-texto` y `div[id^="sumario"]`. La heurística actual cae al default conservador (`MENSAJE_PE`) en este caso. Un PE-origin que sea proyecto de ley directo (sin ser mensaje envoltorio) también caería en `MENSAJE_PE` por el default. Para precisar, extender el parser para leer también el `<h4>` y detectar el patrón `MENSAJE NRO: NNNN/YY Y PROYECTO DE LEY` (que es texto convencional de HCDN para anunciar mensaje + proyecto adjunto). No urgente: el default conservador no genera datos incorrectos para mensajes reales, solo es menos preciso para proyectos directos del PE. Cuando se implemente, sumar fixtures de muestra de "proyecto PE directo" para tener cobertura.
+
+- **Trámite con cámara inferida desde texto libre.** El campo `camara` del `TramiteEvento` actualmente se infiere de la celda de la tabla con un `if "senado" in text → HSN, else → HCDN`. Si HCDN cambia el texto (ej. "Senado de la Nación" → "HSN") el parser sigue funcionando, pero si introduce una cámara nueva (improbable) no la detecta. Endurecer cuando aparezca el caso.
+
+- **Adhesiones**: en el fixture `hcdn_1497-D-2024.html` aparecen "SOLICITUD DE SER ADHERENTE..." en la tabla de trámite. Actualmente se modelan como `TramiteEvento` igual que cualquier otro movimiento. Decidir en una feature futura si conviene tipificarlas como `Firmante` secundario (adherente) o mantener como evento de trámite. Implica cambio de modelo → ADR previo.
+
 ## Referencias
 
 - Documentación de la fuente: [`../../../docs/data-sources.md`](../../../../docs/data-sources.md) §HCDN.

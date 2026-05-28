@@ -104,6 +104,21 @@ class Expediente:
     texto_url: str | None = None
     fuente_url: str | None = None
 
+    # Amendment 1 del ADR 0002 (2026-05-27):
+    # Vínculo informativo y unidireccional con otro expediente (caso típico:
+    # CD/CS, mismo proyecto que cruza entre cámaras). No hay garantía de
+    # consistencia bidireccional: si A apunta a B, B no necesariamente
+    # apunta a A. El matching automático es feature futura.
+    expediente_relacionado: NumeroExpediente | None = None
+
+    # Caducidad parlamentaria (Ley 13.640). Modelo listo para alertas;
+    # la lógica de cálculo entra en una feature posterior. El campo
+    # `original` permite mostrar "vence el X, originalmente vencía el Y"
+    # cuando hubo prórroga.
+    fecha_caducidad: date | None = None
+    fecha_caducidad_original: date | None = None
+    prorrogado: bool = False
+
     def __post_init__(self) -> None:
         if not self.titulo.strip():
             raise ValueError("Expediente.titulo no puede ser vacío")
