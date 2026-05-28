@@ -8,6 +8,7 @@ contrato público del dominio, vive en este __init__.
 """
 
 from praxis.domain.comision import Comision, TipoComision
+from praxis.domain.despacho import Despacho
 from praxis.domain.exceptions import (
     DomainError,
     ExpedienteNoEncontrado,
@@ -45,6 +46,7 @@ __all__ = [
     "Bloque",
     "Camara",
     "Comision",
+    "Despacho",
     "DomainError",
     "EstadoExpediente",
     "Expediente",
