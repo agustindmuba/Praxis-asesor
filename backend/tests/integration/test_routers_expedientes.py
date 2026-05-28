@@ -543,6 +543,79 @@ def test_delete_seguimiento_otro_despacho_devuelve_404(
 
 
 # ---------------------------------------------------------------------------
+# GET /seguimientos (listar del despacho activo)
+# ---------------------------------------------------------------------------
+
+
+def test_listar_seguimientos_vacio(session: AsyncSession, seed: dict[str, Any]) -> None:
+    """Sin seguimientos creados, devuelve lista vacía."""
+    client = _setup_overrides(session, seed)
+    response = client.get("/api/v1/seguimientos", headers=_h(seed))
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_listar_seguimientos_devuelve_solo_del_despacho_activo(
+    session: AsyncSession, seed: dict[str, Any]
+) -> None:
+    """Tenant isolation: despacho A NO ve los seguimientos de despacho B."""
+    client = _setup_overrides(session, seed)
+
+    # Despacho A marca exp1, despacho B marca exp1 también.
+    r_a = client.post(
+        "/api/v1/seguimientos",
+        headers=_h(seed, who="a", despacho="a"),
+        json={"expediente_id": str(seed["expediente_id"]), "prioridad": "alta"},
+    )
+    r_b = client.post(
+        "/api/v1/seguimientos",
+        headers=_h(seed, who="b", despacho="b"),
+        json={"expediente_id": str(seed["expediente_id"]), "prioridad": "baja"},
+    )
+    assert r_a.status_code == 201
+    assert r_b.status_code == 201
+
+    # Despacho A ve solo el suyo.
+    resp_a = client.get("/api/v1/seguimientos", headers=_h(seed, who="a", despacho="a"))
+    items_a = resp_a.json()
+    assert len(items_a) == 1
+    assert items_a[0]["prioridad"] == "alta"
+
+    # Despacho B ve solo el suyo.
+    resp_b = client.get("/api/v1/seguimientos", headers=_h(seed, who="b", despacho="b"))
+    items_b = resp_b.json()
+    assert len(items_b) == 1
+    assert items_b[0]["prioridad"] == "baja"
+
+
+def test_listar_seguimientos_default_oculta_archivados(
+    session: AsyncSession, seed: dict[str, Any]
+) -> None:
+    client = _setup_overrides(session, seed)
+    creado = client.post(
+        "/api/v1/seguimientos",
+        headers=_h(seed),
+        json={"expediente_id": str(seed["expediente_id"])},
+    ).json()
+    client.delete(f"/api/v1/seguimientos/{creado['id']}", headers=_h(seed))
+
+    # Default: no ver archivados.
+    resp = client.get("/api/v1/seguimientos", headers=_h(seed))
+    assert resp.json() == []
+
+    # Con flag: ver todo.
+    resp_all = client.get("/api/v1/seguimientos?incluir_archivados=true", headers=_h(seed))
+    assert len(resp_all.json()) == 1
+    assert resp_all.json()[0]["archivado"] is True
+
+
+def test_listar_seguimientos_requiere_auth(session: AsyncSession, seed: dict[str, Any]) -> None:
+    client = _setup_overrides(session, seed)
+    response = client.get("/api/v1/seguimientos")
+    assert response.status_code == 401
+
+
+# ---------------------------------------------------------------------------
 # Cleanup global (los overrides en `app` persisten entre tests)
 # ---------------------------------------------------------------------------
 
