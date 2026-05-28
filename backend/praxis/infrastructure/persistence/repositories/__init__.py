@@ -7,5 +7,8 @@ Convención: una clase por agregado raíz.
 from praxis.infrastructure.persistence.repositories.despacho import (
     SqlAlchemyDespachoRepository,
 )
+from praxis.infrastructure.persistence.repositories.expediente import (
+    SqlAlchemyExpedienteRepository,
+)
 
-__all__ = ["SqlAlchemyDespachoRepository"]
+__all__ = ["SqlAlchemyDespachoRepository", "SqlAlchemyExpedienteRepository"]

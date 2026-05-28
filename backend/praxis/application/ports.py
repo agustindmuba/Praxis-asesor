@@ -150,3 +150,34 @@ class DespachoRepository(ABC):
     async def listar(self) -> list[Despacho]:
         """Devuelve todos los despachos. Sin paginación por ahora (volúmenes bajos)."""
         raise NotImplementedError
+
+
+class ExpedienteRepository(ABC):
+    """Puerto: persistencia de `Expediente` (+ firmantes, giros, trámite).
+
+    No es tenant-scoped: el catálogo de expedientes es global (todos los
+    despachos ven los mismos datos públicos). Lo tenant-scoped es el
+    *seguimiento* del expediente por un despacho (otra entidad).
+    """
+
+    @abstractmethod
+    async def crear(self, expediente: Expediente) -> Expediente:
+        """Inserta un expediente nuevo con todos sus hijos. Devuelve la
+        entidad hidratada (timestamps, etc.).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_id(self, expediente_id: UUID) -> Expediente | None:
+        """Devuelve el Expediente con relaciones cargadas, o None."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_numero(self, numero: NumeroExpediente) -> Expediente | None:
+        """Lookup por identidad natural `(numero, origen, anio, camara)`."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar(self, *, limit: int = 50, offset: int = 0) -> list[Expediente]:
+        """Lista paginada por orden de UUID (≈ orden temporal de inserción)."""
+        raise NotImplementedError
