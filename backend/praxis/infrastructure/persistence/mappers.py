@@ -17,10 +17,13 @@ from praxis.domain import (
     Expediente,
     Firmante,
     Giro,
+    MembresiaDespacho,
     NumeroExpediente,
     OrigenExpediente,
+    Rol,
     TipoExpediente,
     TramiteEvento,
+    Usuario,
 )
 from praxis.domain.despacho import Despacho
 from praxis.infrastructure.persistence.models import (
@@ -28,7 +31,9 @@ from praxis.infrastructure.persistence.models import (
     ExpedienteOrm,
     FirmanteOrm,
     GiroOrm,
+    MembresiaDespachoOrm,
     TramiteEventoOrm,
+    UsuarioOrm,
 )
 
 # ---------------------------------------------------------------------------
@@ -182,4 +187,52 @@ def _from_tramite_evento(domain: TramiteEvento) -> TramiteEventoOrm:
         evento=domain.evento,
         detalle=domain.detalle,
         fuente=domain.fuente,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Usuario y MembresiaDespacho
+# ---------------------------------------------------------------------------
+
+
+def to_usuario(orm: UsuarioOrm) -> Usuario:
+    return Usuario(
+        id=orm.id,
+        email=orm.email,
+        nombre=orm.nombre,
+        auth_provider_id=orm.auth_provider_id,
+        activo=orm.activo,
+        creado_en=orm.creado_en,
+        actualizado_en=orm.actualizado_en,
+    )
+
+
+def from_usuario(domain: Usuario) -> UsuarioOrm:
+    kwargs: dict[str, Any] = {
+        "email": domain.email.strip().lower(),
+        "nombre": domain.nombre,
+        "auth_provider_id": domain.auth_provider_id,
+        "activo": domain.activo,
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    return UsuarioOrm(**kwargs)
+
+
+def to_membresia_despacho(orm: MembresiaDespachoOrm) -> MembresiaDespacho:
+    return MembresiaDespacho(
+        usuario_id=orm.usuario_id,
+        despacho_id=orm.despacho_id,
+        rol=Rol(orm.rol),
+        activo=orm.activo,
+        creado_en=orm.creado_en,
+    )
+
+
+def from_membresia_despacho(domain: MembresiaDespacho) -> MembresiaDespachoOrm:
+    return MembresiaDespachoOrm(
+        usuario_id=domain.usuario_id,
+        despacho_id=domain.despacho_id,
+        rol=domain.rol.value,
+        activo=domain.activo,
     )

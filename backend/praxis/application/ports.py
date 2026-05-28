@@ -20,8 +20,10 @@ from praxis.domain import (
     Camara,
     Comision,
     Expediente,
+    MembresiaDespacho,
     NumeroExpediente,
     TipoExpediente,
+    Usuario,
 )
 from praxis.domain.despacho import Despacho
 from praxis.domain.legislador import Legislador
@@ -180,4 +182,64 @@ class ExpedienteRepository(ABC):
     @abstractmethod
     async def listar(self, *, limit: int = 50, offset: int = 0) -> list[Expediente]:
         """Lista paginada por orden de UUID (≈ orden temporal de inserción)."""
+        raise NotImplementedError
+
+
+class UsuarioRepository(ABC):
+    """Puerto: persistencia de Usuario.
+
+    No es tenant-scoped: un usuario puede pertenecer a múltiples despachos.
+    Las membresías (con rol) se modelan en `MembresiaDespacho` aparte.
+    """
+
+    @abstractmethod
+    async def crear(self, usuario: Usuario) -> Usuario:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_id(self, usuario_id: UUID) -> Usuario | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_email(self, email: str) -> Usuario | None:
+        """Lookup case-insensitive sobre el email."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_auth_provider_id(self, auth_provider_id: str) -> Usuario | None:
+        """Lookup por el id del provider externo (Clerk u otro)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar(self) -> list[Usuario]:
+        raise NotImplementedError
+
+
+class MembresiaDespachoRepository(ABC):
+    """Puerto: persistencia de MembresiaDespacho (tenant-scoped por design).
+
+    Filter explícito de `despacho_id` en `listar_por_despacho` (ADR 0003 §4).
+    """
+
+    @abstractmethod
+    async def agregar(self, membresia: MembresiaDespacho) -> MembresiaDespacho:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar(
+        self,
+        *,
+        usuario_id: UUID,
+        despacho_id: UUID,
+    ) -> MembresiaDespacho | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_por_despacho(self, despacho_id: UUID) -> list[MembresiaDespacho]:
+        """Tenant-scoped: filtra por despacho_id."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_por_usuario(self, usuario_id: UUID) -> list[MembresiaDespacho]:
+        """Cross-tenant desde la perspectiva del usuario."""
         raise NotImplementedError

@@ -9,6 +9,8 @@ from praxis.application.ports import (
     DespachoRepository,
     ExpedienteRepository,
     FuenteExpedientes,
+    MembresiaDespachoRepository,
+    UsuarioRepository,
 )
 from praxis.application.use_cases import BuscarExpediente, EnriquecerExpediente
 
@@ -20,4 +22,6 @@ __all__ = [
     "EnriquecerExpediente",
     "ExpedienteRepository",
     "FuenteExpedientes",
+    "MembresiaDespachoRepository",
+    "UsuarioRepository",
 ]
