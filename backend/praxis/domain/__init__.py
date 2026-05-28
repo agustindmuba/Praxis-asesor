@@ -27,6 +27,7 @@ from praxis.domain.inferencia_estado import (
     inferir_estado_y_caducidad,
 )
 from praxis.domain.legislador import Bloque, Legislador
+from praxis.domain.seguimiento import Prioridad, SeguimientoExpediente
 from praxis.domain.tramite_historico import (
     eventos_recientes,
     filter_by_camara,
@@ -60,7 +61,9 @@ __all__ = [
     "MembresiaDespacho",
     "NumeroExpediente",
     "OrigenExpediente",
+    "Prioridad",
     "Rol",
+    "SeguimientoExpediente",
     "TipoComision",
     "TipoExpediente",
     "TramiteEvento",

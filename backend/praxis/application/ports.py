@@ -22,6 +22,7 @@ from praxis.domain import (
     Expediente,
     MembresiaDespacho,
     NumeroExpediente,
+    SeguimientoExpediente,
     TipoExpediente,
     Usuario,
 )
@@ -242,4 +243,70 @@ class MembresiaDespachoRepository(ABC):
     @abstractmethod
     async def listar_por_usuario(self, usuario_id: UUID) -> list[MembresiaDespacho]:
         """Cross-tenant desde la perspectiva del usuario."""
+        raise NotImplementedError
+
+
+class SeguimientoExpedienteRepository(ABC):
+    """Puerto: persistencia de SeguimientoExpediente.
+
+    Tenant-scoped por design. TODA query filtra explícito por `despacho_id`
+    (ADR 0003 §4). Operaciones de write reciben `despacho_id` aunque también
+    haya un `seguimiento_id` — esto previene leak cross-tenant si el id
+    viene de un input no validado.
+    """
+
+    @abstractmethod
+    async def crear(self, seguimiento: SeguimientoExpediente) -> SeguimientoExpediente:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar(
+        self,
+        *,
+        despacho_id: UUID,
+        expediente_id: UUID,
+    ) -> SeguimientoExpediente | None:
+        """Devuelve el seguimiento del despacho sobre ese expediente, o None."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_id(
+        self,
+        *,
+        despacho_id: UUID,
+        seguimiento_id: UUID,
+    ) -> SeguimientoExpediente | None:
+        """Lookup por UUID con filter explícito de despacho_id (defensivo)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_por_despacho(
+        self,
+        despacho_id: UUID,
+        *,
+        incluir_archivados: bool = False,
+    ) -> list[SeguimientoExpediente]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def archivar(
+        self,
+        *,
+        despacho_id: UUID,
+        seguimiento_id: UUID,
+    ) -> bool:
+        """Marca archivado=True. Devuelve True si la fila existía y pertenecía
+        al despacho; False si no afectó nada (no existe o es de otro tenant).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def asignar_responsable(
+        self,
+        *,
+        despacho_id: UUID,
+        seguimiento_id: UUID,
+        responsable_id: UUID | None,
+    ) -> bool:
+        """Asigna (o desasigna con None) un responsable. Returns True si afectó."""
         raise NotImplementedError

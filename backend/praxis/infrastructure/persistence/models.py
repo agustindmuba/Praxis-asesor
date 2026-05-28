@@ -103,6 +103,59 @@ class MembresiaDespachoOrm(Base, kw_only=True):
 
 
 # ---------------------------------------------------------------------------
+# SeguimientoExpediente (tenant-scoped)
+# ---------------------------------------------------------------------------
+
+
+class SeguimientoExpedienteOrm(Base, TimestampsMixin, kw_only=True):
+    """Seguimiento de un expediente por un despacho.
+
+    Tenant-scoped: tiene `despacho_id` no-opcional. UNIQUE en
+    (despacho_id, expediente_id) — un despacho no puede marcar el mismo
+    expediente dos veces.
+    """
+
+    __tablename__ = "seguimiento_expediente"
+    __table_args__ = (
+        Index(
+            "uq_seguimiento_despacho_expediente",
+            "despacho_id",
+            "expediente_id",
+            unique=True,
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    despacho_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    expediente_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("expediente.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    responsable_id: Mapped[UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("usuario.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
+        index=True,
+    )
+    prioridad: Mapped[str] = mapped_column(String(10), nullable=False, default="media")
+    archivado: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    def __repr__(self) -> str:
+        return (
+            f"SeguimientoExpedienteOrm(id={self.id!r}, "
+            f"despacho_id={self.despacho_id!r}, expediente_id={self.expediente_id!r})"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Expediente (catálogo global, no tenant-scoped)
 # ---------------------------------------------------------------------------
 
