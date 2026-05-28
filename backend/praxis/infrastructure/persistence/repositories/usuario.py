@@ -44,3 +44,25 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
     async def listar(self) -> list[Usuario]:
         result = await self._session.execute(select(UsuarioOrm).order_by(UsuarioOrm.email))
         return [to_usuario(orm) for orm in result.scalars()]
+
+    async def actualizar(self, usuario: Usuario) -> Usuario:
+        """Actualiza email/nombre/auth_provider_id/activo por id.
+
+        No usa `merge()` para que sea explícito qué campos pisamos. El email
+        se normaliza igual que en crear (strip + lower).
+        """
+        # Usamos select() en lugar de session.get() porque este último
+        # tiene comportamiento problemático con aiosqlite cuando la session
+        # se reusa entre requests del mismo test (load_on_pk_identity rompe
+        # el contexto greenlet).
+        stmt = select(UsuarioOrm).where(UsuarioOrm.id == usuario.id)
+        result = await self._session.execute(stmt)
+        orm = result.scalar_one_or_none()
+        if orm is None:
+            raise ValueError(f"Usuario {usuario.id} no existe")
+        orm.email = usuario.email.strip().lower()
+        orm.nombre = usuario.nombre
+        orm.auth_provider_id = usuario.auth_provider_id
+        orm.activo = usuario.activo
+        await self._session.flush()
+        return to_usuario(orm)

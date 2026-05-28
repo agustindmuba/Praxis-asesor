@@ -107,11 +107,13 @@ async def ready() -> JSONResponse:
 from praxis.api.routers import auth as auth_router  # noqa: E402
 from praxis.api.routers import expedientes as expedientes_router  # noqa: E402
 from praxis.api.routers import seguimientos as seguimientos_router  # noqa: E402
+from praxis.api.routers import webhooks as webhooks_router  # noqa: E402
 
 API_V1 = "/api/v1"
 app.include_router(auth_router.router, prefix=API_V1)
 app.include_router(expedientes_router.router, prefix=API_V1)
 app.include_router(seguimientos_router.router, prefix=API_V1)
+app.include_router(webhooks_router.router, prefix=API_V1)
 
 
 # -----------------------------------------------------------------------------

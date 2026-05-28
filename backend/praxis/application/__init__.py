@@ -18,6 +18,7 @@ from praxis.application.use_cases import (
     BuscarExpediente,
     EnriquecerExpediente,
     ResolverContextoRequest,
+    SincronizarUsuarioDesdeClerk,
 )
 
 __all__ = [
@@ -32,5 +33,6 @@ __all__ = [
     "MembresiaDespachoRepository",
     "ResolverContextoRequest",
     "SeguimientoExpedienteRepository",
+    "SincronizarUsuarioDesdeClerk",
     "UsuarioRepository",
 ]

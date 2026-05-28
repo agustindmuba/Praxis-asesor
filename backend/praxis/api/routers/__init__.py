@@ -3,6 +3,6 @@
 Cada router declara su propio `APIRouter` y se monta en `praxis.api.main`.
 """
 
-from praxis.api.routers import auth, expedientes, seguimientos
+from praxis.api.routers import auth, expedientes, seguimientos, webhooks
 
-__all__ = ["auth", "expedientes", "seguimientos"]
+__all__ = ["auth", "expedientes", "seguimientos", "webhooks"]

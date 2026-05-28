@@ -71,6 +71,9 @@ class FakeUsuarios(UsuarioRepository):
     async def listar(self) -> list[Usuario]:
         raise NotImplementedError
 
+    async def actualizar(self, usuario: Usuario) -> Usuario:
+        raise NotImplementedError
+
 
 class FakeDespachos(DespachoRepository):
     def __init__(self, despachos: list[Despacho]) -> None:
