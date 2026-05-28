@@ -18,6 +18,7 @@ from praxis.domain.expediente import (
     Giro,
     TramiteEvento,
 )
+from praxis.domain.legislador import Bloque, Legislador
 from praxis.domain.value_objects import (
     Camara,
     EstadoExpediente,
@@ -27,6 +28,7 @@ from praxis.domain.value_objects import (
 )
 
 __all__ = [
+    "Bloque",
     "Camara",
     "DomainError",
     "EstadoExpediente",
@@ -35,6 +37,7 @@ __all__ = [
     "Firmante",
     "FuenteNoDisponible",
     "Giro",
+    "Legislador",
     "NumeroExpediente",
     "OrigenExpediente",
     "TipoExpediente",

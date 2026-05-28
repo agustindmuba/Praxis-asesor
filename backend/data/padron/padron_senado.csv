@@ -1,0 +1,81 @@
+# Dataset: padron_senado
+# Generado: 2026-05-24 01:31
+# Filas: 72
+# Fuente: Honorable Cámara de Senadores de la Nación Argentina (HCSN)
+# URL fuente: https://www.senado.gob.ar/senadores/listaSenadoRes/
+# Método: Scraping del listado oficial + páginas individuales
+# Licencia: CC BY 4.0 — citar como: Quórum (2026), Observatorio de Comportamiento Parlamentario Nacional
+#
+slug,apellido,nombre,distrito,periodo_mandato,fecha_inicio_mandato,fecha_fin_mandato,bloque,fecha_nacimiento,edad_anios,genero,profesion,profesion_categoria,foto_url,padron_snapshot_fecha
+s546,Abad,Maximiliano,BUENOS AIRES,2023-2029,2023-12-10,2029-12-09,UCR - UNIÓN CÍVICA RADICAL,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/546.gif,2026-05-23
+s564,Abdala,Bartolomé Esteban,SAN LUIS,2023-2029,2023-12-10,2029-12-09,LA LIBERTAD AVANZA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/564.gif,2026-05-23
+s583,Almeida,Romina María,ENTRE RÍOS,2025-2031,2025-12-10,2031-12-09,LA LIBERTAD AVANZA,,,F,Estudios,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/583.gif,2026-05-23
+s522,Alvarez Rivero,Carmen,CÓRDOBA,2021-2027,2021-12-10,2027-12-09,LA LIBERTAD AVANZA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/522.gif,2026-05-23
+s519,Andrada,Guillermo Eduardo,CATAMARCA,2021-2027,2021-12-10,2027-12-09,CONVICCIÓN FEDERAL,1961-12-29,64,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/519.gif,2026-05-23
+s558,Arce,Carlos Omar,MISIONES,2023-2029,2023-12-10,2029-12-09,FRENTE RENOVADOR DE LA CONCORDIA SOCIAL,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/558.gif,2026-05-23
+s565,Arrascaeta,Ivanna Marcela,SAN LUIS,2023-2029,2023-12-10,2029-12-09,LA LIBERTAD AVANZA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/565.gif,2026-05-23
+s552,Atauche,Ezequiel,JUJUY,2023-2029,2023-12-10,2029-12-09,LA LIBERTAD AVANZA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/552.gif,2026-05-23
+s541,Avila,Beatriz Luisa,TUCUMÁN,2021-2027,2021-12-10,2027-12-09,INDEPENDENCIA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/541.gif,2026-05-23
+s584,Bahl,Adán Humberto,ENTRE RÍOS,2025-2031,2025-12-10,2031-12-09,JUSTICIALISTA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/584.gif,2026-05-23
+s553,Bedia,Vilma Facunda,JUJUY,2023-2029,2023-12-10,2029-12-09,LA LIBERTAD AVANZA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/553.gif,2026-05-23
+s582,Benegas Lynch,Joaquín Alberto,ENTRE RÍOS,2025-2031,2025-12-10,2031-12-09,LA LIBERTAD AVANZA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/582.gif,2026-05-23
+s532,Bensusán,Daniel Pablo,LA PAMPA,2021-2027,2021-12-10,2027-12-09,JUSTICIALISTA,1974-11-03,51,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/532.gif,2026-05-23
+s580,Bullrich,Patricia,CIUDAD AUTÓNOMA DE BUENOS AIRES,2025-2031,2025-12-10,2031-12-09,LA LIBERTAD AVANZA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/580.gif,2026-05-23
+s285,Capitanich,Jorge Milton,CHACO,2025-2031,2025-12-10,2031-12-09,JUSTICIALISTA,1964-11-28,61,M,Contador,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/285.gif,2026-05-23
+s567,Carambia,José María,SANTA CRUZ,2023-2029,2023-12-10,2029-12-09,MOVERE SANTA CRUZ,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/567.gif,2026-05-23
+s586,Cervi,Mario Pablo,NEUQUÉN,2025-2031,2025-12-10,2031-12-09,LA LIBERTAD AVANZA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/586.gif,2026-05-23
+s398,Corpacci,Lucía Benigna,CATAMARCA,2021-2027,2021-12-10,2027-12-09,JUSTICIALISTA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/398.gif,2026-05-23
+s587,Corroza,Julieta,NEUQUÉN,2025-2031,2025-12-10,2031-12-09,LA NEUQUINIDAD,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/587.gif,2026-05-23
+s595,Coto,Agustín Pedro,SANTIAGO DEL ESTERO,2025-2031,2025-12-10,2031-12-09,LA LIBERTAD AVANZA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/595.gif,2026-05-23
+s570,Cristina,Andrea Marcela,CHUBUT,2021-2027,2021-12-10,2027-12-09,FRENTE PRO,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/570.gif,2026-05-23
+s517,Di Tullio,Juliana,BUENOS AIRES,2023-2029,2023-12-10,2029-12-09,JUSTICIALISTA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/517.gif,2026-05-23
+s461,Espínola,Carlos Mauricio,CORRIENTES,2021-2027,2021-12-10,2027-12-09,PROVINCIAS UNIDAS,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/461.gif,2026-05-23
+s520,Fama,Flavio Sergio,CATAMARCA,2021-2027,2021-12-10,2027-12-09,UCR - UNIÓN CÍVICA RADICAL,2025-12-11,0,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/520.gif,2026-05-23
+s468,Fernández Sagasti,Anabel,MENDOZA,2021-2027,2021-12-10,2027-12-09,JUSTICIALISTA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/468.gif,2026-05-23
+s590,Fullone,Enzo Paolo,RÍO NEGRO,2025-2031,2025-12-26,2031-12-09,LA LIBERTAD AVANZA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/590.gif,2026-05-23
+s568,Gadano,Natalia Elena,SANTA CRUZ,2023-2029,2023-12-10,2029-12-09,MOVERE SANTA CRUZ,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/568.gif,2026-05-23
+s573,Galaretto,Eduardo Horacio,SANTA FE,2021-2027,2021-12-10,2027-12-09,UCR - UNIÓN CÍVICA RADICAL,2026-02-10,0,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/573.gif,2026-05-23
+s562,Giménez Navarro,María Celeste,SAN JUAN,2023-2029,2023-12-10,2029-12-09,JUSTICIALISTA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/562.gif,2026-05-23
+s578,Godoy,Juan Cruz,CHACO,2025-2031,2025-12-10,2031-12-09,LA LIBERTAD AVANZA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/578.gif,2026-05-23
+s560,Goerling Lara,Enrique Martín,MISIONES,2023-2029,2023-12-10,2029-12-09,FRENTE PRO,1972-10-03,53,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/560.gif,2026-05-23
+s477,González,María Teresa Margarita,FORMOSA,2023-2029,2023-12-10,2029-12-09,JUSTICIALISTA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/477.gif,2026-05-23
+s592,Guzmán Coraita,Gonzalo,SALTA,2025-2031,2025-12-10,2031-12-09,LA LIBERTAD AVANZA,,,M,Carrera,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/592.gif,2026-05-23
+s531,Huala,María Victoria,LA PAMPA,2021-2027,2021-12-10,2027-12-09,FRENTE PRO,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/531.gif,2026-05-23
+s400,Juez,Luis Alfredo,CÓRDOBA,2021-2027,2021-12-10,2027-12-09,LA LIBERTAD AVANZA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/400.gif,2026-05-23
+s534,Juri,Mariana,MENDOZA,2021-2027,2021-12-10,2027-12-09,UCR - UNIÓN CÍVICA RADICAL,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/534.gif,2026-05-23
+s366,Kirchner,Alicia Margarita Antonia,SANTA CRUZ,2023-2029,2023-12-10,2029-12-09,JUSTICIALISTA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/366.gif,2026-05-23
+s530,Kroneberger,Daniel Ricardo,LA PAMPA,2021-2027,2021-12-10,2027-12-09,UCR - UNIÓN CÍVICA RADICAL,1961-06-12,64,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/530.gif,2026-05-23
+s538,Lewandowski,Marcelo Néstor,SANTA FE,2021-2027,2021-12-10,2027-12-09,JUSTICIALISTA,1965-09-01,60,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/538.gif,2026-05-23
+s529,Linares,Carlos Alberto,CHUBUT,2021-2027,2021-12-10,2027-12-09,JUSTICIALISTA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/529.gif,2026-05-23
+s536,Losada,Carolina,SANTA FE,2021-2027,2021-12-10,2027-12-09,UCR - UNIÓN CÍVICA RADICAL,1972-12-16,53,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/536.gif,2026-05-23
+s574,López,Cándida Cristina,SANTIAGO DEL ESTERO,2025-2031,2025-12-10,2031-12-09,JUSTICIALISTA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/574.gif,2026-05-23
+s555,López,María Florencia,LA RIOJA,2023-2029,2023-12-10,2029-12-09,JUSTICIALISTA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/555.gif,2026-05-23
+s576,Manzur,Juan Luis,TUCUMÁN,2023-2029,2023-12-09,2029-12-09,JUSTICIALISTA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/576.gif,2026-05-23
+s589,Marks,Ana Inés,RÍO NEGRO,2025-2031,2025-12-10,2031-12-09,JUSTICIALISTA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/589.gif,2026-05-23
+s294,Mayans,José Miguel Ángel,FORMOSA,2023-2029,2023-12-10,2029-12-09,JUSTICIALISTA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/294.gif,2026-05-23
+s540,Mendoza,Sandra Mariela,TUCUMÁN,2021-2027,2021-12-10,2027-12-09,CONVICCIÓN FEDERAL,,,F,Sandra,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/540.gif,2026-05-23
+s554,Moises,María Carolina,JUJUY,2023-2029,2023-12-10,2029-12-09,CONVICCIÓN FEDERAL,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/554.gif,2026-05-23
+s596,Monte de Oca,María Belén,SANTIAGO DEL ESTERO,2025-2031,2025-12-10,2031-12-09,LA LIBERTAD AVANZA,1989-04-04,37,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/596.gif,2026-05-23
+s581,Monteverde,Agustín Aníbal,CIUDAD AUTÓNOMA DE BUENOS AIRES,2025-2031,2025-12-10,2031-12-09,LA LIBERTAD AVANZA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/581.gif,2026-05-23
+s594,Moreno,Elia Esther del Carmen,SANTIAGO DEL ESTERO,2025-2031,2025-12-10,2031-12-09,FRENTE CÍVICO POR SANTIAGO,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/594.gif,2026-05-23
+s585,Márquez,Nadia Judith,NEUQUÉN,2025-2031,2025-12-10,2031-12-09,LA LIBERTAD AVANZA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/585.gif,2026-05-23
+s510,Neder,José Emilio,SANTIAGO DEL ESTERO,2025-2031,2025-12-10,2031-12-09,JUSTICIALISTA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/510.gif,2026-05-23
+s563,Olivera Lucero,Bruno Antonio,SAN JUAN,2023-2029,2023-12-10,2029-12-09,LA LIBERTAD AVANZA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/563.gif,2026-05-23
+s591,Orozco,María Emilia,SALTA,2025-2031,2025-12-10,2031-12-09,LA LIBERTAD AVANZA,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/591.gif,2026-05-23
+s557,Pagotto,Juan Carlos,LA RIOJA,2023-2029,2023-12-10,2029-12-09,LA LIBERTAD AVANZA,1952-07-08,73,M,Experiencia,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/557.gif,2026-05-23
+s551,Paoltroni,Francisco Manuel,FORMOSA,2023-2029,2023-12-10,2029-12-09,LA LIBERTAD AVANZA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/551.gif,2026-05-23
+s498,Recalde,Mariano,CIUDAD AUTÓNOMA DE BUENOS AIRES,2025-2031,2025-12-10,2031-12-09,JUSTICIALISTA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/498.gif,2026-05-23
+s556,Rejal,Jesús Fernando,LA RIOJA,2023-2029,2023-12-10,2029-12-09,JUSTICIA SOCIAL FEDERAL,,,M,Cursé,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/556.gif,2026-05-23
+s559,Rojas Decut,Sonia Elizabeth,MISIONES,2023-2029,2023-12-10,2029-12-09,FRENTE RENOVADOR DE LA CONCORDIA SOCIAL,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/559.gif,2026-05-23
+s593,Royon,Flavia Gabriela,SALTA,2025-2031,2025-12-10,2031-12-09,PRIMERO LOS SALTEÑOS,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/593.gif,2026-05-23
+s566,Salino,Fernando Aldo,SAN LUIS,2023-2029,2023-12-10,2029-12-09,JUSTICIA SOCIAL FEDERAL,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/566.gif,2026-05-23
+s579,Schneider,Silvana Lorena,CHACO,2025-2031,2025-12-10,2031-12-09,UCR - UNIÓN CÍVICA RADICAL,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/579.gif,2026-05-23
+s588,Soria,Martin Ignacio,RÍO NEGRO,2025-2031,2025-12-10,2031-12-09,JUSTICIALISTA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/588.gif,2026-05-23
+s571,Suárez,Rodolfo Alejandro,MENDOZA,2023-2029,2023-12-10,2029-12-09,UCR - UNIÓN CÍVICA RADICAL,1963-04-20,63,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/571.gif,2026-05-23
+s528,Terenzi,Edith Elizabeth,CHUBUT,2021-2027,2021-12-10,2027-12-09,DESPIERTA CHUBUT,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/528.gif,2026-05-23
+s561,Uñac,Sergio Mauricio,SAN JUAN,2023-2029,2023-12-10,2029-12-09,JUSTICIALISTA,1970-02-15,56,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/561.gif,2026-05-23
+s525,Valenzuela,Mercedes Gabriela,CORRIENTES,2021-2027,2021-12-10,2027-12-09,UCR - UNIÓN CÍVICA RADICAL,1974-09-24,51,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/525.gif,2026-05-23
+s523,Vigo,Alejandra María,CÓRDOBA,2021-2027,2021-12-10,2027-12-09,PROVINCIAS UNIDAS,,,F,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/523.gif,2026-05-23
+s524,Vischi,Eduardo Alejandro,CORRIENTES,2021-2027,2021-12-10,2027-12-09,UCR - UNIÓN CÍVICA RADICAL,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/524.gif,2026-05-23
+s450,Zamora,Gerardo,SANTIAGO DEL ESTERO,2025-2031,2025-12-10,2031-12-09,FRENTE CÍVICO POR SANTIAGO,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/450.gif,2026-05-23
+s545,de Pedro,Eduardo Enrique,BUENOS AIRES,2023-2029,2023-12-10,2029-12-09,JUSTICIALISTA,,,M,,,https://www.senado.gob.ar/bundles/senadosenadores/images/fsenaG/545.gif,2026-05-23
