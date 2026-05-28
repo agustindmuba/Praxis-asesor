@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from praxis.domain import Expediente, NumeroExpediente, TipoExpediente
+from praxis.domain import Camara, Comision, Expediente, NumeroExpediente, TipoExpediente
 
 
 class FuenteExpedientes(ABC):
@@ -57,5 +57,31 @@ class FuenteExpedientes(ABC):
             FuenteNoDisponible: si la fuente falla por motivos externos.
             ValueError: si `numero.camara` no es compatible con la fuente,
                 o si la fuente exige `tipo` y no se proveyó.
+        """
+        raise NotImplementedError
+
+
+class CatalogoComisiones(ABC):
+    """Puerto: catálogo de comisiones legislativas.
+
+    Implementación esperada inicial:
+    `praxis.infrastructure.comisiones.LocalCatalogoComisiones` (lee CSV HCDN
+    del Observatorio + JSON HSN oficial, ambos vendored).
+    """
+
+    @abstractmethod
+    def listar(self, camara: Camara) -> list[Comision]:
+        """Devuelve todas las comisiones registradas en la cámara dada."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def buscar_por_nombre(
+        self,
+        query: str,
+        camara: Camara | None = None,
+    ) -> list[Comision]:
+        """Devuelve comisiones cuyo nombre contiene `query` (case-insensitive).
+
+        Si `camara=None`, busca en ambas cámaras.
         """
         raise NotImplementedError

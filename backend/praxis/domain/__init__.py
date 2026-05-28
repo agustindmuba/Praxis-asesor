@@ -7,6 +7,7 @@ e infraestructura. La regla es: si una entidad o value object es parte del
 contrato público del dominio, vive en este __init__.
 """
 
+from praxis.domain.comision import Comision, TipoComision
 from praxis.domain.exceptions import (
     DomainError,
     ExpedienteNoEncontrado,
@@ -28,6 +29,7 @@ from praxis.domain.value_objects import (
 
 __all__ = [
     "Camara",
+    "Comision",
     "DomainError",
     "EstadoExpediente",
     "Expediente",
@@ -37,6 +39,7 @@ __all__ = [
     "Giro",
     "NumeroExpediente",
     "OrigenExpediente",
+    "TipoComision",
     "TipoExpediente",
     "TramiteEvento",
 ]
