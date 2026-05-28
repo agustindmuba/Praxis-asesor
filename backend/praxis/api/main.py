@@ -101,11 +101,17 @@ async def ready() -> JSONResponse:
 
 
 # -----------------------------------------------------------------------------
-# Routers de feature (se agregan a medida que se implementan)
+# Routers de feature
 # -----------------------------------------------------------------------------
 
-# from praxis.api.routers import expedientes
-# app.include_router(expedientes.router, prefix="/api/v1/expedientes")
+from praxis.api.routers import auth as auth_router  # noqa: E402
+from praxis.api.routers import expedientes as expedientes_router  # noqa: E402
+from praxis.api.routers import seguimientos as seguimientos_router  # noqa: E402
+
+API_V1 = "/api/v1"
+app.include_router(auth_router.router, prefix=API_V1)
+app.include_router(expedientes_router.router, prefix=API_V1)
+app.include_router(seguimientos_router.router, prefix=API_V1)
 
 
 # -----------------------------------------------------------------------------
