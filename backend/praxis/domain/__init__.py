@@ -19,6 +19,12 @@ from praxis.domain.expediente import (
     Giro,
     TramiteEvento,
 )
+from praxis.domain.inferencia_estado import (
+    InferenciaResult,
+    inferir_caducidad,
+    inferir_estado,
+    inferir_estado_y_caducidad,
+)
 from praxis.domain.legislador import Bloque, Legislador
 from praxis.domain.tramite_historico import (
     eventos_recientes,
@@ -46,6 +52,7 @@ __all__ = [
     "Firmante",
     "FuenteNoDisponible",
     "Giro",
+    "InferenciaResult",
     "Legislador",
     "NumeroExpediente",
     "OrigenExpediente",
@@ -55,6 +62,9 @@ __all__ = [
     "eventos_recientes",
     "filter_by_camara",
     "filter_by_rango",
+    "inferir_caducidad",
+    "inferir_estado",
+    "inferir_estado_y_caducidad",
     "merge_tramite",
     "validar_consistencia",
 ]

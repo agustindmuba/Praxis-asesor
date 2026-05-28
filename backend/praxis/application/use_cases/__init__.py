@@ -6,5 +6,6 @@ lógica de negocio (eso es dominio), NI conoce implementaciones concretas
 """
 
 from praxis.application.use_cases.buscar_expediente import BuscarExpediente
+from praxis.application.use_cases.enriquecer_expediente import EnriquecerExpediente
 
-__all__ = ["BuscarExpediente"]
+__all__ = ["BuscarExpediente", "EnriquecerExpediente"]
