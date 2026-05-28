@@ -18,6 +18,7 @@ from praxis.domain.expediente import (
     Giro,
     TramiteEvento,
 )
+from praxis.domain.legislador import Bloque, Legislador
 from praxis.domain.tramite_historico import (
     eventos_recientes,
     filter_by_camara,
@@ -34,6 +35,7 @@ from praxis.domain.value_objects import (
 )
 
 __all__ = [
+    "Bloque",
     "Camara",
     "DomainError",
     "EstadoExpediente",
@@ -42,6 +44,7 @@ __all__ = [
     "Firmante",
     "FuenteNoDisponible",
     "Giro",
+    "Legislador",
     "NumeroExpediente",
     "OrigenExpediente",
     "TipoExpediente",

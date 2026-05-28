@@ -15,7 +15,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from praxis.domain import Expediente, NumeroExpediente, TipoExpediente
+from praxis.domain import Camara, Expediente, NumeroExpediente, TipoExpediente
+from praxis.domain.legislador import Legislador
 
 
 class FuenteExpedientes(ABC):
@@ -57,5 +58,38 @@ class FuenteExpedientes(ABC):
             FuenteNoDisponible: si la fuente falla por motivos externos.
             ValueError: si `numero.camara` no es compatible con la fuente,
                 o si la fuente exige `tipo` y no se proveyó.
+        """
+        raise NotImplementedError
+
+
+class CatalogoLegisladores(ABC):
+    """Puerto: catálogo del padrón vigente de legisladores.
+
+    Implementación esperada inicial: `praxis.infrastructure.padron.CsvPadronRepository`
+    (lee de CSVs vendored del Observatorio). Futuras: DB, API oficial si existe.
+
+    El padrón cambia con poca frecuencia (recambio bicameral, asunciones).
+    Las implementaciones pueden cachear todo en memoria al inicio sin
+    preocupación de staleness inmediata.
+    """
+
+    @abstractmethod
+    def listar(self, camara: Camara) -> list[Legislador]:
+        """Devuelve todos los legisladores vigentes de la cámara dada."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def buscar_por_slug(self, slug: str, camara: Camara) -> Legislador:
+        """Devuelve el legislador identificado por su slug.
+
+        Raises:
+            KeyError: si no se encuentra el slug en esa cámara.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def buscar_por_nombre(self, query: str) -> list[Legislador]:
+        """Devuelve legisladores cuyo apellido o nombre matche `query`
+        (case-insensitive, substring). Busca en ambas cámaras.
         """
         raise NotImplementedError
