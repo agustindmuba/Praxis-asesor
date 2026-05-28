@@ -1,0 +1,5 @@
+# HTML cacheado, salidas locales — no versionado.
+_cache/
+*.html
+*.json
+!samples/**
