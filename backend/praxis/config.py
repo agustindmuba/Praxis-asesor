@@ -53,6 +53,22 @@ class Settings(BaseSettings):
         description="API key de Anthropic. Requerida solo para features de IA (v3+).",
     )
 
+    # --- Auth (Clerk) ---
+    # Ver docs/specs/09-auth-multitenancy.md. Si está vacío, la app arranca pero
+    # los endpoints protegidos van a fallar; útil para tests o flows internos.
+    clerk_issuer: str | None = Field(
+        default=None,
+        description="Issuer esperado del JWT (Clerk frontend API URL).",
+    )
+    clerk_jwks_url: str | None = Field(
+        default=None,
+        description="URL del JWKS de Clerk (.well-known/jwks.json).",
+    )
+    clerk_audience: str | None = Field(
+        default=None,
+        description="`aud` esperado, si Clerk lo configura.",
+    )
+
     # --- Logging ---
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
         default="INFO",

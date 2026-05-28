@@ -7,6 +7,12 @@ e infraestructura. La regla es: si una entidad o value object es parte del
 contrato público del dominio, vive en este __init__.
 """
 
+from praxis.domain.auth import (
+    AuthClaims,
+    AuthError,
+    AuthErrorCode,
+    RequestContext,
+)
 from praxis.domain.comision import Comision, TipoComision
 from praxis.domain.despacho import Despacho
 from praxis.domain.exceptions import (
@@ -53,6 +59,9 @@ from praxis.domain.value_objects import (
 __all__ = [
     "LIMIT_DEFAULT",
     "LIMIT_MAX",
+    "AuthClaims",
+    "AuthError",
+    "AuthErrorCode",
     "Bloque",
     "Camara",
     "Comision",
@@ -71,6 +80,7 @@ __all__ = [
     "NumeroExpediente",
     "OrigenExpediente",
     "Prioridad",
+    "RequestContext",
     "ResultadoBusqueda",
     "Rol",
     "SeguimientoExpediente",

@@ -39,6 +39,9 @@ dependencies = [
 
     # Logging estructurado.
     "structlog>=24.4",
+
+    # JWT verification (Clerk auth — ver feat/14 spec 09).
+    "pyjwt[crypto]>=2.9",
 ]
 
 # Dependencias de desarrollo (PEP 735 — soportado por uv).
