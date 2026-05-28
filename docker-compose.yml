@@ -1,0 +1,54 @@
+# Stack de infraestructura local de Praxis Asesor.
+#
+# Levantar:    docker compose up -d
+# Apagar:      docker compose down
+# Logs:        docker compose logs -f [postgres|redis]
+# Reset total: docker compose down -v   (borra volúmenes — pierde datos)
+#
+# Las credenciales por defecto coinciden con backend/.env.example.
+# Para usar puertos distintos, exportar POSTGRES_PORT / REDIS_PORT antes
+# de levantar, o crear un .env en la raíz con esos overrides.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: praxis_postgres
+    environment:
+      POSTGRES_USER: praxis
+      POSTGRES_PASSWORD: praxis
+      POSTGRES_DB: praxis
+      # Acepta conexiones desde fuera del contenedor (no solo localhost interno).
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U praxis -d praxis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: praxis_redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    name: praxis_postgres_data
+  redis_data:
+    name: praxis_redis_data
