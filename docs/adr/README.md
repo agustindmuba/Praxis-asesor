@@ -41,4 +41,4 @@ Qué cambia en el código, en el equipo, en la operación. Riesgos y trade-offs 
 
 ## ADRs vigentes
 
-(Vacío. El primer ADR se abrirá cuando empiece el ciclo 1.)
+- [`0001-stack-inicial.md`](0001-stack-inicial.md) — Stack inicial de Praxis Asesor (aceptada, 2026-05-27).
