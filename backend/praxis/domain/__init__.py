@@ -20,6 +20,12 @@ from praxis.domain.expediente import (
     Giro,
     TramiteEvento,
 )
+from praxis.domain.expediente_query import (
+    LIMIT_DEFAULT,
+    LIMIT_MAX,
+    ExpedienteQuery,
+    ResultadoBusqueda,
+)
 from praxis.domain.inferencia_estado import (
     InferenciaResult,
     inferir_caducidad,
@@ -45,6 +51,8 @@ from praxis.domain.value_objects import (
 )
 
 __all__ = [
+    "LIMIT_DEFAULT",
+    "LIMIT_MAX",
     "Bloque",
     "Camara",
     "Comision",
@@ -53,6 +61,7 @@ __all__ = [
     "EstadoExpediente",
     "Expediente",
     "ExpedienteNoEncontrado",
+    "ExpedienteQuery",
     "Firmante",
     "FuenteNoDisponible",
     "Giro",
@@ -62,6 +71,7 @@ __all__ = [
     "NumeroExpediente",
     "OrigenExpediente",
     "Prioridad",
+    "ResultadoBusqueda",
     "Rol",
     "SeguimientoExpediente",
     "TipoComision",
