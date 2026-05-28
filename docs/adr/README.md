@@ -42,7 +42,5 @@ Qué cambia en el código, en el equipo, en la operación. Riesgos y trade-offs 
 ## ADRs vigentes
 
 - [`0001-stack-inicial.md`](0001-stack-inicial.md) — Stack inicial de Praxis Asesor (aceptada, 2026-05-27).
-<<<<<<< HEAD
-=======
-- [`0002-modelo-expediente.md`](0002-modelo-expediente.md) — Modelo de Expediente, Trámite y Firmante (aceptada, 2026-05-27).
->>>>>>> feat/01-ingesta-hcdn
+- [`0002-modelo-expediente.md`](0002-modelo-expediente.md) — Modelo de Expediente, Trámite y Firmante (aceptada, 2026-05-27, con Amendment 1 del mismo día).
+- [`0003-persistencia.md`](0003-persistencia.md) — Persistencia con SQLAlchemy 2.0 async + multi-tenancy (aceptada, 2026-05-28).
