@@ -20,6 +20,7 @@ from praxis.domain import (
     ExpedienteNoEncontrado,
     FuenteNoDisponible,
     NumeroExpediente,
+    TipoExpediente,
 )
 from praxis.infrastructure.scrapers.hcdn.parser import parse_resultado_hcdn
 
@@ -66,7 +67,14 @@ class HcdnScraper(FuenteExpedientes):
         self._lock = asyncio.Lock()
         self._last_request_time: float = 0.0
 
-    async def buscar_por_numero(self, numero: NumeroExpediente) -> Expediente:
+    async def buscar_por_numero(
+        self,
+        numero: NumeroExpediente,
+        tipo: TipoExpediente | None = None,
+    ) -> Expediente:
+        # `tipo` no se usa en HCDN: la búsqueda lo infiere del sumario.
+        # Aceptamos el parámetro para cumplir la signature del puerto.
+        del tipo
         if numero.camara != Camara.HCDN:
             raise ValueError(f"HcdnScraper solo soporta Camara.HCDN, recibió {numero.camara}")
 
