@@ -34,6 +34,7 @@ from praxis.domain.tramite_historico import (
     merge_tramite,
     validar_consistencia,
 )
+from praxis.domain.usuario import MembresiaDespacho, Rol, Usuario
 from praxis.domain.value_objects import (
     Camara,
     EstadoExpediente,
@@ -56,11 +57,14 @@ __all__ = [
     "Giro",
     "InferenciaResult",
     "Legislador",
+    "MembresiaDespacho",
     "NumeroExpediente",
     "OrigenExpediente",
+    "Rol",
     "TipoComision",
     "TipoExpediente",
     "TramiteEvento",
+    "Usuario",
     "eventos_recientes",
     "filter_by_camara",
     "filter_by_rango",

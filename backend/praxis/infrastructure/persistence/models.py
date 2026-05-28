@@ -8,14 +8,18 @@ Ver `docs/adr/0003-persistencia.md`.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import JSON, Boolean, Date, ForeignKey, Index, Integer, String, Uuid
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Index, Integer, String, Uuid
+from sqlalchemy import func as sa_func_now_module
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from praxis.infrastructure.persistence.base import Base, TimestampsMixin, uuid7
+
+# Alias para legibilidad en server_default.
+sa_func_now = sa_func_now_module.now
 
 # ---------------------------------------------------------------------------
 # Despacho (tenant)
@@ -38,6 +42,64 @@ class DespachoOrm(Base, TimestampsMixin, kw_only=True):
 
     def __repr__(self) -> str:
         return f"DespachoOrm(id={self.id!r}, nombre={self.nombre!r})"
+
+
+# ---------------------------------------------------------------------------
+# Usuario y MembresiaDespacho
+# ---------------------------------------------------------------------------
+
+
+class UsuarioOrm(Base, TimestampsMixin, kw_only=True):
+    """Usuario humano del sistema."""
+
+    __tablename__ = "usuario"
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True, index=True)
+    nombre: Mapped[str] = mapped_column(String(200), nullable=False)
+    auth_provider_id: Mapped[str | None] = mapped_column(
+        String(200), nullable=True, unique=True, default=None, index=True
+    )
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    def __repr__(self) -> str:
+        return f"UsuarioOrm(id={self.id!r}, email={self.email!r})"
+
+
+class MembresiaDespachoOrm(Base, kw_only=True):
+    """Pertenencia Usuario ↔ Despacho con rol.
+
+    PK compuesto (usuario_id, despacho_id). Un usuario pertenece a múltiples
+    despachos, cada uno con rol propio.
+    """
+
+    __tablename__ = "membresia_despacho"
+
+    usuario_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("usuario.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    despacho_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="CASCADE"),
+        primary_key=True,
+        index=True,
+    )
+    rol: Mapped[str] = mapped_column(String(30), nullable=False)
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"MembresiaDespachoOrm(usuario_id={self.usuario_id!r}, "
+            f"despacho_id={self.despacho_id!r}, rol={self.rol!r})"
+        )
 
 
 # ---------------------------------------------------------------------------
