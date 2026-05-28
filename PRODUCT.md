@@ -59,23 +59,24 @@ A diferencia de los sistemas oficiales (que son consultivos pero no operativos) 
 7. Autenticación y multi-tenancy por despacho.
 8. Roles: jefe de asesores, asesor, lector.
 9. Búsqueda y filtrado de expedientes (full-text + filtros estructurados).
-10. Ficha de expediente (vista detalle).
-11. Seguimiento personalizado: "marcar" expedientes del despacho.
-12. Asignación de expedientes a miembros del equipo.
+10. Inferencia automática del estado parlamentario y caducidad. Deriva `EstadoExpediente` y los campos `fecha_caducidad*` / `prorrogado` a partir de la secuencia de trámites capturada en la feature 4, aplicando Ley 13.640 y artículo 114 bis del RHCDN. Depende del modelo extendido por el Amendment 1 del ADR 0002.
+11. Ficha de expediente (vista detalle).
+12. Seguimiento personalizado: "marcar" expedientes del despacho.
+13. Asignación de expedientes a miembros del equipo.
 
 **Bloque 3 — Alertas y coordinación** (ciclos 5-6)
 
-13. Sistema de alertas configurable (por expediente, por tema, por autor).
-14. Notificaciones por email (in-app inicialmente).
-15. Notas internas por expediente (privadas del despacho).
-16. Tablero del despacho: vista consolidada.
-17. Calendario de plazos críticos (caducidad, sesiones próximas).
+14. Sistema de alertas configurable (por expediente, por tema, por autor).
+15. Notificaciones por email (in-app inicialmente).
+16. Notas internas por expediente (privadas del despacho).
+17. Tablero del despacho: vista consolidada.
+18. Calendario de plazos críticos (caducidad, sesiones próximas).
 
 **Bloque 4 — Pulido y onboarding** (ciclo 7)
 
-18. Onboarding guiado para nuevos despachos.
-19. Documentación de usuario.
-20. Pilotos con 2-3 despachos amigos.
+19. Onboarding guiado para nuevos despachos.
+20. Documentación de usuario.
+21. Pilotos con 2-3 despachos amigos.
 
 ### Métricas de éxito del MVP
 
@@ -115,6 +116,7 @@ A diferencia de los sistemas oficiales (que son consultivos pero no operativos) 
 
 - **Cambios en portales oficiales**: scrapers se rompen. Mitigación: tests de contrato, monitoreo, arquitectura modular.
 - **Volumen de datos**: HCDN procesa ~6000 expedientes/año; HSN ~2000. No es masivo pero el historial es largo. Mitigación: ingesta incremental, archivado.
+- **Inferencia de estado parlamentario**: la heurística depende del vocabulario del portal y de la normalización previa de eventos del trámite. Mitigación: monitoreo con muestreo manual de discrepancias.
 
 ### Supuestos críticos
 
