@@ -18,6 +18,13 @@ from praxis.domain.expediente import (
     Giro,
     TramiteEvento,
 )
+from praxis.domain.tramite_historico import (
+    eventos_recientes,
+    filter_by_camara,
+    filter_by_rango,
+    merge_tramite,
+    validar_consistencia,
+)
 from praxis.domain.value_objects import (
     Camara,
     EstadoExpediente,
@@ -39,4 +46,9 @@ __all__ = [
     "OrigenExpediente",
     "TipoExpediente",
     "TramiteEvento",
+    "eventos_recientes",
+    "filter_by_camara",
+    "filter_by_rango",
+    "merge_tramite",
+    "validar_consistencia",
 ]
