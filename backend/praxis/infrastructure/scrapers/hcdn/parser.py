@@ -20,6 +20,7 @@ from praxis.domain import (
     Firmante,
     Giro,
     NumeroExpediente,
+    OrigenExpediente,
     TipoExpediente,
     TramiteEvento,
 )
@@ -122,10 +123,9 @@ def parse_resultado_hcdn(html: str, numero: NumeroExpediente) -> Expediente:
 
     titulo = extracto or sumario or f"Expediente {numero}"
 
-    # 2. Tipo: lo inferimos del origen del expediente cuando no hay etiqueta clara.
-    #    En HCDN el tipo se decide más fino con el contenido del PDF/sumario;
-    #    para el spike usamos LEY como default (cubre el 80%+).
-    tipo = _inferir_tipo(extracto or "", sumario or "")
+    # 2. Tipo: heurística que combina origen + texto del sumario.
+    #    Ver Amendment 1 del ADR 0002 §6 para la regla completa.
+    tipo = _inferir_tipo(extracto or "", sumario or "", numero.origen)
 
     # 3. Firmantes.
     firmantes = _extract_firmantes(soup)
@@ -152,20 +152,43 @@ def parse_resultado_hcdn(html: str, numero: NumeroExpediente) -> Expediente:
     )
 
 
-def _inferir_tipo(extracto: str, sumario: str) -> TipoExpediente:
-    """Heurística simple para tipo. La fuente HCDN no lo expone en un campo
-    estructurado: hay que inferirlo del texto del sumario.
+# Regex para detectar la palabra "mensaje" como palabra completa.
+# Matchea "mensaje", "Mensaje", "MENSAJE", "mensaje n°", "mensaje nº", etc.
+_MENSAJE_PE_RE = re.compile(r"\bmensaje\b", re.IGNORECASE)
 
-    Si no es claramente identificable, default LEY (el caso más frecuente)."""
+
+def _inferir_tipo(extracto: str, sumario: str, origen: OrigenExpediente) -> TipoExpediente:
+    """Inferencia de TipoExpediente desde el texto del expediente.
+
+    Heurística definida en Amendment 1 del ADR 0002 §6:
+
+    Si origen ∈ {EJECUTIVO, JEFATURA_GABINETE}:
+      1. Si el texto contiene la palabra completa "mensaje" → MENSAJE_PE.
+      2. Si contiene "proyecto de ley" o "proyecto de" → PROYECTO_LEY.
+      3. Else (ambiguo) → MENSAJE_PE (default conservador, porque los
+         mensajes son la mayoría en este origen).
+
+    Resto de orígenes: marcadores explícitos en los primeros 80 caracteres
+    (declaraci → DECLARACION, resoluci → RESOLUCION, comunicaci → COMUNICACION),
+    default PROYECTO_LEY (cubre el caso más frecuente).
+    """
     texto = (extracto + " " + sumario).lower()
-    # Buscar marcadores explícitos al inicio del sumario.
+
+    if origen in (OrigenExpediente.EJECUTIVO, OrigenExpediente.JEFATURA_GABINETE):
+        if _MENSAJE_PE_RE.search(texto):
+            return TipoExpediente.MENSAJE_PE
+        if "proyecto de ley" in texto or "proyecto de" in texto:
+            return TipoExpediente.PROYECTO_LEY
+        return TipoExpediente.MENSAJE_PE  # default conservador para PE/JGM
+
+    # Resto de orígenes: marcadores al inicio del sumario.
     if "declaraci" in texto[:80]:
-        return TipoExpediente.DECLARACION
+        return TipoExpediente.PROYECTO_DECLARACION
     if "resoluci" in texto[:80]:
-        return TipoExpediente.RESOLUCION
+        return TipoExpediente.PROYECTO_RESOLUCION
     if "comunicaci" in texto[:80]:
-        return TipoExpediente.COMUNICACION
-    return TipoExpediente.LEY
+        return TipoExpediente.PROYECTO_COMUNICACION
+    return TipoExpediente.PROYECTO_LEY
 
 
 def _extract_firmantes(soup: BeautifulSoup) -> list[Firmante]:

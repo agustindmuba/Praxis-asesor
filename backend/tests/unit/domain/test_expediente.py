@@ -132,7 +132,7 @@ def _make_num(camara: Camara = Camara.HCDN) -> NumeroExpediente:
 def test_expediente_minimo() -> None:
     e = Expediente(
         numero=_make_num(),
-        tipo=TipoExpediente.LEY,
+        tipo=TipoExpediente.PROYECTO_LEY,
         titulo="Modificación Ley 25.326",
     )
     assert e.camara == Camara.HCDN
@@ -144,12 +144,12 @@ def test_expediente_minimo() -> None:
 def test_expediente_camara_es_atajo_de_numero() -> None:
     e_h = Expediente(
         numero=_make_num(Camara.HCDN),
-        tipo=TipoExpediente.LEY,
+        tipo=TipoExpediente.PROYECTO_LEY,
         titulo="X",
     )
     e_s = Expediente(
         numero=_make_num(Camara.HSN),
-        tipo=TipoExpediente.LEY,
+        tipo=TipoExpediente.PROYECTO_LEY,
         titulo="Y",
     )
     assert e_h.camara == Camara.HCDN
@@ -158,13 +158,13 @@ def test_expediente_camara_es_atajo_de_numero() -> None:
 
 def test_expediente_titulo_vacio_lanza() -> None:
     with pytest.raises(ValueError, match="titulo"):
-        Expediente(numero=_make_num(), tipo=TipoExpediente.LEY, titulo="  ")
+        Expediente(numero=_make_num(), tipo=TipoExpediente.PROYECTO_LEY, titulo="  ")
 
 
 def test_expediente_autor_principal_por_orden() -> None:
     e = Expediente(
         numero=_make_num(),
-        tipo=TipoExpediente.LEY,
+        tipo=TipoExpediente.PROYECTO_LEY,
         titulo="Algo",
         firmantes=[
             Firmante(nombre="B", orden=2),
@@ -183,7 +183,7 @@ def test_expediente_tramite_ordenado_asc_con_sin_fecha_al_final() -> None:
     t3 = TramiteEvento(fecha=None, camara=Camara.HCDN, evento="C")
     e = Expediente(
         numero=_make_num(),
-        tipo=TipoExpediente.LEY,
+        tipo=TipoExpediente.PROYECTO_LEY,
         titulo="X",
         tramite=[t1, t2, t3],
     )
@@ -193,14 +193,57 @@ def test_expediente_tramite_ordenado_asc_con_sin_fecha_al_final() -> None:
 
 def test_expediente_es_mutable() -> None:
     # A propósito mutable (ADR 0002): los casos de uso enriquecen.
-    e = Expediente(numero=_make_num(), tipo=TipoExpediente.LEY, titulo="X")
+    e = Expediente(numero=_make_num(), tipo=TipoExpediente.PROYECTO_LEY, titulo="X")
     e.estado = EstadoExpediente.EN_COMISION
     assert e.estado == EstadoExpediente.EN_COMISION
 
 
 def test_expediente_lista_firmantes_independiente_entre_instancias() -> None:
     """Regression guard: que `field(default_factory=list)` esté bien (no shared)."""
-    e1 = Expediente(numero=_make_num(), tipo=TipoExpediente.LEY, titulo="X")
-    e2 = Expediente(numero=_make_num(), tipo=TipoExpediente.LEY, titulo="Y")
+    e1 = Expediente(numero=_make_num(), tipo=TipoExpediente.PROYECTO_LEY, titulo="X")
+    e2 = Expediente(numero=_make_num(), tipo=TipoExpediente.PROYECTO_LEY, titulo="Y")
     e1.firmantes.append(Firmante(nombre="Z"))
     assert e2.firmantes == []
+
+
+# --- Amendment 1 ADR 0002: expediente_relacionado --------------------------
+
+
+def test_expediente_expediente_relacionado_default_none() -> None:
+    e = Expediente(numero=_make_num(), tipo=TipoExpediente.PROYECTO_LEY, titulo="X")
+    assert e.expediente_relacionado is None
+
+
+def test_expediente_expediente_relacionado_se_puede_setear() -> None:
+    # Caso típico: un expediente HCDN vinculado a su contraparte HSN.
+    e = Expediente(
+        numero=NumeroExpediente.parse_hcdn("100-D-2024"),
+        tipo=TipoExpediente.PROYECTO_LEY,
+        titulo="Proyecto X",
+    )
+    e.expediente_relacionado = NumeroExpediente.parse_hsn("50/24")
+    assert e.expediente_relacionado is not None
+    assert e.expediente_relacionado.camara == Camara.HSN
+    assert e.expediente_relacionado.numero == 50
+
+
+# --- Amendment 1 ADR 0002: caducidad ---------------------------------------
+
+
+def test_expediente_caducidad_defaults() -> None:
+    """Defaults razonables: sin fechas y no prorrogado."""
+    e = Expediente(numero=_make_num(), tipo=TipoExpediente.PROYECTO_LEY, titulo="X")
+    assert e.fecha_caducidad is None
+    assert e.fecha_caducidad_original is None
+    assert e.prorrogado is False
+
+
+def test_expediente_caducidad_setear_con_prorroga() -> None:
+    """Caso real: prorrogado una vez por aplicación del 114 bis."""
+    e = Expediente(numero=_make_num(), tipo=TipoExpediente.PROYECTO_LEY, titulo="X")
+    e.fecha_caducidad_original = date(2025, 2, 28)
+    e.fecha_caducidad = date(2027, 2, 28)
+    e.prorrogado = True
+    assert e.fecha_caducidad_original == date(2025, 2, 28)
+    assert e.fecha_caducidad == date(2027, 2, 28)
+    assert e.prorrogado is True

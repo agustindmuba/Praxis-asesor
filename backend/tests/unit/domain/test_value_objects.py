@@ -19,15 +19,28 @@ pytestmark = pytest.mark.unit
 
 
 def test_tipo_from_text_ley() -> None:
-    assert TipoExpediente.from_text("Proyecto De Ley") == TipoExpediente.LEY
-    assert TipoExpediente.from_text("LEY") == TipoExpediente.LEY
+    assert TipoExpediente.from_text("Proyecto De Ley") == TipoExpediente.PROYECTO_LEY
+    assert TipoExpediente.from_text("LEY") == TipoExpediente.PROYECTO_LEY
 
 
 def test_tipo_from_text_otros() -> None:
-    assert TipoExpediente.from_text("Proyecto De Resolución") == TipoExpediente.RESOLUCION
-    assert TipoExpediente.from_text("Proyecto De Declaración") == TipoExpediente.DECLARACION
-    assert TipoExpediente.from_text("Proyecto De Comunicación") == TipoExpediente.COMUNICACION
+    assert TipoExpediente.from_text("Proyecto De Resolución") == TipoExpediente.PROYECTO_RESOLUCION
+    assert (
+        TipoExpediente.from_text("Proyecto De Declaración") == TipoExpediente.PROYECTO_DECLARACION
+    )
+    assert (
+        TipoExpediente.from_text("Proyecto De Comunicación") == TipoExpediente.PROYECTO_COMUNICACION
+    )
     assert TipoExpediente.from_text("Decreto") == TipoExpediente.DECRETO
+
+
+def test_tipo_from_text_mensaje_pe() -> None:
+    # `from_text` reconoce el marcador "mensaje" para distinguir un mensaje
+    # del PE de un proyecto. Para distinción contextual con origen, el
+    # parser HCDN usa una heurística más rica (ver `_inferir_tipo`).
+    assert TipoExpediente.from_text("Mensaje") == TipoExpediente.MENSAJE_PE
+    assert TipoExpediente.from_text("Mensaje del Poder Ejecutivo") == TipoExpediente.MENSAJE_PE
+    assert TipoExpediente.from_text("MENSAJE N° 1/2024") == TipoExpediente.MENSAJE_PE
 
 
 def test_tipo_from_text_desconocido_cae_a_otro() -> None:
@@ -41,11 +54,29 @@ def test_origen_from_code_validos() -> None:
     assert OrigenExpediente.from_code("D") == OrigenExpediente.DIPUTADO
     assert OrigenExpediente.from_code("s") == OrigenExpediente.SENADOR
     assert OrigenExpediente.from_code(" PE ") == OrigenExpediente.EJECUTIVO
-    assert OrigenExpediente.from_code("JGM") == OrigenExpediente.JEFATURA
+    assert OrigenExpediente.from_code("JGM") == OrigenExpediente.JEFATURA_GABINETE
+
+
+def test_origen_from_code_revision_diputados() -> None:
+    # Amendment 1 ADR 0002: CD se mapea a REVISION_DIPUTADOS (antes caía a OTRO).
+    assert OrigenExpediente.from_code("CD") == OrigenExpediente.REVISION_DIPUTADOS
+
+
+def test_origen_from_code_revision_senado() -> None:
+    assert OrigenExpediente.from_code("CS") == OrigenExpediente.REVISION_SENADO
+
+
+def test_origen_from_code_particular() -> None:
+    assert OrigenExpediente.from_code("P") == OrigenExpediente.PARTICULAR
+
+
+def test_origen_from_code_oficial_varios() -> None:
+    assert OrigenExpediente.from_code("OV") == OrigenExpediente.OFICIAL_VARIOS
 
 
 def test_origen_from_code_invalido_cae_a_otro() -> None:
-    assert OrigenExpediente.from_code("CD") == OrigenExpediente.OTRO
+    # Códigos que no existen en el enum deben caer a OTRO.
+    assert OrigenExpediente.from_code("ZZZ") == OrigenExpediente.OTRO
     assert OrigenExpediente.from_code("???") == OrigenExpediente.OTRO
 
 
@@ -138,3 +169,11 @@ def test_numero_es_inmutable() -> None:
 def test_estado_default_desconocido() -> None:
     # Default que usaremos para expedientes sin estado inferido.
     assert EstadoExpediente.DESCONOCIDO.value == "desconocido"
+
+
+def test_estado_media_sancion_valores_existen() -> None:
+    # Amendment 1 ADR 0002: APROBADO_PARCIAL se desdobló en dos valores que
+    # indican en qué cámara hay media sanción. Siglas (hcdn/hsn) por
+    # consistencia con Camara.
+    assert EstadoExpediente.MEDIA_SANCION_HCDN.value == "media_sancion_hcdn"
+    assert EstadoExpediente.MEDIA_SANCION_HSN.value == "media_sancion_hsn"

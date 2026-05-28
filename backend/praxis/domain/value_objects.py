@@ -24,12 +24,20 @@ class Camara(StrEnum):
 
 
 class OrigenExpediente(StrEnum):
-    """Origen del expediente (quién lo presenta)."""
+    """Origen del expediente (quién lo presenta).
+
+    Ampliado en Amendment 1 del ADR 0002 (2026-05-27) con CD/CS/P/OV.
+    `JEFATURA_GABINETE` renombrado desde `JEFATURA` para desambiguar.
+    """
 
     DIPUTADO = "D"
     SENADOR = "S"
     EJECUTIVO = "PE"
-    JEFATURA = "JGM"
+    JEFATURA_GABINETE = "JGM"
+    REVISION_DIPUTADOS = "CD"
+    REVISION_SENADO = "CS"
+    PARTICULAR = "P"
+    OFICIAL_VARIOS = "OV"
     OTRO = "OTRO"
 
     @classmethod
@@ -43,27 +51,40 @@ class OrigenExpediente(StrEnum):
 
 
 class TipoExpediente(StrEnum):
-    """Tipo de proyecto."""
+    """Tipo de expediente parlamentario.
 
-    LEY = "ley"
-    RESOLUCION = "resolucion"
-    DECLARACION = "declaracion"
-    COMUNICACION = "comunicacion"
+    Amendment 1 del ADR 0002 (2026-05-27): prefijo `PROYECTO_*` para enfatizar
+    que trabajamos con expedientes en trámite (no normas sancionadas), y nuevo
+    `MENSAJE_PE` para mensajes del Poder Ejecutivo.
+    """
+
+    PROYECTO_LEY = "proyecto_ley"
+    PROYECTO_RESOLUCION = "proyecto_resolucion"
+    PROYECTO_DECLARACION = "proyecto_declaracion"
+    PROYECTO_COMUNICACION = "proyecto_comunicacion"
+    MENSAJE_PE = "mensaje_pe"
     DECRETO = "decreto"
     OTRO = "otro"
 
     @classmethod
     def from_text(cls, text: str) -> TipoExpediente:
-        """Mapea desde un texto libre del portal (ej. 'Proyecto De Ley')."""
+        """Mapea desde un texto libre del portal (ej. 'Proyecto De Ley').
+
+        Para distinción contextual mensaje-vs-proyecto cuando el origen
+        es PE/JGM, usar el parser HCDN (`_inferir_tipo`) que considera
+        también el `OrigenExpediente`.
+        """
         t = text.lower().strip()
+        if "mensaje" in t:
+            return cls.MENSAJE_PE
         if "ley" in t:
-            return cls.LEY
+            return cls.PROYECTO_LEY
         if "resoluci" in t:
-            return cls.RESOLUCION
+            return cls.PROYECTO_RESOLUCION
         if "declaraci" in t:
-            return cls.DECLARACION
+            return cls.PROYECTO_DECLARACION
         if "comunicaci" in t:
-            return cls.COMUNICACION
+            return cls.PROYECTO_COMUNICACION
         if "decreto" in t:
             return cls.DECRETO
         return cls.OTRO
@@ -73,13 +94,21 @@ class EstadoExpediente(StrEnum):
     """Estado conocido del expediente.
 
     `DESCONOCIDO` es el default cuando el scraper no puede inferirlo desde
-    el portal. La inferencia desde trámite/dictámenes va en una feature aparte.
+    el portal. La inferencia desde trámite/dictámenes va en una feature aparte
+    (ver propuesta "inferencia de estado parlamentario desde trámite" en
+    PRODUCT.md bloque 2).
+
+    Amendment 1 del ADR 0002 (2026-05-27): `APROBADO_PARCIAL` se desdobla en
+    `MEDIA_SANCION_HCDN` y `MEDIA_SANCION_HSN` para que el asesor sepa en
+    qué cámara debe actuar a continuación. Las siglas (HCDN/HSN) preservan
+    consistencia con el enum `Camara`.
     """
 
     INGRESADO = "ingresado"
     EN_COMISION = "en_comision"
     CON_DICTAMEN = "con_dictamen"
-    APROBADO_PARCIAL = "aprobado_parcial"
+    MEDIA_SANCION_HCDN = "media_sancion_hcdn"
+    MEDIA_SANCION_HSN = "media_sancion_hsn"
     SANCIONADO = "sancionado"
     ARCHIVADO = "archivado"
     CADUCO = "caduco"
