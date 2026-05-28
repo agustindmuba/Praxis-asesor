@@ -8,11 +8,12 @@ from praxis.application.ports import (
     CatalogoLegisladores,
     FuenteExpedientes,
 )
-from praxis.application.use_cases import BuscarExpediente
+from praxis.application.use_cases import BuscarExpediente, EnriquecerExpediente
 
 __all__ = [
     "BuscarExpediente",
     "CatalogoComisiones",
     "CatalogoLegisladores",
+    "EnriquecerExpediente",
     "FuenteExpedientes",
 ]
