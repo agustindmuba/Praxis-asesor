@@ -12,6 +12,7 @@ from typing import Any
 import redis.asyncio as aioredis
 import structlog
 from fastapi import FastAPI, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
@@ -40,6 +41,36 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+
+# -----------------------------------------------------------------------------
+# CORS
+# -----------------------------------------------------------------------------
+# Necesario para que el frontend (Next.js en :3000 en dev, dominio real en
+# prod) pueda hablarle al backend. Lista permitida en `Settings.cors_origins`.
+#
+# Si la lista está vacía, no agregamos el middleware → todas las requests
+# cross-origin fallan en el navegador (comportamiento esperado para tests
+# unitarios y para entornos donde no hay frontend separado).
+_cors_origins = get_settings().cors_origins
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "X-Despacho-Id",
+            # Headers que Clerk puede mandar en algunos flows:
+            "Svix-Id",
+            "Svix-Timestamp",
+            "Svix-Signature",
+        ],
+        expose_headers=["X-Despacho-Id"],
+        max_age=600,  # cachea preflight 10 min.
+    )
 
 
 # -----------------------------------------------------------------------------

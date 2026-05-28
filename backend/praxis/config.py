@@ -7,9 +7,9 @@ La instancia se obtiene vía `get_settings()`, cacheada por proceso.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import Field, PostgresDsn, RedisDsn
+from pydantic import Field, PostgresDsn, RedisDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -76,11 +76,35 @@ class Settings(BaseSettings):
         ),
     )
 
+    # --- CORS ---
+    # En dev: ["http://localhost:3000"]. En prod: dominios del frontend.
+    # Vacío = sin CORS habilitado (todos los CORS preflights fallarán).
+    cors_origins: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Lista de orígenes permitidos para CORS. Ej: "
+            '["http://localhost:3000", "https://app.praxis-asesor.ar"]. '
+            "Si está vacío, el browser bloqueará todas las requests cross-origin."
+        ),
+    )
+
     # --- Logging ---
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
         default="INFO",
         description="Nivel de logging global.",
     )
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, value: Any) -> Any:
+        """Permite pasar `cors_origins` como CSV: 'http://a.com,http://b.com'.
+
+        pydantic-settings por default solo acepta JSON para list[str] vía env.
+        El CSV es más amigable en `.env`.
+        """
+        if isinstance(value, str) and not value.startswith("["):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        return value
 
     @property
     def is_dev(self) -> bool:

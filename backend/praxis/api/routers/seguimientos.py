@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 
 from praxis.api.deps import CurrentContext, SessionDep
@@ -25,6 +25,31 @@ from praxis.infrastructure.persistence.repositories import (
 )
 
 router = APIRouter(prefix="/seguimientos", tags=["seguimientos"])
+
+
+@router.get(
+    "",
+    summary="Listar seguimientos del despacho activo",
+    response_model=list[SeguimientoDTO],
+)
+async def listar_seguimientos(
+    session: SessionDep,
+    ctx: CurrentContext,
+    incluir_archivados: bool = Query(
+        False,
+        description="Si True, incluye también los archivados. Default False.",
+    ),
+) -> list[SeguimientoDTO]:
+    """Devuelve todos los seguimientos del despacho activo.
+
+    Tenant isolation: la query del repo filtra por `ctx.despacho.id`. El
+    cliente no puede pasar `despacho_id` por query string ni body.
+
+    El dashboard del frontend lo consume para mostrar "Mis seguimientos".
+    """
+    repo = SqlAlchemySeguimientoExpedienteRepository(session)
+    items = await repo.listar_por_despacho(ctx.despacho.id, incluir_archivados=incluir_archivados)
+    return [SeguimientoDTO.model_validate(s) for s in items]
 
 
 @router.post(
