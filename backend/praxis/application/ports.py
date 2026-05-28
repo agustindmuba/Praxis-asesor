@@ -17,6 +17,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from praxis.domain import (
+    AuthClaims,
     Camara,
     Comision,
     Expediente,
@@ -329,4 +330,28 @@ class SeguimientoExpedienteRepository(ABC):
         responsable_id: UUID | None,
     ) -> bool:
         """Asigna (o desasigna con None) un responsable. Returns True si afectó."""
+        raise NotImplementedError
+
+
+class AuthProvider(ABC):
+    """Puerto: verificación de tokens de un proveedor de identidad externo.
+
+    Implementación esperada inicial:
+    `praxis.infrastructure.auth.clerk.ClerkAuthProvider`.
+
+    El método verifica firma + claims (iss, exp, aud opcional) y devuelve
+    `AuthClaims` con los campos útiles. Si algo falla, lanza `AuthError`
+    con un `AuthErrorCode` discreto para que el caller (FastAPI dep o caso
+    de uso) lo mapee a un HTTP status code.
+
+    Ver `docs/specs/09-auth-multitenancy.md`.
+    """
+
+    @abstractmethod
+    async def verificar_token(self, token: str) -> AuthClaims:
+        """Verifica el token y devuelve los claims.
+
+        Raises:
+            AuthError: con `code` ∈ {INVALID_TOKEN, TOKEN_EXPIRED, WRONG_ISSUER}.
+        """
         raise NotImplementedError

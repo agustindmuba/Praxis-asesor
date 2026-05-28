@@ -4,6 +4,7 @@ Ver `README.md` en esta carpeta para responsabilidades y restricciones.
 """
 
 from praxis.application.ports import (
+    AuthProvider,
     CatalogoComisiones,
     CatalogoLegisladores,
     DespachoRepository,
@@ -13,9 +14,14 @@ from praxis.application.ports import (
     SeguimientoExpedienteRepository,
     UsuarioRepository,
 )
-from praxis.application.use_cases import BuscarExpediente, EnriquecerExpediente
+from praxis.application.use_cases import (
+    BuscarExpediente,
+    EnriquecerExpediente,
+    ResolverContextoRequest,
+)
 
 __all__ = [
+    "AuthProvider",
     "BuscarExpediente",
     "CatalogoComisiones",
     "CatalogoLegisladores",
@@ -24,6 +30,7 @@ __all__ = [
     "ExpedienteRepository",
     "FuenteExpedientes",
     "MembresiaDespachoRepository",
+    "ResolverContextoRequest",
     "SeguimientoExpedienteRepository",
     "UsuarioRepository",
 ]
