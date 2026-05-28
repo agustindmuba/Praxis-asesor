@@ -20,7 +20,9 @@ from praxis.domain import (
     MembresiaDespacho,
     NumeroExpediente,
     OrigenExpediente,
+    Prioridad,
     Rol,
+    SeguimientoExpediente,
     TipoExpediente,
     TramiteEvento,
     Usuario,
@@ -32,6 +34,7 @@ from praxis.infrastructure.persistence.models import (
     FirmanteOrm,
     GiroOrm,
     MembresiaDespachoOrm,
+    SeguimientoExpedienteOrm,
     TramiteEventoOrm,
     UsuarioOrm,
 )
@@ -84,6 +87,7 @@ def to_expediente(orm: ExpedienteOrm) -> Expediente:
     giros = [_to_giro(g) for g in orm.giros]
     tramite = [_to_tramite_evento(t) for t in orm.tramite]
     return Expediente(
+        id=orm.id,
         numero=numero,
         tipo=TipoExpediente(orm.tipo),
         titulo=orm.titulo,
@@ -236,3 +240,34 @@ def from_membresia_despacho(domain: MembresiaDespacho) -> MembresiaDespachoOrm:
         rol=domain.rol.value,
         activo=domain.activo,
     )
+
+
+# ---------------------------------------------------------------------------
+# SeguimientoExpediente
+# ---------------------------------------------------------------------------
+
+
+def to_seguimiento(orm: SeguimientoExpedienteOrm) -> SeguimientoExpediente:
+    return SeguimientoExpediente(
+        id=orm.id,
+        despacho_id=orm.despacho_id,
+        expediente_id=orm.expediente_id,
+        responsable_id=orm.responsable_id,
+        prioridad=Prioridad(orm.prioridad),
+        archivado=orm.archivado,
+        creado_en=orm.creado_en,
+        actualizado_en=orm.actualizado_en,
+    )
+
+
+def from_seguimiento(domain: SeguimientoExpediente) -> SeguimientoExpedienteOrm:
+    kwargs: dict[str, Any] = {
+        "despacho_id": domain.despacho_id,
+        "expediente_id": domain.expediente_id,
+        "responsable_id": domain.responsable_id,
+        "prioridad": domain.prioridad.value,
+        "archivado": domain.archivado,
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    return SeguimientoExpedienteOrm(**kwargs)

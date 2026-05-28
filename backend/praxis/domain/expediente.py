@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date
+from uuid import UUID
 
 from praxis.domain.value_objects import (
     Camara,
@@ -95,6 +96,9 @@ class Expediente:
     numero: NumeroExpediente
     tipo: TipoExpediente
     titulo: str
+    # ID interno de persistencia (UUID v7). None hasta que el expediente
+    # se persiste por primera vez. Ver ADR 0003 §1.
+    id: UUID | None = None
     sumario: str | None = None
     fecha_ingreso: date | None = None
     estado: EstadoExpediente = EstadoExpediente.DESCONOCIDO
