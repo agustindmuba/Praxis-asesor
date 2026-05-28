@@ -4,5 +4,6 @@ Ver `README.md` en esta carpeta para responsabilidades y restricciones.
 """
 
 from praxis.application.ports import FuenteExpedientes
+from praxis.application.use_cases import BuscarExpediente
 
-__all__ = ["FuenteExpedientes"]
+__all__ = ["BuscarExpediente", "FuenteExpedientes"]
