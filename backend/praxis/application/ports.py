@@ -236,6 +236,19 @@ class UsuarioRepository(ABC):
     async def listar(self) -> list[Usuario]:
         raise NotImplementedError
 
+    @abstractmethod
+    async def actualizar(self, usuario: Usuario) -> Usuario:
+        """Actualiza los campos editables (email, nombre, activo) por id.
+
+        El `id` es el discriminador — `auth_provider_id` también se respeta
+        si viene seteado, para conexión inicial entre nuestra row pre-existente
+        y un Clerk user_id que recién apareció.
+
+        Raises:
+            ValueError: si el usuario no existe en la DB.
+        """
+        raise NotImplementedError
+
 
 class MembresiaDespachoRepository(ABC):
     """Puerto: persistencia de MembresiaDespacho (tenant-scoped por design).

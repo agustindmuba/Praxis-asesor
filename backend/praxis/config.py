@@ -68,6 +68,13 @@ class Settings(BaseSettings):
         default=None,
         description="`aud` esperado, si Clerk lo configura.",
     )
+    clerk_webhook_secret: str | None = Field(
+        default=None,
+        description=(
+            "Secret del endpoint de webhooks de Clerk (Svix). Si no está seteado, "
+            "el endpoint /webhooks/clerk responde 503."
+        ),
+    )
 
     # --- Logging ---
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(

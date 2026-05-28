@@ -42,6 +42,9 @@ dependencies = [
 
     # JWT verification (Clerk auth — ver feat/14 spec 09).
     "pyjwt[crypto]>=2.9",
+
+    # Webhook signature verification (Clerk webhooks via Svix — ver feat/16 spec 11).
+    "svix>=1.30",
 ]
 
 # Dependencias de desarrollo (PEP 735 — soportado por uv).
