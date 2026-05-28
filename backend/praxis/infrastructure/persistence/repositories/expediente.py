@@ -2,16 +2,44 @@
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from praxis.application.ports import ExpedienteRepository
-from praxis.domain import Expediente, NumeroExpediente
+from praxis.domain import (
+    Expediente,
+    ExpedienteQuery,
+    NumeroExpediente,
+    ResultadoBusqueda,
+)
 from praxis.infrastructure.persistence.mappers import from_expediente, to_expediente
-from praxis.infrastructure.persistence.models import ExpedienteOrm
+from praxis.infrastructure.persistence.models import (
+    ExpedienteOrm,
+    FirmanteOrm,
+    GiroOrm,
+)
+
+
+def _ilike_contains(column: Any, value: str) -> ColumnElement[bool]:
+    """Match case-insensitive de `value` contenido en `column`.
+
+    Usa `LOWER(col) LIKE '%lower(value)%'` para portabilidad SQLite ↔ Postgres
+    (ILIKE solo existe en Postgres y el LIKE de SQLite no es case-insensitive
+    para caracteres no-ASCII como ñ, á, é).
+
+    El parámetro `column` se tipa como `Any` porque acá entra tanto un
+    `InstrumentedAttribute` (ej. `FirmanteOrm.nombre`) como un `ColumnElement`
+    crudo, y unificar ambos en el sistema de tipos de SQLAlchemy 2.0 obliga
+    a importar APIs internas que no vale la pena exponer.
+
+    Trade-off: descarta cualquier índice sobre `column` para esta query. Es
+    aceptable en MVP. Cuando duela migramos a `tsvector` + GIN en Postgres.
+    """
+    return func.lower(column).like(f"%{value.lower()}%")
 
 
 class SqlAlchemyExpedienteRepository(ExpedienteRepository):
@@ -82,3 +110,106 @@ class SqlAlchemyExpedienteRepository(ExpedienteRepository):
         )
         result = await self._session.execute(stmt)
         return [to_expediente(orm) for orm in result.scalars()]
+
+    # -----------------------------------------------------------------------
+    # Búsqueda filtrada — ver docs/specs/08-busqueda-expedientes.md
+    # -----------------------------------------------------------------------
+
+    def _build_predicate(self, query: ExpedienteQuery) -> list[ColumnElement[bool]]:
+        """Construye la lista de condiciones WHERE desde un ExpedienteQuery.
+
+        Compartido entre `buscar` y `contar` para que ambos apliquen el
+        mismo filtro exactamente (el `total` es del mismo set que la página).
+        """
+        conds: list[ColumnElement[bool]] = []
+
+        if query.texto is not None:
+            # texto matchea en titulo OR sumario. sumario puede ser NULL —
+            # COALESCE para que el LIKE no falle.
+            t = query.texto.strip().lower()
+            conds.append(
+                func.lower(
+                    func.coalesce(ExpedienteOrm.titulo, "")
+                    + " "
+                    + func.coalesce(ExpedienteOrm.sumario, "")
+                ).like(f"%{t}%")
+            )
+        if query.anio is not None:
+            conds.append(ExpedienteOrm.anio == query.anio)
+        if query.tipo is not None:
+            conds.append(ExpedienteOrm.tipo == query.tipo.value)
+        if query.camara is not None:
+            conds.append(ExpedienteOrm.camara == query.camara.value)
+        if query.origen is not None:
+            conds.append(ExpedienteOrm.origen == query.origen.value)
+        if query.estado is not None:
+            conds.append(ExpedienteOrm.estado == query.estado.value)
+        if query.fecha_ingreso_desde is not None:
+            conds.append(ExpedienteOrm.fecha_ingreso >= query.fecha_ingreso_desde)
+        if query.fecha_ingreso_hasta is not None:
+            conds.append(ExpedienteOrm.fecha_ingreso <= query.fecha_ingreso_hasta)
+
+        if query.autor_nombre is not None:
+            # EXISTS: un expediente con N firmantes no se duplica en el output.
+            subq = (
+                select(FirmanteOrm.id)
+                .where(
+                    FirmanteOrm.expediente_id == ExpedienteOrm.id,
+                    _ilike_contains(FirmanteOrm.nombre, query.autor_nombre.strip()),
+                )
+                .exists()
+            )
+            conds.append(subq)
+        if query.comision is not None:
+            subq = (
+                select(GiroOrm.id)
+                .where(
+                    GiroOrm.expediente_id == ExpedienteOrm.id,
+                    _ilike_contains(GiroOrm.comision, query.comision.strip()),
+                )
+                .exists()
+            )
+            conds.append(subq)
+
+        return conds
+
+    async def buscar(self, query: ExpedienteQuery) -> ResultadoBusqueda:
+        """Implementación de búsqueda filtrada con paginación.
+
+        Hace 2 queries: una para los items (con limit/offset) y otra para
+        el `total` (count del mismo predicate). Vale el roundtrip extra —
+        la UI lo necesita y no es hot path.
+        """
+        conds = self._build_predicate(query)
+
+        items_stmt = (
+            select(ExpedienteOrm)
+            .where(*conds)
+            .order_by(
+                # NULLS LAST: expedientes sin fecha_ingreso al final, no al inicio.
+                ExpedienteOrm.fecha_ingreso.desc().nulls_last(),
+                ExpedienteOrm.id.desc(),
+            )
+            .limit(query.limit)
+            .offset(query.offset)
+            .options(
+                selectinload(ExpedienteOrm.firmantes),
+                selectinload(ExpedienteOrm.giros),
+                selectinload(ExpedienteOrm.tramite),
+            )
+        )
+        items_result = await self._session.execute(items_stmt)
+        items = [to_expediente(orm) for orm in items_result.scalars()]
+
+        count_stmt = select(func.count()).select_from(ExpedienteOrm).where(*conds)
+        count_result = await self._session.execute(count_stmt)
+        total = int(count_result.scalar_one())
+
+        return ResultadoBusqueda(items=items, total=total, limit=query.limit, offset=query.offset)
+
+    async def contar(self, query: ExpedienteQuery) -> int:
+        """Conteo puro del predicate. Ignora limit/offset del query."""
+        conds = self._build_predicate(query)
+        stmt = select(func.count()).select_from(ExpedienteOrm).where(*conds)
+        result = await self._session.execute(stmt)
+        return int(result.scalar_one())

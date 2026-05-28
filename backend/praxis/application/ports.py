@@ -20,8 +20,10 @@ from praxis.domain import (
     Camara,
     Comision,
     Expediente,
+    ExpedienteQuery,
     MembresiaDespacho,
     NumeroExpediente,
+    ResultadoBusqueda,
     SeguimientoExpediente,
     TipoExpediente,
     Usuario,
@@ -183,6 +185,24 @@ class ExpedienteRepository(ABC):
     @abstractmethod
     async def listar(self, *, limit: int = 50, offset: int = 0) -> list[Expediente]:
         """Lista paginada por orden de UUID (≈ orden temporal de inserción)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar(self, query: ExpedienteQuery) -> ResultadoBusqueda:
+        """Busca expedientes que matcheen el criterio.
+
+        Devuelve `ResultadoBusqueda` con la página solicitada (`items`) y el
+        `total` de matches del filtro (independiente de limit/offset). Ver
+        `docs/specs/08-busqueda-expedientes.md`.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def contar(self, query: ExpedienteQuery) -> int:
+        """Cuenta matches del filtro, ignorando `limit/offset`.
+
+        Útil si el caller solo necesita el total (ej. estadísticas, badge en UI).
+        """
         raise NotImplementedError
 
 
