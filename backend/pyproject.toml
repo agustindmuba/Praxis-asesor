@@ -51,6 +51,8 @@ dev = [
     "ruff>=0.7",
     "mypy>=1.13",
     "types-passlib",
+    # SQLite async para tests de repos sin levantar Postgres.
+    "aiosqlite>=0.20",
 ]
 
 # Build backend para que `uv sync` instale el paquete `praxis` en modo editable.

@@ -6,6 +6,7 @@ Ver `README.md` en esta carpeta para responsabilidades y restricciones.
 from praxis.application.ports import (
     CatalogoComisiones,
     CatalogoLegisladores,
+    DespachoRepository,
     FuenteExpedientes,
 )
 from praxis.application.use_cases import BuscarExpediente, EnriquecerExpediente
@@ -14,6 +15,7 @@ __all__ = [
     "BuscarExpediente",
     "CatalogoComisiones",
     "CatalogoLegisladores",
+    "DespachoRepository",
     "EnriquecerExpediente",
     "FuenteExpedientes",
 ]

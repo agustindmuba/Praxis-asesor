@@ -14,6 +14,7 @@ Regla hexagonal (ver `docs/adr/0001-stack-inicial.md`):
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from uuid import UUID
 
 from praxis.domain import (
     Camara,
@@ -22,6 +23,7 @@ from praxis.domain import (
     NumeroExpediente,
     TipoExpediente,
 )
+from praxis.domain.despacho import Despacho
 from praxis.domain.legislador import Legislador
 
 
@@ -124,4 +126,27 @@ class CatalogoComisiones(ABC):
 
         Si `camara=None`, busca en ambas cámaras.
         """
+        raise NotImplementedError
+
+
+class DespachoRepository(ABC):
+    """Puerto: persistencia de `Despacho` (el tenant).
+
+    Implementación esperada inicial:
+    `praxis.infrastructure.persistence.repositories.SqlAlchemyDespachoRepository`.
+    """
+
+    @abstractmethod
+    async def crear(self, despacho: Despacho) -> Despacho:
+        """Persiste un Despacho nuevo. Devuelve la entidad con id y timestamps poblados."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_id(self, despacho_id: UUID) -> Despacho | None:
+        """Devuelve el Despacho o None si no existe."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar(self) -> list[Despacho]:
+        """Devuelve todos los despachos. Sin paginación por ahora (volúmenes bajos)."""
         raise NotImplementedError
