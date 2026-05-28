@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from praxis.domain import Expediente, NumeroExpediente
+from praxis.domain import Expediente, NumeroExpediente, TipoExpediente
 
 
 class FuenteExpedientes(ABC):
@@ -23,7 +23,7 @@ class FuenteExpedientes(ABC):
 
     Implementaciones esperadas:
     - `praxis.infrastructure.scrapers.hcdn.HcdnScraper`
-    - `praxis.infrastructure.scrapers.hsn.HsnScraper` (futuro)
+    - `praxis.infrastructure.scrapers.hsn.HsnScraper`
     - Eventualmente: cache, persistencia local, otras fuentes públicas.
 
     Convención de errores:
@@ -34,11 +34,19 @@ class FuenteExpedientes(ABC):
     """
 
     @abstractmethod
-    async def buscar_por_numero(self, numero: NumeroExpediente) -> Expediente:
+    async def buscar_por_numero(
+        self,
+        numero: NumeroExpediente,
+        tipo: TipoExpediente | None = None,
+    ) -> Expediente:
         """Devuelve el expediente identificado por `numero`.
 
         Args:
             numero: Identificador del expediente.
+            tipo: Tipo del expediente. **Requerido para HSN** (la URL canónica
+                lo incluye, ver spec `docs/specs/02-ingesta-hsn.md`). HCDN lo
+                ignora (su búsqueda lo infiere del sumario). `None` para
+                fuentes que no lo necesitan.
 
         Returns:
             Snapshot completo del expediente con todos los campos que la
@@ -47,7 +55,7 @@ class FuenteExpedientes(ABC):
         Raises:
             ExpedienteNoEncontrado: si la fuente no encuentra el expediente.
             FuenteNoDisponible: si la fuente falla por motivos externos.
-            ValueError: si `numero.camara` no es compatible con la fuente
-                (ej. pedirle HSN a un HcdnScraper).
+            ValueError: si `numero.camara` no es compatible con la fuente,
+                o si la fuente exige `tipo` y no se proveyó.
         """
         raise NotImplementedError
