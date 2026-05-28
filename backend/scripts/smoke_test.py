@@ -285,7 +285,7 @@ async def main() -> int:
     engine = create_async_engine(str(settings.database_url), echo=False)
     sm = async_sessionmaker(engine, expire_on_commit=False)
 
-    print(f"[smoke] Conectando a {settings.database_url.host}:{settings.database_url.port}")
+    print(f"[smoke] Conectando a {settings.database_url}")
     print()
 
     # 1. Seed.

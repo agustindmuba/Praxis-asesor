@@ -120,7 +120,7 @@ async def main(args: argparse.Namespace) -> None:
     engine = create_async_engine(str(settings.database_url), echo=False)
     sm = async_sessionmaker(engine, expire_on_commit=False)
 
-    print(f"[seed] Conectando a {settings.database_url.host}:{settings.database_url.port}")
+    print(f"[seed] Conectando a {settings.database_url}")
     print(f"[seed] Despacho: {args.despacho_nombre!r}")
     print(f"[seed] Usuario:  {args.email!r}  ({args.nombre!r})")
     print(f"[seed] Clerk ID: {args.clerk_id!r}")
