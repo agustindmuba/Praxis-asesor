@@ -33,6 +33,10 @@ dependencies = [
     # HTTP client (scraping, integraciones).
     "httpx>=0.27",
 
+    # Parseo HTML (scrapers HCDN y HSN).
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+
     # Logging estructurado.
     "structlog>=24.4",
 ]
@@ -87,6 +91,9 @@ ignore = []
 "tests/**/*.py" = ["S101", "N802", "N803"]
 # Alembic migrations: revision IDs no respetan naming convention.
 "alembic/**/*.py" = ["N999", "E501"]
+# Excepciones de dominio en español ("ExpedienteNoEncontrado" lee mejor sin
+# sufijo "Error", como pediría N818). Decisión deliberada.
+"praxis/domain/exceptions.py" = ["N818"]
 
 [tool.ruff.format]
 quote-style = "double"

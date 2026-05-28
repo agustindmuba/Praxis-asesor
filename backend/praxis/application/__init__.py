@@ -2,3 +2,7 @@
 
 Ver `README.md` en esta carpeta para responsabilidades y restricciones.
 """
+
+from praxis.application.ports import FuenteExpedientes
+
+__all__ = ["FuenteExpedientes"]
