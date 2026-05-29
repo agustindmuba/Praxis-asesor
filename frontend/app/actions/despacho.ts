@@ -46,8 +46,11 @@ export async function devLoginAction(formData: FormData) {
   }
 
   const cookieStore = await cookies();
+  // En modo dev NO marcamos HttpOnly porque el JS del cliente necesita
+  // leer la cookie para enviarla como Bearer en mutations. Inseguro en
+  // general; aceptable como atajo solo-dev.
   cookieStore.set(DEV_TOKEN_COOKIE, `dev:${clerkId}`, {
-    httpOnly: true,
+    httpOnly: false,
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24, // 1 día.

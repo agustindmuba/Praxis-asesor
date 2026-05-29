@@ -1,40 +1,60 @@
 /**
- * Middleware Clerk. Cualquier ruta que NO matchee `isPublic` exige sesión.
+ * Middleware — dos modos:
  *
- * El matcher excluye archivos estáticos y `_next/`. Si la sesión falta o
- * expiró, Clerk redirige automáticamente a `/sign-in` con `?redirect_url=...`.
+ * 1. Clerk normal: cualquier ruta no pública pide sesión Clerk.
+ * 2. Dev mode (NEXT_PUBLIC_DEV_MODE=true): NO usa Clerk en absoluto.
+ *    Si no hay cookie `praxis_dev_token`, redirige a /dev-login.
+ *    Si la hay, deja pasar.
+ *
+ * El switch evita que Clerk haga handshakes contra el dominio fake del
+ * publishable key dummy.
  */
+import { NextResponse } from "next/server";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+
+const DEV_TOKEN_COOKIE = "praxis_dev_token";
+const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === "true";
 
 const isPublic = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
-  // Healthcheck para que probes externos no pidan auth.
-  "/api/health",
-  // Modo dev: la página de login fake no debe pasar por Clerk.
   "/dev-login",
+  "/api/health",
 ]);
 
-/**
- * Si hay una cookie de dev (`praxis_dev_token`), saltamos Clerk
- * completamente. Eso permite que la página `(app)/layout.tsx` use el token
- * fake del backend sin que Clerk redirija.
- */
-const isDevSession = (req: Request) =>
-  process.env.NODE_ENV !== "production" &&
-  req.headers.get("cookie")?.includes("praxis_dev_token=");
+// Helper de rutas públicas para el modo dev (no usa Clerk).
+function isPublicPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/dev-login") ||
+    pathname.startsWith("/sign-in") ||
+    pathname.startsWith("/sign-up") ||
+    pathname.startsWith("/api/health")
+  );
+}
 
-export default clerkMiddleware(async (auth, req) => {
+// Middleware "dev": no usa Clerk.
+// Si te falta la cookie, te manda a /dev-login. Sino te deja pasar.
+async function devMiddleware(req: Request) {
+  const url = new URL(req.url);
+  if (isPublicPath(url.pathname)) {
+    return NextResponse.next();
+  }
+  const hasToken = req.headers.get("cookie")?.includes(`${DEV_TOKEN_COOKIE}=`);
+  if (!hasToken) {
+    url.pathname = "/dev-login";
+    return NextResponse.redirect(url);
+  }
+  return NextResponse.next();
+}
+
+// Middleware "clerk": el de siempre.
+const clerkBased = clerkMiddleware(async (auth, req) => {
   if (isPublic(req)) return;
-  if (isDevSession(req as unknown as Request)) return;
   await auth.protect();
 });
 
+export default isDevMode ? devMiddleware : clerkBased;
+
 export const config = {
-  matcher: [
-    // Excluye archivos con extensión (imágenes, fuentes) y _next.
-    "/((?!_next|.*\\..*).*)",
-    // Pero incluye rutas /api/ con auth.
-    "/(api|trpc)(.*)",
-  ],
+  matcher: ["/((?!_next|.*\\..*).*)", "/(api|trpc)(.*)"],
 };

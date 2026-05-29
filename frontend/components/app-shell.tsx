@@ -5,9 +5,9 @@
  * Cmd+K, atajos, etc.
  */
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
 import { FileText, LayoutDashboard, ListChecks } from "lucide-react";
 
+import { UserAvatar } from "@/components/user-avatar";
 import type { MeResponse } from "@/lib/api/types";
 
 interface Props {
@@ -51,7 +51,7 @@ export function AppShell({ me, children }: Props) {
           <div className="text-sm text-muted-foreground">
             {me.usuario.nombre} · <span className="capitalize">{me.rol.replace("_", " ")}</span>
           </div>
-          <UserButton afterSignOutUrl="/sign-in" />
+          <UserAvatar nombre={me.usuario.nombre} email={me.usuario.email} />
         </header>
 
         {/* Content */}
