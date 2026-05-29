@@ -1,0 +1,34 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Build/test artifacts
+playwright-report/
+test-results/
+coverage/
+
+# Local env
+.env*.local
+.env
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tipos generados desde el backend
+lib/api/types.gen.ts
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
