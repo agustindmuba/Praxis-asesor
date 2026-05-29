@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* Tailwind 4: la config va acá en lugar de tailwind.config.ts */
+@theme {
+  /* Tipografía: Inter como font default. */
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  /* Variables shadcn (light theme). */
+  --color-background: #ffffff;
+  --color-foreground: #0a0e1a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0a0e1a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0a0e1a;
+  --color-primary: #1e293b;
+  --color-primary-foreground: #f8fafc;
+  --color-secondary: #f1f5f9;
+  --color-secondary-foreground: #1e293b;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+  --color-accent: #f1f5f9;
+  --color-accent-foreground: #1e293b;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: #0a0e1a;
+  --radius: 0.5rem;
+}
+
+/* Reset suave. */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
