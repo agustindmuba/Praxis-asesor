@@ -24,7 +24,7 @@ from praxis.application import (
 )
 from praxis.config import Settings, get_settings
 from praxis.domain import AuthClaims, AuthError, AuthErrorCode, RequestContext
-from praxis.infrastructure.auth import ClerkAuthProvider
+from praxis.infrastructure.auth import ClerkAuthProvider, DevAuthProvider
 from praxis.infrastructure.db.engine import get_session
 from praxis.infrastructure.persistence.repositories import (
     SqlAlchemyDespachoRepository,
@@ -51,9 +51,13 @@ _auth_provider: AuthProvider | None = None
 def get_auth_provider(settings: Annotated[Settings, Depends(get_settings)]) -> AuthProvider:
     """Devuelve un singleton de AuthProvider construido desde settings.
 
-    Si los settings de Clerk no están seteados, devuelve un provider que
-    siempre falla con INVALID_TOKEN — así la app puede arrancar (health
-    funciona) pero los endpoints protegidos cierran la puerta.
+    Tres modos:
+    1. Clerk configurado → `ClerkAuthProvider` (producción y dev real).
+    2. Sin Clerk + `ENV=dev` → `DevAuthProvider` que acepta tokens fake
+       con prefijo `dev:`. SOLO para que un dev pueda probar la UI sin
+       configurar Clerk. Inseguro por design.
+    3. Sin Clerk + ENV != dev → stub que siempre devuelve 401. Esto
+       evita arrancar prod accidentalmente sin auth.
     """
     global _auth_provider
     if _auth_provider is not None:
@@ -65,6 +69,8 @@ def get_auth_provider(settings: Annotated[Settings, Depends(get_settings)]) -> A
             jwks_url=settings.clerk_jwks_url,
             audience=settings.clerk_audience,
         )
+    elif settings.env == "dev":
+        _auth_provider = DevAuthProvider()
     else:
         _auth_provider = _UnconfiguredAuthProvider()
     return _auth_provider
