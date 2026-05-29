@@ -7,10 +7,10 @@ La instancia se obtiene vía `get_settings()`, cacheada por proceso.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import Field, PostgresDsn, RedisDsn, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -79,7 +79,9 @@ class Settings(BaseSettings):
     # --- CORS ---
     # En dev: ["http://localhost:3000"]. En prod: dominios del frontend.
     # Vacío = sin CORS habilitado (todos los CORS preflights fallarán).
-    cors_origins: list[str] = Field(
+    # `NoDecode` evita que pydantic-settings haga JSON parse del env var
+    # antes de que nuestro validator pueda manejar el formato CSV.
+    cors_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=list,
         description=(
             "Lista de orígenes permitidos para CORS. Ej: "

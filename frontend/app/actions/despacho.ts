@@ -8,8 +8,9 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
-import { DESPACHO_COOKIE } from "@/lib/api/context-server";
+import { DESPACHO_COOKIE, DEV_TOKEN_COOKIE } from "@/lib/api/context-server";
 
 export async function setDespachoActivoAction(despachoId: string) {
   const cookieStore = await cookies();
@@ -28,4 +29,42 @@ export async function clearDespachoCookieAction() {
   const cookieStore = await cookies();
   cookieStore.delete(DESPACHO_COOKIE);
   revalidatePath("/", "layout");
+}
+
+/**
+ * Modo dev: setea ambas cookies (token fake + despacho) y redirige
+ * al dashboard. Solo funciona si NODE_ENV !== "production".
+ */
+export async function devLoginAction(formData: FormData) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("devLoginAction está deshabilitado en producción");
+  }
+  const clerkId = String(formData.get("clerkId") ?? "").trim();
+  const despachoId = String(formData.get("despachoId") ?? "").trim();
+  if (!clerkId || !despachoId) {
+    throw new Error("Faltan clerkId o despachoId");
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set(DEV_TOKEN_COOKIE, `dev:${clerkId}`, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24, // 1 día.
+  });
+  cookieStore.set(DESPACHO_COOKIE, despachoId, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  redirect("/dashboard");
+}
+
+/** Modo dev: limpia las cookies y redirige a /dev-login. */
+export async function devLogoutAction() {
+  const cookieStore = await cookies();
+  cookieStore.delete(DEV_TOKEN_COOKIE);
+  cookieStore.delete(DESPACHO_COOKIE);
+  redirect("/dev-login");
 }

@@ -11,12 +11,23 @@ const isPublic = createRouteMatcher([
   "/sign-up(.*)",
   // Healthcheck para que probes externos no pidan auth.
   "/api/health",
+  // Modo dev: la página de login fake no debe pasar por Clerk.
+  "/dev-login",
 ]);
 
+/**
+ * Si hay una cookie de dev (`praxis_dev_token`), saltamos Clerk
+ * completamente. Eso permite que la página `(app)/layout.tsx` use el token
+ * fake del backend sin que Clerk redirija.
+ */
+const isDevSession = (req: Request) =>
+  process.env.NODE_ENV !== "production" &&
+  req.headers.get("cookie")?.includes("praxis_dev_token=");
+
 export default clerkMiddleware(async (auth, req) => {
-  if (!isPublic(req)) {
-    await auth.protect();
-  }
+  if (isPublic(req)) return;
+  if (isDevSession(req as unknown as Request)) return;
+  await auth.protect();
 });
 
 export const config = {
