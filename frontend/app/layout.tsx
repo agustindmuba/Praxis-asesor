@@ -10,6 +10,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Inter } from "next/font/google";
 
 import { QueryProvider } from "@/components/providers/query-provider";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "./globals.css";
 
@@ -35,7 +37,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <html lang="es" suppressHydrationWarning>
         <body className={`${inter.variable} font-sans antialiased`}>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </QueryProvider>
+          <Toaster richColors position="top-right" />
         </body>
       </html>
     </ClerkProvider>
