@@ -89,7 +89,7 @@ async def main(args: argparse.Namespace) -> int:
                     errores += 1
                     print(f"  ✗ {numero}: fuente no disponible ({exc})")
                     continue
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     errores += 1
                     print(f"  ✗ {numero}: error inesperado ({type(exc).__name__}: {exc})")
                     continue
@@ -110,7 +110,7 @@ async def main(args: argparse.Namespace) -> int:
                         duplicados += 1
                         if args.verbose:
                             print(f"  ↻ {numero} ya estaba en DB")
-                    except Exception as exc:  # noqa: BLE001
+                    except Exception as exc:
                         await session.rollback()
                         errores += 1
                         print(f"  ✗ {numero}: error al persistir ({exc})")

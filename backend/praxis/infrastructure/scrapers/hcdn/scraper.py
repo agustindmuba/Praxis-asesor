@@ -22,6 +22,7 @@ from praxis.domain import (
     NumeroExpediente,
     TipoExpediente,
 )
+from praxis.domain.inferencia_estado import inferir_estado_y_caducidad
 from praxis.infrastructure.scrapers.hcdn.parser import parse_resultado_hcdn
 
 log = structlog.get_logger(__name__)
@@ -115,12 +116,23 @@ class HcdnScraper(FuenteExpedientes):
             raise ExpedienteNoEncontrado(str(numero), fuente="HCDN") from exc
 
         expediente.fuente_url = HCDN_RESULTADO_URL
+
+        # El portal HCDN no expone el estado del expediente de forma estructurada:
+        # se infiere a partir de los eventos del trámite y la fecha de ingreso.
+        # Ver `domain/inferencia_estado.py` y `docs/specs/07-inferencia-estado.md`.
+        inferencia = inferir_estado_y_caducidad(expediente)
+        expediente.estado = inferencia.estado
+        expediente.fecha_caducidad = inferencia.fecha_caducidad
+        expediente.fecha_caducidad_original = inferencia.fecha_caducidad_original
+        expediente.prorrogado = inferencia.prorrogado
+
         log.info(
             "hcdn.buscar_por_numero.ok",
             numero=str(numero),
             firmantes=len(expediente.firmantes),
             giros=len(expediente.giros),
             tramite_eventos=len(expediente.tramite),
+            estado=expediente.estado.value,
         )
         return expediente
 
