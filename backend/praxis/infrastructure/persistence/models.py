@@ -12,7 +12,18 @@ from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Index, Integer, String, Uuid
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    Uuid,
+)
 from sqlalchemy import func as sa_func_now_module
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -305,6 +316,46 @@ class TramiteEventoOrm(Base, kw_only=True):
         back_populates="tramite",
         default=None,
     )
+
+
+# ---------------------------------------------------------------------------
+# ResumenEjecutivo (cache de output de LLM por expediente)
+# ---------------------------------------------------------------------------
+
+
+class ResumenEjecutivoOrm(Base, kw_only=True):
+    """Resumen generado por un LLM sobre un Expediente.
+
+    UNIQUE en `expediente_id`: a lo sumo un resumen por expediente; para
+    regenerar se borra el viejo primero. No tiene `actualizado_en` porque
+    es inmutable (cada cambio es un delete+insert).
+    """
+
+    __tablename__ = "resumen_ejecutivo"
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    expediente_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("expediente.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    contenido_md: Mapped[str] = mapped_column(Text, nullable=False)
+    modelo: Mapped[str] = mapped_column(String(80), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(String(20), nullable=False, default="v1")
+    generado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"ResumenEjecutivoOrm(id={self.id!r}, "
+            f"expediente_id={self.expediente_id!r}, modelo={self.modelo!r})"
+        )
 
 
 # Marker para que mypy/ruff entiendan que estos imports son legítimos.

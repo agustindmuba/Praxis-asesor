@@ -17,8 +17,10 @@ import type {
   CrearSeguimientoBody,
   ExpedienteFicha,
   FiltrosExpediente,
+  InteligenciaExpedienteDTO,
   MeResponse,
   ResultadoBusquedaDTO,
+  ResumenEjecutivoDTO,
   SeguimientoDTO,
 } from "./types";
 
@@ -50,6 +52,21 @@ export function getExpediente(ctx: ApiContext, id: string) {
     ctx,
     next: { revalidate: 30 },
   });
+}
+
+export function resumirExpediente(ctx: ApiContext, id: string) {
+  return apiPost<ResumenEjecutivoDTO>(
+    `/api/v1/expedientes/${id}/resumir`,
+    {},
+    { ctx },
+  );
+}
+
+export function getInteligenciaExpediente(ctx: ApiContext, id: string) {
+  return apiGet<InteligenciaExpedienteDTO>(
+    `/api/v1/expedientes/${id}/inteligencia`,
+    { ctx, next: { revalidate: 60 } },
+  );
 }
 
 // ---------------------------------------------------------------------------

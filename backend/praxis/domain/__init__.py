@@ -38,7 +38,15 @@ from praxis.domain.inferencia_estado import (
     inferir_estado,
     inferir_estado_y_caducidad,
 )
+from praxis.domain.inteligencia import (
+    ComparacionPeers,
+    EtapaPipeline,
+    EtapaProgreso,
+    InteligenciaExpediente,
+    ProgresoTramite,
+)
 from praxis.domain.legislador import Bloque, Legislador
+from praxis.domain.resumen_ejecutivo import PROMPT_VERSION, ResumenEjecutivo
 from praxis.domain.seguimiento import Prioridad, SeguimientoExpediente
 from praxis.domain.tramite_historico import (
     eventos_recientes,
@@ -59,15 +67,19 @@ from praxis.domain.value_objects import (
 __all__ = [
     "LIMIT_DEFAULT",
     "LIMIT_MAX",
+    "PROMPT_VERSION",
     "AuthClaims",
     "AuthError",
     "AuthErrorCode",
     "Bloque",
     "Camara",
     "Comision",
+    "ComparacionPeers",
     "Despacho",
     "DomainError",
     "EstadoExpediente",
+    "EtapaPipeline",
+    "EtapaProgreso",
     "Expediente",
     "ExpedienteNoEncontrado",
     "ExpedienteQuery",
@@ -75,13 +87,16 @@ __all__ = [
     "FuenteNoDisponible",
     "Giro",
     "InferenciaResult",
+    "InteligenciaExpediente",
     "Legislador",
     "MembresiaDespacho",
     "NumeroExpediente",
     "OrigenExpediente",
     "Prioridad",
+    "ProgresoTramite",
     "RequestContext",
     "ResultadoBusqueda",
+    "ResumenEjecutivo",
     "Rol",
     "SeguimientoExpediente",
     "TipoComision",

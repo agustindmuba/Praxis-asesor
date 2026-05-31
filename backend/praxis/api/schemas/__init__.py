@@ -17,6 +17,13 @@ from praxis.api.schemas.expediente import (
     NumeroExpedienteDTO,
     TramiteEventoDTO,
 )
+from praxis.api.schemas.inteligencia import (
+    ComparacionPeersDTO,
+    EtapaProgresoDTO,
+    InteligenciaExpedienteDTO,
+    ProgresoTramiteDTO,
+)
+from praxis.api.schemas.resumen import ResumenEjecutivoDTO
 from praxis.api.schemas.seguimiento import (
     ActualizarSeguimientoBody,
     CrearSeguimientoBody,
@@ -25,15 +32,20 @@ from praxis.api.schemas.seguimiento import (
 
 __all__ = [
     "ActualizarSeguimientoBody",
+    "ComparacionPeersDTO",
     "CrearSeguimientoBody",
+    "EtapaProgresoDTO",
     "ExpedienteFicha",
     "ExpedienteResumen",
     "FiltrosExpediente",
     "FirmanteDTO",
     "GiroDTO",
+    "InteligenciaExpedienteDTO",
     "MeResponse",
     "NumeroExpedienteDTO",
+    "ProgresoTramiteDTO",
     "ResultadoBusquedaDTO",
+    "ResumenEjecutivoDTO",
     "SeguimientoDTO",
     "TramiteEventoDTO",
 ]

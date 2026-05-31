@@ -25,6 +25,7 @@ from praxis.domain import (
     MembresiaDespacho,
     NumeroExpediente,
     ResultadoBusqueda,
+    ResumenEjecutivo,
     SeguimientoExpediente,
     TipoExpediente,
     Usuario,
@@ -343,6 +344,57 @@ class SeguimientoExpedienteRepository(ABC):
         responsable_id: UUID | None,
     ) -> bool:
         """Asigna (o desasigna con None) un responsable. Returns True si afectó."""
+        raise NotImplementedError
+
+
+class LlmProvider(ABC):
+    """Puerto: generación de contenido por LLM.
+
+    Implementaciones esperadas:
+    - `praxis.infrastructure.llm.fake.FakeLlmProvider` (default en dev, costo cero).
+    - `praxis.infrastructure.llm.anthropic.AnthropicLlmProvider` (cuando hay key).
+
+    Ver `docs/specs/13-resumen-ejecutivo-ia.md`.
+    """
+
+    @property
+    @abstractmethod
+    def nombre_modelo(self) -> str:
+        """Identificador del modelo, ej. 'fake' o 'claude-sonnet-4-5-...'."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def generar_resumen_ejecutivo(self, expediente: Expediente) -> str:
+        """Devuelve markdown con 3 bullets:
+
+            **Qué propone:** ...
+            **Quién lo impulsa:** ...
+            **Probabilidad de avance:** ...
+
+        El provider decide cómo arma el prompt + cómo parsea la respuesta.
+        El caller chequea cache antes de llamar — esto NO cachea solo.
+        """
+        raise NotImplementedError
+
+
+class ResumenEjecutivoRepository(ABC):
+    """Puerto: persistencia de resúmenes ejecutivos (caché por expediente).
+
+    UNIQUE en `expediente_id`: a lo sumo un resumen por expediente. Para
+    regenerar, hay que borrar el viejo primero.
+    """
+
+    @abstractmethod
+    async def buscar_por_expediente(self, expediente_id: UUID) -> ResumenEjecutivo | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def crear(self, resumen: ResumenEjecutivo) -> ResumenEjecutivo:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def eliminar(self, expediente_id: UUID) -> bool:
+        """Borra el resumen del expediente. Devuelve True si había alguno."""
         raise NotImplementedError
 
 
