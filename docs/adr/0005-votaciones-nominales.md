@@ -43,9 +43,12 @@ class Votacion:
     id: UUID | None
     camara: Camara
     fecha: date
-    sesion: str                   # ej "Sesión Ordinaria N° 7 del 03/06/2026"
+    sesion: str                   # ej "Período 144 - Reunión 3 - Acta 20"
     asunto: str                   # texto libre del portal — el qué se votó
     expediente_id: UUID | None    # vinculado si se pudo cruzar; None si "asunto suelto"
+    titulo_od: str | None         # ej "O.D. 84" parseado del asunto; permite cruce diferido vía OrdenDelDia (spec 14)
+    acta_id_hcdn: int | None      # identificador propio del portal HCDN, ej 5937
+    acta_pdf_url: str | None      # URL al PDF oficial /pdf/acta/{id}
     tipo: Literal["nominal", "general", "mocion", "otro"]
     resultado_afirmativos: int
     resultado_negativos: int
@@ -124,6 +127,9 @@ votacion
   sesion TEXT NOT NULL
   asunto TEXT NOT NULL
   expediente_id UUID FK NULL → expediente.id
+  titulo_od TEXT NULL                     -- ej "O.D. 84"
+  acta_id_hcdn INTEGER NULL UNIQUE        -- ID propio del portal HCDN
+  acta_pdf_url TEXT NULL
   tipo VARCHAR(20) NOT NULL
   resultado_afirmativos INT NOT NULL
   resultado_negativos INT NOT NULL
@@ -134,6 +140,7 @@ votacion
   creado_en TIMESTAMPTZ DEFAULT now()
   INDEX (camara, fecha)
   INDEX (expediente_id) WHERE expediente_id IS NOT NULL
+  INDEX (titulo_od) WHERE titulo_od IS NOT NULL
 
 voto_legislador
   votacion_id UUID FK → votacion.id ON DELETE CASCADE
