@@ -127,7 +127,9 @@ class CalcularInteligenciaExpediente:
             con_dias AS (
                 SELECT
                     exp_id,
-                    EXTRACT(DAY FROM (CURRENT_DATE - ultimo_evento))::INT AS dias
+                    -- Postgres: date - date devuelve integer (días) directo,
+                    -- no un interval, así que NO usar EXTRACT.
+                    (CURRENT_DATE - ultimo_evento)::INT AS dias
                 FROM peers
                 WHERE ultimo_evento IS NOT NULL
             )
