@@ -21,6 +21,7 @@ from praxis.domain import (
     NumeroExpediente,
     OrigenExpediente,
     Prioridad,
+    ResumenEjecutivo,
     Rol,
     SeguimientoExpediente,
     TipoExpediente,
@@ -34,6 +35,7 @@ from praxis.infrastructure.persistence.models import (
     FirmanteOrm,
     GiroOrm,
     MembresiaDespachoOrm,
+    ResumenEjecutivoOrm,
     SeguimientoExpedienteOrm,
     TramiteEventoOrm,
     UsuarioOrm,
@@ -271,3 +273,31 @@ def from_seguimiento(domain: SeguimientoExpediente) -> SeguimientoExpedienteOrm:
     if domain.id is not None:
         kwargs["id"] = domain.id
     return SeguimientoExpedienteOrm(**kwargs)
+
+
+# ---------------------------------------------------------------------------
+# ResumenEjecutivo
+# ---------------------------------------------------------------------------
+
+
+def to_resumen_ejecutivo(orm: ResumenEjecutivoOrm) -> ResumenEjecutivo:
+    return ResumenEjecutivo(
+        id=orm.id,
+        expediente_id=orm.expediente_id,
+        contenido_md=orm.contenido_md,
+        modelo=orm.modelo,
+        prompt_version=orm.prompt_version,
+        generado_en=orm.generado_en,
+    )
+
+
+def from_resumen_ejecutivo(domain: ResumenEjecutivo) -> ResumenEjecutivoOrm:
+    kwargs: dict[str, Any] = {
+        "expediente_id": domain.expediente_id,
+        "contenido_md": domain.contenido_md,
+        "modelo": domain.modelo,
+        "prompt_version": domain.prompt_version,
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    return ResumenEjecutivoOrm(**kwargs)

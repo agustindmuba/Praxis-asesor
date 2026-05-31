@@ -14,6 +14,7 @@ import { FichaHeader } from "@/components/features/expedientes/ficha-header";
 import { FichaFirmantes } from "@/components/features/expedientes/ficha-firmantes";
 import { FichaResumen } from "@/components/features/expedientes/ficha-resumen";
 import { FichaTramite } from "@/components/features/expedientes/ficha-tramite";
+import { PanelInteligencia } from "@/components/features/expedientes/panel-inteligencia";
 import {
   Tabs,
   TabsContent,
@@ -47,6 +48,8 @@ export default async function FichaPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <FichaHeader expediente={expediente} />
+
+      <PanelInteligencia expedienteId={expediente.id} />
 
       <Tabs defaultValue="resumen">
         <TabsList>

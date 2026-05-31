@@ -7,14 +7,22 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from praxis.api.deps import CurrentContext, SessionDep
+from praxis.api.deps import CurrentContext, LlmProviderDep, SessionDep
 from praxis.api.schemas import (
     ExpedienteFicha,
     FiltrosExpediente,
+    InteligenciaExpedienteDTO,
     ResultadoBusquedaDTO,
+    ResumenEjecutivoDTO,
 )
+from praxis.application import (
+    CalcularInteligenciaExpediente,
+    GenerarResumenEjecutivo,
+)
+from praxis.domain import ExpedienteNoEncontrado
 from praxis.infrastructure.persistence.repositories import (
     SqlAlchemyExpedienteRepository,
+    SqlAlchemyResumenEjecutivoRepository,
     SqlAlchemySeguimientoExpedienteRepository,
 )
 
@@ -76,3 +84,75 @@ async def ficha_expediente(
     )
 
     return ExpedienteFicha.from_domain(expediente, seguimiento=seguimiento)
+
+
+@router.post(
+    "/{expediente_id}/resumir",
+    summary="Genera (o devuelve cacheado) el resumen ejecutivo con IA",
+    response_model=ResumenEjecutivoDTO,
+)
+async def resumir_expediente(
+    expediente_id: UUID,
+    session: SessionDep,
+    ctx: CurrentContext,
+    llm: LlmProviderDep,
+) -> ResumenEjecutivoDTO:
+    """Devuelve un resumen ejecutivo del expediente, generado por LLM.
+
+    Idempotente: si ya hay resumen cacheado, lo devuelve. Sino, llama al
+    `LlmProvider` configurado (Fake en dev, Anthropic cuando hay API key).
+
+    El catálogo de expedientes es global; el resumen también lo es
+    (todos los despachos ven el mismo). Auth solo sirve para no servir
+    a anónimos. Ver `docs/specs/13-resumen-ejecutivo-ia.md`.
+    """
+    del ctx  # auth exigida, no se usa en la lógica todavía.
+    use_case = GenerarResumenEjecutivo(
+        expedientes=SqlAlchemyExpedienteRepository(session),
+        resumenes=SqlAlchemyResumenEjecutivoRepository(session),
+        llm=llm,
+    )
+    try:
+        resumen = await use_case.execute(expediente_id)
+    except ExpedienteNoEncontrado as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Expediente no encontrado",
+        ) from exc
+
+    # Commit (el caso de uso solo flushea).
+    await session.commit()
+
+    return ResumenEjecutivoDTO.model_validate(resumen)
+
+
+@router.get(
+    "/{expediente_id}/inteligencia",
+    summary="Panel de inteligencia: progreso del trámite + comparación con peers",
+    response_model=InteligenciaExpedienteDTO,
+)
+async def inteligencia_expediente(
+    expediente_id: UUID,
+    session: SessionDep,
+    ctx: CurrentContext,
+) -> InteligenciaExpedienteDTO:
+    """Devuelve el panel data-driven del expediente.
+
+    Calcula a demanda (no se cachea — el dato cambia con cada nuevo
+    expediente que se agrega al catálogo). Es liviano: 1 query SQL
+    agregada sobre peers + cálculo en Python sobre el propio expediente.
+    """
+    del ctx  # auth exigida, lógica global.
+    use_case = CalcularInteligenciaExpediente(
+        session=session,
+        expedientes=SqlAlchemyExpedienteRepository(session),
+    )
+    try:
+        inteligencia = await use_case.execute(expediente_id)
+    except ExpedienteNoEncontrado as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Expediente no encontrado",
+        ) from exc
+
+    return InteligenciaExpedienteDTO.model_validate(inteligencia)

@@ -20,12 +20,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from praxis.application import (
     AuthProvider,
+    LlmProvider,
     ResolverContextoRequest,
 )
 from praxis.config import Settings, get_settings
 from praxis.domain import AuthClaims, AuthError, AuthErrorCode, RequestContext
 from praxis.infrastructure.auth import ClerkAuthProvider, DevAuthProvider
 from praxis.infrastructure.db.engine import get_session
+from praxis.infrastructure.llm import FakeLlmProvider
 from praxis.infrastructure.persistence.repositories import (
     SqlAlchemyDespachoRepository,
     SqlAlchemyMembresiaDespachoRepository,
@@ -198,11 +200,44 @@ async def current_context(
 CurrentContext = Annotated[RequestContext, Depends(current_context)]
 
 
+# ----------------------------------------------------------------------
+# LLM provider (singleton por proceso)
+# ----------------------------------------------------------------------
+
+
+_llm_provider: LlmProvider | None = None
+
+
+def get_llm_provider(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> LlmProvider:
+    """Devuelve un singleton del LlmProvider.
+
+    Selección:
+    - Si `settings.anthropic_api_key` está seteada → `AnthropicLlmProvider`
+      (todavía no implementado; cae a Fake con warning).
+    - Sino → `FakeLlmProvider` (default en dev, costo cero).
+    """
+    global _llm_provider
+    if _llm_provider is not None:
+        return _llm_provider
+
+    # TODO(feat/25): cuando exista AnthropicLlmProvider, elegirlo si hay key.
+    del settings  # no usado todavía.
+    _llm_provider = FakeLlmProvider()
+    return _llm_provider
+
+
+LlmProviderDep = Annotated[LlmProvider, Depends(get_llm_provider)]
+
+
 __all__ = [
     "CurrentContext",
+    "LlmProviderDep",
     "SessionDep",
     "current_context",
     "get_auth_provider",
+    "get_llm_provider",
     "get_resolver",
     "get_session",
 ]

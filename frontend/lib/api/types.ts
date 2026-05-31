@@ -155,6 +155,57 @@ export interface SeguimientoDTO {
   archivado: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// /expedientes/{id}/resumir
+// ---------------------------------------------------------------------------
+
+export interface ResumenEjecutivoDTO {
+  id: string;
+  expediente_id: string;
+  contenido_md: string;
+  modelo: string;
+  prompt_version: string;
+  generado_en: string;
+}
+
+// ---------------------------------------------------------------------------
+// /expedientes/{id}/inteligencia
+// ---------------------------------------------------------------------------
+
+export type EtapaPipeline =
+  | "ingresado"
+  | "en_comision"
+  | "con_dictamen"
+  | "media_sancion"
+  | "sancionado";
+
+export interface EtapaProgresoDTO {
+  etapa: EtapaPipeline;
+  label: string;
+  alcanzada: boolean;
+  fecha: string | null;
+}
+
+export interface ProgresoTramiteDTO {
+  etapa_actual: EtapaPipeline | null;
+  etapas: EtapaProgresoDTO[];
+  dias_en_etapa_actual: number | null;
+  terminado: boolean;
+  motivo_terminacion: string | null;
+}
+
+export interface ComparacionPeersDTO {
+  peer_count: number;
+  mediana_dias: number | null;
+  diferencia_porcentual: number | null;
+  criterio: string;
+}
+
+export interface InteligenciaExpedienteDTO {
+  progreso: ProgresoTramiteDTO;
+  peers: ComparacionPeersDTO;
+}
+
 export interface CrearSeguimientoBody {
   expediente_id: string;
   prioridad?: Prioridad;
