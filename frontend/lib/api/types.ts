@@ -320,6 +320,22 @@ export interface BriefingCrear {
   regenerar?: boolean;
 }
 
+export interface ResolverNumerosBody {
+  numeros: string[];
+}
+
+export interface NumeroResueltoDTO {
+  numero_raw: string;
+  expediente_id: string;
+  titulo: string;
+}
+
+export interface ResolverNumerosResponse {
+  resueltos: NumeroResueltoDTO[];
+  no_encontrados: string[];
+  invalidos: string[];
+}
+
 export interface BriefingDTO {
   id: string;
   despacho_id: string;

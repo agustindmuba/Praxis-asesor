@@ -23,6 +23,8 @@ import type {
   MeResponse,
   OrdenDelDiaCrear,
   OrdenDelDiaDTO,
+  ResolverNumerosBody,
+  ResolverNumerosResponse,
   ResultadoBusquedaDTO,
   ResumenEjecutivoDTO,
   SeguimientoDTO,
@@ -62,6 +64,17 @@ export function resumirExpediente(ctx: ApiContext, id: string) {
   return apiPost<ResumenEjecutivoDTO>(
     `/api/v1/expedientes/${id}/resumir`,
     {},
+    { ctx },
+  );
+}
+
+export function resolverNumeros(
+  ctx: ApiContext,
+  body: ResolverNumerosBody,
+) {
+  return apiPost<ResolverNumerosResponse>(
+    "/api/v1/expedientes/resolver-numeros",
+    body,
     { ctx },
   );
 }

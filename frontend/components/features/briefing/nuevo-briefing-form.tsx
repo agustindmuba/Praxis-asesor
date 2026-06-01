@@ -20,11 +20,19 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useApiContext } from "@/lib/api/context-client";
-import { crearOrdenDelDia, listarSeguimientos } from "@/lib/api/endpoints";
+import {
+  crearOrdenDelDia,
+  listarSeguimientos,
+  resolverNumeros,
+} from "@/lib/api/endpoints";
 import type { Camara } from "@/lib/api/types";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Acepta formatos HCDN: "13-D-2024" / "0013-D-2024" o HSN "239/24"
+const NUMERO_HCDN_RE = /^\d{1,5}-[A-Za-z]{1,3}-\d{4}$/;
+const NUMERO_HSN_RE = /^\d{1,5}\/\d{2}$/;
 
 const inputCls =
   "h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -62,31 +70,61 @@ export function NuevoBriefingForm() {
     e.preventDefault();
     setError(null);
 
-    const ids = expedientesRaw
+    const tokens = expedientesRaw
       .split(/[\s,;]+/)
       .map((s) => s.trim())
       .filter(Boolean);
-
-    const invalidos = ids.filter((id) => !UUID_RE.test(id));
-    if (invalidos.length) {
-      setError(
-        `Hay ${invalidos.length} UUID inválido(s). Primero: ${invalidos[0]?.slice(0, 30)}…`,
-      );
+    if (tokens.length === 0) {
+      setError("Cargá al menos un expediente.");
       return;
     }
-    if (ids.length === 0) {
-      setError("Cargá al menos un expediente.");
+
+    // Particionar en UUIDs (directos) vs números (a resolver) vs basura.
+    const uuids: string[] = [];
+    const numeros: string[] = [];
+    const basura: string[] = [];
+    for (const t of tokens) {
+      if (UUID_RE.test(t)) {
+        uuids.push(t);
+      } else if (NUMERO_HCDN_RE.test(t) || NUMERO_HSN_RE.test(t)) {
+        numeros.push(t);
+      } else {
+        basura.push(t);
+      }
+    }
+    if (basura.length) {
+      setError(
+        `Hay ${basura.length} entrada(s) que no son UUID ni número HCDN/HSN. ` +
+          `Primero: "${basura[0]?.slice(0, 30)}"`,
+      );
       return;
     }
 
     setSubmitting(true);
     try {
       const ctx = await getCtx();
+
+      let idsFinales = [...uuids];
+      if (numeros.length) {
+        const resol = await resolverNumeros(ctx, { numeros });
+        if (resol.no_encontrados.length || resol.invalidos.length) {
+          const faltantes = [...resol.no_encontrados, ...resol.invalidos];
+          setError(
+            `${faltantes.length} número(s) no encontrado(s) en DB: ` +
+              `${faltantes.slice(0, 3).join(", ")}` +
+              (faltantes.length > 3 ? ` y ${faltantes.length - 3} más…` : ""),
+          );
+          setSubmitting(false);
+          return;
+        }
+        idsFinales = [...idsFinales, ...resol.resueltos.map((r) => r.expediente_id)];
+      }
+
       const od = await crearOrdenDelDia(ctx, {
         camara,
         fecha_sesion: fechaSesion,
         titulo: titulo.trim() || undefined,
-        expedientes_ids: ids,
+        expedientes_ids: idsFinales,
       });
       router.push(`/briefings/${od.id}`);
     } catch (err) {
@@ -153,7 +191,7 @@ export function NuevoBriefingForm() {
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
             <label htmlFor="expedientes" className={labelCls}>
-              UUIDs (uno por línea)
+              Números o UUIDs (uno por línea, coma o espacio)
             </label>
             <Button
               type="button"
@@ -170,14 +208,14 @@ export function NuevoBriefingForm() {
             onChange={(e) => setExpedientesRaw(e.target.value)}
             rows={10}
             placeholder={
-              "019e7585-7515-7f73-8f7e-a410e29a8435\n01a1b2c3-..."
+              "13-D-2024\n0092-D-2024, 1497-D-2024\n239/24 (HSN)\n\n# o pegar UUIDs si los tenés a mano:\n019e7585-7515-7f73-8f7e-a410e29a8435"
             }
             className="block w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <p className="text-xs text-muted-foreground">
-            v1: pegar UUIDs. La búsqueda por número (&quot;13-D-2024&quot;) llega
-            con feat/31. Mientras tanto usar &ldquo;Incluir mis seguimientos&rdquo; o
-            copiarlos desde la lista de expedientes.
+            Aceptamos formato HCDN (<code>NNNN-X-YYYY</code>, ej <code>13-D-2024</code>),
+            HSN (<code>NNNN/YY</code>) o UUIDs internos. El sistema resuelve los
+            números contra el catálogo y avisa si alguno no está cargado.
           </p>
         </CardContent>
       </Card>
