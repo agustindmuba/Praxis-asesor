@@ -5,7 +5,12 @@
  * Cmd+K, atajos, etc.
  */
 import Link from "next/link";
-import { FileText, LayoutDashboard, ListChecks } from "lucide-react";
+import {
+  FileText,
+  LayoutDashboard,
+  ListChecks,
+  Newspaper,
+} from "lucide-react";
 
 import { UserAvatar } from "@/components/user-avatar";
 import type { MeResponse } from "@/lib/api/types";
@@ -19,6 +24,7 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/expedientes", label: "Expedientes", icon: FileText },
   { href: "/seguimientos", label: "Seguimientos", icon: ListChecks },
+  { href: "/briefings", label: "Briefings", icon: Newspaper },
 ];
 
 export function AppShell({ me, children }: Props) {

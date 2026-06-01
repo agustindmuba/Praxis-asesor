@@ -14,11 +14,15 @@ import {
 } from "./client";
 import type {
   ActualizarSeguimientoBody,
+  BriefingCrear,
+  BriefingDTO,
   CrearSeguimientoBody,
   ExpedienteFicha,
   FiltrosExpediente,
   InteligenciaExpedienteDTO,
   MeResponse,
+  OrdenDelDiaCrear,
+  OrdenDelDiaDTO,
   ResultadoBusquedaDTO,
   ResumenEjecutivoDTO,
   SeguimientoDTO,
@@ -102,4 +106,47 @@ export function actualizarSeguimiento(
 
 export function archivarSeguimiento(ctx: ApiContext, id: string) {
   return apiDelete<void>(`/api/v1/seguimientos/${id}`, { ctx });
+}
+
+// ---------------------------------------------------------------------------
+// /ordenes-del-dia
+// ---------------------------------------------------------------------------
+
+export function crearOrdenDelDia(ctx: ApiContext, body: OrdenDelDiaCrear) {
+  return apiPost<OrdenDelDiaDTO>("/api/v1/ordenes-del-dia", body, { ctx });
+}
+
+export function listarOrdenesDelDia(ctx: ApiContext) {
+  return apiGet<OrdenDelDiaDTO[]>("/api/v1/ordenes-del-dia", { ctx });
+}
+
+export function getOrdenDelDia(ctx: ApiContext, id: string) {
+  return apiGet<OrdenDelDiaDTO>(`/api/v1/ordenes-del-dia/${id}`, { ctx });
+}
+
+// ---------------------------------------------------------------------------
+// /briefings
+// ---------------------------------------------------------------------------
+
+export function generarBriefing(ctx: ApiContext, body: BriefingCrear) {
+  return apiPost<BriefingDTO>("/api/v1/briefings", body, { ctx });
+}
+
+export function getBriefing(ctx: ApiContext, id: string) {
+  return apiGet<BriefingDTO>(`/api/v1/briefings/${id}`, { ctx });
+}
+
+/**
+ * URLs absolutas al HTML/PDF del briefing (para iframe o link de download).
+ * No invocan el endpoint — solo arman la URL contra la API pública.
+ */
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+export function briefingHtmlUrl(id: string): string {
+  return `${API_BASE}/api/v1/briefings/${id}/html`;
+}
+
+export function briefingPdfUrl(id: string): string {
+  return `${API_BASE}/api/v1/briefings/${id}/pdf`;
 }

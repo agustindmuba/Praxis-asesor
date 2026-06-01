@@ -45,6 +45,9 @@ dependencies = [
 
     # Webhook signature verification (Clerk webhooks via Svix — ver feat/16 spec 11).
     "svix>=1.30",
+
+    # Templates HTML (briefing PDF, ver feat/30 spec 14).
+    "jinja2>=3.1",
 ]
 
 # Dependencias de desarrollo (PEP 735 — soportado por uv).
