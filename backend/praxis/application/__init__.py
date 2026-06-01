@@ -18,6 +18,7 @@ from praxis.application.ports import (
     UsuarioRepository,
 )
 from praxis.application.use_cases import (
+    BuscarAntecedenteParecido,
     BuscarExpediente,
     CalcularInteligenciaExpediente,
     ClasificarExpedienteTematicamente,
@@ -25,10 +26,12 @@ from praxis.application.use_cases import (
     GenerarResumenEjecutivo,
     ResolverContextoRequest,
     SincronizarUsuarioDesdeClerk,
+    SugerirCofirmantes,
 )
 
 __all__ = [
     "AuthProvider",
+    "BuscarAntecedenteParecido",
     "BuscarExpediente",
     "CalcularInteligenciaExpediente",
     "CatalogoComisiones",
@@ -46,5 +49,6 @@ __all__ = [
     "ResumenEjecutivoRepository",
     "SeguimientoExpedienteRepository",
     "SincronizarUsuarioDesdeClerk",
+    "SugerirCofirmantes",
     "UsuarioRepository",
 ]

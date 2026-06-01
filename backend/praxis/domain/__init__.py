@@ -19,6 +19,13 @@ from praxis.domain.auth import (
     AuthErrorCode,
     RequestContext,
 )
+from praxis.domain.briefing_similitud import (
+    JACCARD_UMBRAL,
+    AntecedenteParecido,
+    CofirmanteSugerido,
+    jaccard,
+    tokenizar_titulo,
+)
 from praxis.domain.comision import Comision, TipoComision
 from praxis.domain.despacho import Despacho
 from praxis.domain.exceptions import (
@@ -79,15 +86,18 @@ from praxis.domain.votacion import (
 __all__ = [
     "AREA_LABELS",
     "CLASIFICACION_PROMPT_VERSION",
+    "JACCARD_UMBRAL",
     "LIMIT_DEFAULT",
     "LIMIT_MAX",
     "PROMPT_VERSION",
+    "AntecedenteParecido",
     "AreaTematica",
     "AuthClaims",
     "AuthError",
     "AuthErrorCode",
     "Bloque",
     "Camara",
+    "CofirmanteSugerido",
     "Comision",
     "ComparacionPeers",
     "Despacho",
@@ -129,6 +139,8 @@ __all__ = [
     "inferir_caducidad",
     "inferir_estado",
     "inferir_estado_y_caducidad",
+    "jaccard",
     "merge_tramite",
+    "tokenizar_titulo",
     "validar_consistencia",
 ]
