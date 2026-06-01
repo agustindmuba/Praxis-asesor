@@ -25,8 +25,12 @@ from praxis.domain import (
     Rol,
     SeguimientoExpediente,
     TipoExpediente,
+    TipoVotacion,
     TramiteEvento,
     Usuario,
+    Votacion,
+    VotoLegislador,
+    VotoTipo,
 )
 from praxis.domain.despacho import Despacho
 from praxis.infrastructure.persistence.models import (
@@ -39,6 +43,8 @@ from praxis.infrastructure.persistence.models import (
     SeguimientoExpedienteOrm,
     TramiteEventoOrm,
     UsuarioOrm,
+    VotacionOrm,
+    VotoLegisladorOrm,
 )
 
 # ---------------------------------------------------------------------------
@@ -301,3 +307,93 @@ def from_resumen_ejecutivo(domain: ResumenEjecutivo) -> ResumenEjecutivoOrm:
     if domain.id is not None:
         kwargs["id"] = domain.id
     return ResumenEjecutivoOrm(**kwargs)
+
+
+# ---------------------------------------------------------------------------
+# Votacion + VotoLegislador
+# ---------------------------------------------------------------------------
+
+
+def to_votacion(orm: VotacionOrm) -> Votacion:
+    return Votacion(
+        id=orm.id,
+        camara=Camara(orm.camara),
+        fecha=orm.fecha,
+        sesion=orm.sesion,
+        asunto=orm.asunto,
+        tipo=TipoVotacion(orm.tipo),
+        resultado_afirmativos=orm.resultado_afirmativos,
+        resultado_negativos=orm.resultado_negativos,
+        resultado_abstenciones=orm.resultado_abstenciones,
+        resultado_sin_votar=orm.resultado_sin_votar,
+        resultado_ausentes=orm.resultado_ausentes,
+        aprobada=orm.aprobada,
+        presidida_por=orm.presidida_por,
+        expediente_id=orm.expediente_id,
+        titulo_od=orm.titulo_od,
+        acta_id_hcdn=orm.acta_id_hcdn,
+        acta_pdf_url=orm.acta_pdf_url,
+        fuente_url=orm.fuente_url,
+    )
+
+
+def from_votacion(
+    domain: Votacion,
+    votos: list[VotoLegislador] | None = None,
+) -> VotacionOrm:
+    """Crea un ORM nuevo desde el dominio + los votos individuales.
+
+    Los votos se persisten cascade vía la relationship `votos`. No setea
+    `id` salvo que el dominio lo traiga explícito (UUID v7 lo genera el
+    default_factory de la columna).
+    """
+    kwargs: dict[str, Any] = {
+        "camara": domain.camara.value,
+        "fecha": domain.fecha,
+        "sesion": domain.sesion,
+        "asunto": domain.asunto,
+        "tipo": domain.tipo.value,
+        "resultado_afirmativos": domain.resultado_afirmativos,
+        "resultado_negativos": domain.resultado_negativos,
+        "resultado_abstenciones": domain.resultado_abstenciones,
+        "resultado_sin_votar": domain.resultado_sin_votar,
+        "resultado_ausentes": domain.resultado_ausentes,
+        "aprobada": domain.aprobada,
+        "presidida_por": domain.presidida_por,
+        "expediente_id": domain.expediente_id,
+        "titulo_od": domain.titulo_od,
+        "acta_id_hcdn": domain.acta_id_hcdn,
+        "acta_pdf_url": domain.acta_pdf_url,
+        "fuente_url": domain.fuente_url,
+        "votos": [_from_voto_legislador(v) for v in (votos or [])],
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    return VotacionOrm(**kwargs)
+
+
+def _to_voto_legislador(orm: VotoLegisladorOrm) -> VotoLegislador:
+    return VotoLegislador(
+        legislador_nombre=orm.legislador_nombre,
+        voto=VotoTipo(orm.voto),
+        bloque=orm.bloque,
+        distrito=orm.distrito,
+        que_dijo=orm.que_dijo,
+        legislador_hcdn_id=orm.legislador_hcdn_id,
+    )
+
+
+def _from_voto_legislador(domain: VotoLegislador) -> VotoLegisladorOrm:
+    return VotoLegisladorOrm(
+        legislador_nombre=domain.legislador_nombre,
+        voto=domain.voto.value,
+        bloque=domain.bloque,
+        distrito=domain.distrito,
+        que_dijo=domain.que_dijo,
+        legislador_hcdn_id=domain.legislador_hcdn_id,
+    )
+
+
+def to_voto_legislador(orm: VotoLegisladorOrm) -> VotoLegislador:
+    """Conveniencia pública del mapper privado."""
+    return _to_voto_legislador(orm)

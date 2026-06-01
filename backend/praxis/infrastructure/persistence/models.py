@@ -358,5 +358,105 @@ class ResumenEjecutivoOrm(Base, kw_only=True):
         )
 
 
+# ---------------------------------------------------------------------------
+# Votacion + VotoLegislador (ADR 0005)
+# ---------------------------------------------------------------------------
+
+
+class VotacionOrm(Base, kw_only=True):
+    """Una votación nominal del recinto.
+
+    Inmutable: los conteos del portal son históricos. Para "actualizar"
+    se borra y se vuelve a insertar.
+
+    `acta_id_hcdn` es UNIQUE — es la llave natural del portal y evita
+    duplicados. `expediente_id` queda NULL si no se pudo cruzar (el
+    cruce es vía `titulo_od` → `OrdenDelDia`, diferido).
+    """
+
+    __tablename__ = "votacion"
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    camara: Mapped[str] = mapped_column(String(10), nullable=False)
+    fecha: Mapped[date] = mapped_column(Date, nullable=False)
+    sesion: Mapped[str] = mapped_column(String(200), nullable=False)
+    asunto: Mapped[str] = mapped_column(Text, nullable=False)
+    tipo: Mapped[str] = mapped_column(String(20), nullable=False)
+    resultado_afirmativos: Mapped[int] = mapped_column(Integer, nullable=False)
+    resultado_negativos: Mapped[int] = mapped_column(Integer, nullable=False)
+    resultado_abstenciones: Mapped[int] = mapped_column(Integer, nullable=False)
+    resultado_sin_votar: Mapped[int] = mapped_column(Integer, nullable=False)
+    resultado_ausentes: Mapped[int] = mapped_column(Integer, nullable=False)
+    aprobada: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    presidida_por: Mapped[str | None] = mapped_column(String(200), nullable=True, default=None)
+    expediente_id: Mapped[UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("expediente.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
+        index=True,
+    )
+    titulo_od: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, default=None, index=True,
+    )
+    acta_id_hcdn: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, default=None, unique=True
+    )
+    acta_pdf_url: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
+    fuente_url: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+    votos: Mapped[list[VotoLegisladorOrm]] = relationship(
+        "VotoLegisladorOrm",
+        back_populates="votacion",
+        cascade="all, delete-orphan",
+        default_factory=list,
+    )
+
+    __table_args__ = (
+        Index("ix_votacion_camara_fecha", "camara", "fecha"),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"VotacionOrm(id={self.id!r}, camara={self.camara!r}, "
+            f"fecha={self.fecha!r}, acta_id_hcdn={self.acta_id_hcdn!r})"
+        )
+
+
+class VotoLegisladorOrm(Base, kw_only=True):
+    """Cómo votó UN legislador en UNA votación.
+
+    PK compuesta: (votacion_id, legislador_nombre). Sin FK a `Legislador`
+    canónico todavía — deuda asumida en ADR 0005.
+    """
+
+    __tablename__ = "voto_legislador"
+
+    votacion_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("votacion.id", ondelete="CASCADE"),
+        primary_key=True,
+        init=False,
+    )
+    legislador_nombre: Mapped[str] = mapped_column(String(200), primary_key=True)
+    voto: Mapped[str] = mapped_column(String(20), nullable=False)
+    bloque: Mapped[str | None] = mapped_column(String(150), nullable=True, default=None, index=True)
+    distrito: Mapped[str | None] = mapped_column(String(80), nullable=True, default=None)
+    que_dijo: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+    legislador_hcdn_id: Mapped[str | None] = mapped_column(String(20), nullable=True, default=None)
+
+    votacion: Mapped[VotacionOrm] = relationship(
+        "VotacionOrm",
+        back_populates="votos",
+        default=None,
+    )
+
+
 # Marker para que mypy/ruff entiendan que estos imports son legítimos.
 _ = datetime  # type: ignore[unused-ignore]
