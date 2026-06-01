@@ -6,6 +6,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel, Field
 
 from praxis.api.deps import CurrentContext, LlmProviderDep, SessionDep
 from praxis.api.schemas import (
@@ -19,7 +20,11 @@ from praxis.application import (
     CalcularInteligenciaExpediente,
     GenerarResumenEjecutivo,
 )
-from praxis.domain import ExpedienteNoEncontrado
+from praxis.domain import (
+    Camara,
+    ExpedienteNoEncontrado,
+    NumeroExpediente,
+)
 from praxis.infrastructure.persistence.repositories import (
     SqlAlchemyExpedienteRepository,
     SqlAlchemyResumenEjecutivoRepository,
@@ -156,3 +161,93 @@ async def inteligencia_expediente(
         ) from exc
 
     return InteligenciaExpedienteDTO.model_validate(inteligencia)
+
+
+# ---------------------------------------------------------------------------
+# Resolver números HCDN → UUIDs (feat/31)
+# ---------------------------------------------------------------------------
+
+
+class ResolverNumerosBody(BaseModel):
+    """Lista de números HCDN/HSN en formato texto a resolver."""
+
+    numeros: list[str] = Field(default_factory=list, min_length=1)
+
+
+class NumeroResuelto(BaseModel):
+    numero_raw: str
+    expediente_id: UUID
+    titulo: str
+
+
+class ResolverNumerosResponse(BaseModel):
+    resueltos: list[NumeroResuelto]
+    no_encontrados: list[str]
+    invalidos: list[str]
+
+
+@router.post(
+    "/resolver-numeros",
+    summary="Resuelve números '0013-D-2024' → UUIDs",
+    response_model=ResolverNumerosResponse,
+)
+async def resolver_numeros(
+    body: ResolverNumerosBody,
+    session: SessionDep,
+    ctx: CurrentContext,
+) -> ResolverNumerosResponse:
+    """Best-effort resolver: para cada string, intenta parsear como número
+    HCDN (`NNNN-X-YYYY`) o HSN (`NNNN/YY`) y buscarlo en DB.
+
+    Devuelve:
+    - `resueltos`: los que matchearon (incluye titulo para feedback en UI).
+    - `no_encontrados`: parsearon pero no están en DB.
+    - `invalidos`: no parsearon a ningún formato conocido.
+
+    Tenant: pide auth pero no filtra por despacho — el catálogo es global.
+    """
+    del ctx
+    repo = SqlAlchemyExpedienteRepository(session)
+    resueltos: list[NumeroResuelto] = []
+    no_encontrados: list[str] = []
+    invalidos: list[str] = []
+
+    for raw in body.numeros:
+        raw_stripped = raw.strip()
+        if not raw_stripped:
+            continue
+        # Intentar HCDN primero (formato más común en el corpus).
+        numero: NumeroExpediente | None = None
+        try:
+            numero = NumeroExpediente.parse_hcdn(raw_stripped)
+        except ValueError:
+            try:
+                numero = NumeroExpediente.parse_hsn(raw_stripped)
+                # parse_hsn devuelve por default Camara=HSN.
+                numero = NumeroExpediente(
+                    numero=numero.numero,
+                    origen=numero.origen,
+                    anio=numero.anio,
+                    camara=Camara.HSN,
+                )
+            except ValueError:
+                invalidos.append(raw_stripped)
+                continue
+
+        expediente = await repo.buscar_por_numero(numero)
+        if expediente is None or expediente.id is None:
+            no_encontrados.append(raw_stripped)
+            continue
+        resueltos.append(
+            NumeroResuelto(
+                numero_raw=raw_stripped,
+                expediente_id=expediente.id,
+                titulo=expediente.titulo,
+            )
+        )
+
+    return ResolverNumerosResponse(
+        resueltos=resueltos,
+        no_encontrados=no_encontrados,
+        invalidos=invalidos,
+    )
