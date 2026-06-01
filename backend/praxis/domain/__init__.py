@@ -63,6 +63,12 @@ from praxis.domain.value_objects import (
     OrigenExpediente,
     TipoExpediente,
 )
+from praxis.domain.votacion import (
+    TipoVotacion,
+    Votacion,
+    VotoLegislador,
+    VotoTipo,
+)
 
 __all__ = [
     "LIMIT_DEFAULT",
@@ -101,8 +107,12 @@ __all__ = [
     "SeguimientoExpediente",
     "TipoComision",
     "TipoExpediente",
+    "TipoVotacion",
     "TramiteEvento",
     "Usuario",
+    "Votacion",
+    "VotoLegislador",
+    "VotoTipo",
     "eventos_recientes",
     "filter_by_camara",
     "filter_by_rango",
