@@ -92,7 +92,7 @@ class BuscarAntecedenteParecido:
               AND e.tipo = :tipo
               AND e.estado IN :estados
               AND e.id != :propio_id
-            ORDER BY e.fecha_ingreso DESC
+            ORDER BY e.anio DESC, e.numero DESC
             LIMIT :limit
             """
         ).bindparams(
