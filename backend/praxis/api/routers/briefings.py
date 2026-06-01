@@ -8,6 +8,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import HTMLResponse, Response
 
 from praxis.api.deps import CurrentContext, LlmProviderDep, SessionDep
 from praxis.api.schemas.briefing import (
@@ -17,7 +18,11 @@ from praxis.api.schemas.briefing import (
     OrdenDelDiaDTO,
 )
 from praxis.application import GenerarBriefing
-from praxis.domain import OrdenDelDia
+from praxis.domain import Briefing, OrdenDelDia
+from praxis.infrastructure.briefing_render import (
+    render_briefing_html,
+    render_briefing_pdf,
+)
 from praxis.infrastructure.persistence.repositories import (
     SqlAlchemyBriefingRepository,
     SqlAlchemyExpedienteAreaTematicaRepository,
@@ -162,3 +167,74 @@ async def obtener_briefing(
     from praxis.infrastructure.persistence.mappers import to_briefing
 
     return BriefingDTO.model_validate(to_briefing(orm), from_attributes=True)
+
+
+async def _cargar_briefing_dominio(
+    briefing_id: UUID,
+    session: SessionDep,
+    ctx: CurrentContext,
+) -> Briefing:
+    """Helper: carga el Briefing del despacho del request o tira 404."""
+    from sqlalchemy import select
+
+    from praxis.infrastructure.persistence.mappers import to_briefing
+    from praxis.infrastructure.persistence.models import BriefingOrm
+
+    stmt = select(BriefingOrm).where(
+        BriefingOrm.id == briefing_id,
+        BriefingOrm.despacho_id == ctx.despacho.id,
+    )
+    result = await session.execute(stmt)
+    orm = result.scalar_one_or_none()
+    if orm is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return to_briefing(orm)
+
+
+@router_briefings.get(
+    "/{briefing_id}/html",
+    response_class=HTMLResponse,
+    summary="Renderiza el briefing como HTML (para preview o impresión)",
+)
+async def obtener_briefing_html(
+    briefing_id: UUID,
+    session: SessionDep,
+    ctx: CurrentContext,
+) -> HTMLResponse:
+    briefing = await _cargar_briefing_dominio(briefing_id, session, ctx)
+    html = render_briefing_html(briefing)
+    return HTMLResponse(content=html)
+
+
+@router_briefings.get(
+    "/{briefing_id}/pdf",
+    summary="Renderiza el briefing como PDF",
+)
+async def obtener_briefing_pdf(
+    briefing_id: UUID,
+    session: SessionDep,
+    ctx: CurrentContext,
+) -> Response:
+    """Devuelve `application/pdf`. Requiere weasyprint instalado.
+
+    Si weasyprint no está disponible (típico en Windows sin GTK), el
+    endpoint devuelve 501 con instrucciones. Como fallback de v1, el
+    cliente puede usar `/html` + imprimir desde el browser.
+    """
+    briefing = await _cargar_briefing_dominio(briefing_id, session, ctx)
+    try:
+        pdf_bytes = render_briefing_pdf(briefing)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail=str(exc),
+        ) from exc
+
+    filename = f"briefing-{briefing_id}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{filename}"',
+        },
+    )

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Briefing pre-sesión</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+  body {
+    font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #111827;
+    font-size: 11pt;
+    line-height: 1.45;
+    margin: 0;
+  }
+  h1 { font-size: 18pt; margin: 0 0 4pt; letter-spacing: -0.01em; }
+  h2 {
+    font-size: 13pt;
+    margin: 14pt 0 6pt;
+    padding-bottom: 3pt;
+    border-bottom: 1px solid #d1d5db;
+    letter-spacing: -0.005em;
+  }
+  h3 { font-size: 12pt; margin: 10pt 0 4pt; color: #1f2937; }
+  h4 {
+    font-size: 9pt;
+    margin: 0 0 2pt;
+    text-transform: uppercase;
+    color: #6b7280;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+  .meta-row {
+    color: #6b7280;
+    font-size: 9.5pt;
+    margin-bottom: 10pt;
+  }
+  .meta-row span { margin-right: 10pt; }
+  .counter-grid {
+    display: flex;
+    gap: 12pt;
+    margin: 8pt 0 14pt;
+  }
+  .counter {
+    flex: 1;
+    background: #f9fafb;
+    border-left: 3px solid #2563eb;
+    padding: 8pt 10pt;
+  }
+  .counter .num { font-size: 18pt; font-weight: 700; color: #111827; }
+  .counter .label { font-size: 9pt; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+  .alerta {
+    display: flex;
+    gap: 8pt;
+    align-items: flex-start;
+    padding: 8pt 10pt;
+    margin-bottom: 6pt;
+    border-left: 3px solid #d1d5db;
+    background: #fafafa;
+  }
+  .alerta .badge {
+    color: white;
+    font-size: 8pt;
+    font-weight: 700;
+    padding: 2pt 6pt;
+    border-radius: 3pt;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+    line-height: 1.2;
+  }
+  .alerta .titulo { font-weight: 600; margin-bottom: 2pt; }
+  .alerta .detalle { color: #4b5563; font-size: 10pt; }
+  .proyecto {
+    page-break-inside: avoid;
+    margin-bottom: 14pt;
+    padding: 10pt;
+    border: 1px solid #e5e7eb;
+    border-radius: 4pt;
+  }
+  .proyecto .head {
+    display: flex;
+    justify-content: space-between;
+    gap: 8pt;
+    margin-bottom: 4pt;
+    align-items: baseline;
+  }
+  .proyecto .titulo { font-weight: 700; font-size: 11.5pt; flex: 1; }
+  .proyecto .meta {
+    font-size: 9.5pt;
+    color: #6b7280;
+    margin-bottom: 8pt;
+  }
+  .proyecto .meta span { margin-right: 10pt; }
+  .proyecto h4 { margin-top: 8pt; }
+  .proyecto ul, .proyecto ol { margin: 2pt 0 6pt 16pt; padding: 0; }
+  .proyecto li { margin-bottom: 2pt; }
+  .cofirmante {
+    display: flex;
+    justify-content: space-between;
+    padding: 3pt 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 10pt;
+  }
+  .cofirmante:last-child { border-bottom: none; }
+  .cofirmante .nombre { font-weight: 600; }
+  .cofirmante .bloque { color: #6b7280; font-size: 9pt; }
+  .cofirmante .count { font-weight: 600; color: #1f2937; font-size: 9.5pt; }
+  .antecedente {
+    background: #f9fafb;
+    padding: 6pt 8pt;
+    border-radius: 3pt;
+    font-size: 10pt;
+    margin-top: 4pt;
+  }
+  .area-section { page-break-inside: avoid; margin-bottom: 12pt; }
+  .area-section h3 {
+    font-size: 11pt;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #374151;
+    margin-bottom: 6pt;
+  }
+  .area-row {
+    display: flex;
+    gap: 8pt;
+    padding: 5pt 6pt;
+    border-bottom: 1px solid #f3f4f6;
+    align-items: flex-start;
+  }
+  .area-row:last-child { border-bottom: none; }
+  .area-row .info { flex: 1; font-size: 10pt; }
+  .area-row .info .titulo { font-weight: 600; }
+  .area-row .info .autor { color: #6b7280; font-size: 9pt; }
+  .area-row .info .razon { color: #4b5563; font-size: 9.5pt; margin-top: 2pt; }
+  .area-row .rec {
+    color: white;
+    font-size: 8pt;
+    font-weight: 700;
+    padding: 2pt 6pt;
+    border-radius: 3pt;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    align-self: flex-start;
+    white-space: nowrap;
+  }
+  .page-break { page-break-after: always; }
+  .footer {
+    margin-top: 30pt;
+    padding-top: 8pt;
+    border-top: 1px solid #e5e7eb;
+    font-size: 8.5pt;
+    color: #9ca3af;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+{# ============== PÁGINA 1 — Resumen ejecutivo ============== #}
+<h1>PRAXIS ASESOR · Briefing pre-sesión</h1>
+<div class="meta-row">
+  <span>Generado: {{ briefing.generado_en.strftime("%d/%m/%Y %H:%M") if briefing.generado_en else "—" }}</span>
+  <span>Modelo: {{ briefing.modelo_llm }}</span>
+  <span>Versión: {{ briefing.prompt_version }}</span>
+</div>
+
+<div class="counter-grid">
+  <div class="counter">
+    <div class="num">{{ briefing.proyectos_del_despacho_total }}</div>
+    <div class="label">Proyectos del despacho en el OD</div>
+  </div>
+  <div class="counter">
+    <div class="num">{{ briefing.proyectos_como_autor }}</div>
+    <div class="label">Como autor</div>
+  </div>
+  <div class="counter">
+    <div class="num">{{ briefing.proyectos_como_cofirmante }}</div>
+    <div class="label">Como cofirmante</div>
+  </div>
+</div>
+
+<h2>Alertas priorizadas</h2>
+{% if briefing.alertas %}
+  {% for alerta in briefing.alertas %}
+    {% set bg, label = prioridad_badge[alerta.prioridad] %}
+    <div class="alerta" style="border-left-color: {{ bg }};">
+      <span class="badge" style="background: {{ bg }};">{{ label }}</span>
+      <div>
+        <div class="titulo">{{ alerta.titulo }}</div>
+        <div class="detalle">{{ alerta.detalle }}</div>
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <p style="color: #6b7280;">Sin alertas para esta sesión.</p>
+{% endif %}
+
+<div class="page-break"></div>
+
+{# ============== PÁGINA 2 — Proyectos del despacho ============== #}
+<h1>Proyectos del despacho en el OD</h1>
+
+{% if briefing.secciones_proyectos %}
+  {% for sec in briefing.secciones_proyectos %}
+    <div class="proyecto">
+      <div class="head">
+        <div class="titulo">
+          {{ "%04d-%s-%d" | format(sec.numero.numero, sec.numero.origen.value, sec.numero.anio) }}
+          — {{ sec.titulo }}
+        </div>
+      </div>
+      <div class="meta">
+        <span><strong>{{ rol_label[sec.rol_despacho] }}</strong></span>
+        <span>{{ estado_label.get(sec.estado.value, sec.estado.value) }}</span>
+        <span>Área: {{ area_label[sec.area] }}</span>
+        {% if sec.dias_en_etapa is not none %}
+          <span>{{ sec.dias_en_etapa }} días en etapa</span>
+        {% endif %}
+      </div>
+
+      <h4>Argumentos a favor</h4>
+      <ul>
+        {% for arg in sec.argumentos %}<li>{{ arg }}</li>{% endfor %}
+      </ul>
+
+      <h4>Contraargumentos esperables</h4>
+      <ul>
+        {% for arg in sec.contraargumentos %}<li>{{ arg }}</li>{% endfor %}
+      </ul>
+
+      <h4>Cofirmantes naturales</h4>
+      {% if sec.cofirmantes_naturales %}
+        {% for c in sec.cofirmantes_naturales %}
+          <div class="cofirmante">
+            <div>
+              <div class="nombre">{{ c.nombre }}</div>
+              <div class="bloque">{{ c.bloque or "—" }}{% if c.distrito %} · {{ c.distrito }}{% endif %}</div>
+            </div>
+            <div class="count">{{ c.proyectos_similares_firmados }} firmas</div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p style="color: #6b7280; font-size: 10pt;">Sin sugerencias disponibles.</p>
+      {% endif %}
+
+      <h4>Antecedente más parecido</h4>
+      {% if sec.antecedente %}
+        <div class="antecedente">
+          <strong>{{ "%04d-%s-%d" | format(
+            sec.antecedente.numero.numero,
+            sec.antecedente.numero.origen.value,
+            sec.antecedente.numero.anio
+          ) }}</strong>
+          — {{ sec.antecedente.titulo }}
+          <br>
+          Resultado: <strong>{{ estado_label.get(sec.antecedente.estado_terminal.value, sec.antecedente.estado_terminal.value) }}</strong>
+          · Similitud: {{ "%.2f"|format(sec.antecedente.similitud) }}
+        </div>
+      {% else %}
+        <p style="color: #6b7280; font-size: 10pt;">Sin antecedente histórico claro.</p>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% else %}
+  <p style="color: #6b7280;">Ninguno de los proyectos del despacho está en este orden del día.</p>
+{% endif %}
+
+<div class="page-break"></div>
+
+{# ============== PÁGINA 3 — Resto del OD por área ============== #}
+<h1>Resto del OD por área temática</h1>
+
+{% if briefing.secciones_areas %}
+  {% for sa in briefing.secciones_areas %}
+    <div class="area-section">
+      <h3>{{ area_label[sa.area] }} ({{ sa.proyectos|length }})</h3>
+      {% for p in sa.proyectos %}
+        {% set rec_bg, rec_label = recomendacion_label[p.recomendacion] %}
+        <div class="area-row">
+          <div class="info">
+            <span class="titulo">
+              {{ "%04d-%s-%d" | format(p.numero.numero, p.numero.origen.value, p.numero.anio) }}
+            </span>
+            — {{ p.titulo }}
+            {% if p.autor_principal %}
+              <div class="autor">{{ p.autor_principal }}{% if p.bloque_autor %} ({{ p.bloque_autor }}){% endif %}</div>
+            {% endif %}
+            <div class="razon">{{ p.razon }}</div>
+          </div>
+          <span class="rec" style="background: {{ rec_bg }};">{{ rec_label }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+{% else %}
+  <p style="color: #6b7280;">Sin proyectos en el resto del OD.</p>
+{% endif %}
+
+<div class="footer">
+  Generado por Praxis Asesor · Briefing pre-sesión {{ briefing.prompt_version }}
+</div>
+
+</body>
+</html>

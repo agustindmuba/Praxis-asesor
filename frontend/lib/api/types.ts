@@ -215,3 +215,122 @@ export interface ActualizarSeguimientoBody {
   responsable_id?: string | null;
   archivado?: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// /ordenes-del-dia + /briefings (feat/29 + feat/30)
+// ---------------------------------------------------------------------------
+
+export type FuenteOd = "upload_manual" | "scraping_hcdn";
+
+export interface OrdenDelDiaCrear {
+  camara: Camara;
+  fecha_sesion: string; // YYYY-MM-DD
+  expedientes_ids: string[];
+  hora_sesion?: string; // HH:MM
+  titulo?: string;
+}
+
+export interface OrdenDelDiaDTO {
+  id: string;
+  camara: Camara;
+  fecha_sesion: string;
+  hora_sesion: string | null;
+  titulo: string | null;
+  fuente: FuenteOd;
+  expedientes_ids: string[];
+  creado_en: string | null;
+}
+
+export type AreaTematica =
+  | "educacion"
+  | "salud"
+  | "trabajo"
+  | "seguridad"
+  | "justicia"
+  | "economia"
+  | "ambiente"
+  | "derechos_humanos"
+  | "infraestructura"
+  | "transporte"
+  | "relaciones_exteriores"
+  | "otros";
+
+export type PrioridadAlerta = "alta" | "media" | "baja";
+export type RolEnDespacho = "autor" | "cofirmante";
+export type RecomendacionVoto =
+  | "a_favor"
+  | "abstencion"
+  | "en_contra"
+  | "sin_recomendacion";
+
+export interface AlertaDTO {
+  prioridad: PrioridadAlerta;
+  titulo: string;
+  detalle: string;
+  expediente_id: string | null;
+}
+
+export interface CofirmanteSugeridoDTO {
+  nombre: string;
+  bloque: string | null;
+  distrito: string | null;
+  proyectos_similares_firmados: number;
+  razon: string;
+}
+
+export interface AntecedenteParecidoDTO {
+  numero: NumeroExpedienteDTO;
+  titulo: string;
+  estado_terminal: EstadoExpediente;
+  similitud: number;
+}
+
+export interface SeccionProyectoDTO {
+  expediente_id: string;
+  numero: NumeroExpedienteDTO;
+  titulo: string;
+  estado: EstadoExpediente;
+  tipo: TipoExpediente;
+  rol_despacho: RolEnDespacho;
+  area: AreaTematica;
+  dias_en_etapa: number | null;
+  argumentos: string[];
+  contraargumentos: string[];
+  cofirmantes_naturales: CofirmanteSugeridoDTO[];
+  antecedente: AntecedenteParecidoDTO | null;
+}
+
+export interface ProyectoEnAreaDTO {
+  expediente_id: string;
+  numero: NumeroExpedienteDTO;
+  titulo: string;
+  autor_principal: string | null;
+  bloque_autor: string | null;
+  recomendacion: RecomendacionVoto;
+  razon: string;
+}
+
+export interface SeccionAreaDTO {
+  area: AreaTematica;
+  proyectos: ProyectoEnAreaDTO[];
+}
+
+export interface BriefingCrear {
+  orden_del_dia_id: string;
+  regenerar?: boolean;
+}
+
+export interface BriefingDTO {
+  id: string;
+  despacho_id: string;
+  orden_del_dia_id: string;
+  modelo_llm: string;
+  prompt_version: string;
+  generado_en: string | null;
+  proyectos_del_despacho_total: number;
+  proyectos_como_autor: number;
+  proyectos_como_cofirmante: number;
+  alertas: AlertaDTO[];
+  secciones_proyectos: SeccionProyectoDTO[];
+  secciones_areas: SeccionAreaDTO[];
+}
