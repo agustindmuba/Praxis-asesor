@@ -12,9 +12,11 @@ from __future__ import annotations
 from typing import Any
 
 from praxis.domain import (
+    AreaTematica,
     Camara,
     EstadoExpediente,
     Expediente,
+    ExpedienteAreaTematica,
     Firmante,
     Giro,
     MembresiaDespacho,
@@ -35,6 +37,7 @@ from praxis.domain import (
 from praxis.domain.despacho import Despacho
 from praxis.infrastructure.persistence.models import (
     DespachoOrm,
+    ExpedienteAreaTematicaOrm,
     ExpedienteOrm,
     FirmanteOrm,
     GiroOrm,
@@ -397,3 +400,35 @@ def _from_voto_legislador(domain: VotoLegislador) -> VotoLegisladorOrm:
 def to_voto_legislador(orm: VotoLegisladorOrm) -> VotoLegislador:
     """Conveniencia pública del mapper privado."""
     return _to_voto_legislador(orm)
+
+
+# ---------------------------------------------------------------------------
+# ExpedienteAreaTematica
+# ---------------------------------------------------------------------------
+
+
+def to_expediente_area_tematica(
+    orm: ExpedienteAreaTematicaOrm,
+) -> ExpedienteAreaTematica:
+    return ExpedienteAreaTematica(
+        id=orm.id,
+        expediente_id=orm.expediente_id,
+        area=AreaTematica(orm.area),
+        modelo=orm.modelo,
+        prompt_version=orm.prompt_version,
+        generado_en=orm.generado_en,
+    )
+
+
+def from_expediente_area_tematica(
+    domain: ExpedienteAreaTematica,
+) -> ExpedienteAreaTematicaOrm:
+    kwargs: dict[str, Any] = {
+        "expediente_id": domain.expediente_id,
+        "area": domain.area.value,
+        "modelo": domain.modelo,
+        "prompt_version": domain.prompt_version,
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    return ExpedienteAreaTematicaOrm(**kwargs)

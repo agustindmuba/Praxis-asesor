@@ -16,9 +16,9 @@ from __future__ import annotations
 from datetime import date
 
 from praxis.application.ports import LlmProvider
-from praxis.domain import EstadoExpediente, Expediente, Firmante
+from praxis.domain import AreaTematica, EstadoExpediente, Expediente, Firmante
 
-FAKE_MODEL_NAME = "fake"
+FAKE_MODEL_NAME = "fake-keywords"
 
 
 class FakeLlmProvider(LlmProvider):
@@ -38,6 +38,26 @@ class FakeLlmProvider(LlmProvider):
             f"**Quién lo impulsa:** {quien}\n\n"
             f"**Probabilidad de avance:** {avance}"
         )
+
+    async def clasificar_area_tematica(self, expediente: Expediente) -> AreaTematica:
+        """Clasifica con keywords sobre título + sumario.
+
+        Estrategia: recorre los buckets de keywords en orden (educación
+        antes que economía, etc.) y devuelve el primer match. Si nada
+        matchea → `OTROS`.
+
+        Es intencionalmente conservadora: si dos áreas matchean, gana la
+        que aparece primero en `_AREA_KEYWORDS`. Las áreas más específicas
+        (salud, educación) se ponen antes que las más amplias (economía).
+        """
+        haystack = _normalizar(
+            f"{expediente.titulo} {expediente.sumario or ''}"
+        )
+        for area, palabras in _AREA_KEYWORDS:
+            for palabra in palabras:
+                if palabra in haystack:
+                    return area
+        return AreaTematica.OTROS
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +148,215 @@ def _hacer_legible(texto: str) -> str:
     if texto and texto.upper() == texto:
         return texto.capitalize()
     return texto
+
+
+# ---------------------------------------------------------------------------
+# Clasificación temática (keywords)
+# ---------------------------------------------------------------------------
+
+
+def _normalizar(s: str) -> str:
+    """Lowercase + colapsa whitespace + saca tildes ASCII básicas.
+
+    No usa unicodedata.NFKD a propósito: keywords sin tilde sirven igual
+    porque el corpus del portal HCDN usa MAYÚSCULAS sin tilde
+    consistentemente.
+    """
+    import re
+
+    out = s.lower()
+    # Quitar tildes manualmente (sin importar unicodedata).
+    table = str.maketrans("áéíóúüñ", "aeiouun")
+    out = out.translate(table)
+    return re.sub(r"\s+", " ", out).strip()
+
+
+# Buckets de keywords. Orden importa: el primero que matchea, gana.
+# Las áreas específicas (salud, educación, ambiente) van antes que las
+# transversales (economía, justicia). Mejorable con embeddings en v2.
+_AREA_KEYWORDS: list[tuple[AreaTematica, tuple[str, ...]]] = [
+    (
+        AreaTematica.SALUD,
+        (
+            "salud",
+            "sanitar",
+            "hospital",
+            "medic",
+            "enferm",
+            "vacun",
+            "obras sociales",
+            "fertilizacion asistida",
+            "discapacidad",
+        ),
+    ),
+    (
+        AreaTematica.EDUCACION,
+        (
+            "educacion",
+            "educativ",
+            "escuela",
+            "universidad",
+            "universita",
+            "docente",
+            "alumn",
+            "estudiantil",
+            "becas",
+        ),
+    ),
+    (
+        AreaTematica.AMBIENTE,
+        (
+            "ambiente",
+            "ambiental",
+            "ecosistema",
+            "climat",
+            "incendio",
+            "humedales",
+            "bosque",
+            "deforesta",
+            "glaciar",
+            "fauna",
+            "biodiversidad",
+            "contaminacion",
+            "residuo",
+        ),
+    ),
+    (
+        AreaTematica.TRABAJO,
+        (
+            "trabajo",
+            "trabajadora",
+            "trabajador",
+            "laboral",
+            "jubilacion",
+            "jubilad",
+            "pension",
+            "asignacion familiar",
+            "remuneracion",
+            "salario",
+            "convenio colectivo",
+        ),
+    ),
+    (
+        # DDHH antes que SEGURIDAD: "violencia de género", "femicidios",
+        # "trata de personas" son DDHH, no seguridad. Si dejamos
+        # SEGURIDAD primero con "violenc" como keyword, gana mal.
+        AreaTematica.DERECHOS_HUMANOS,
+        (
+            "derechos humanos",
+            "genero",
+            "feminici",
+            "femicidio",
+            "violencia de genero",
+            "lgbt",
+            "diversidad sexual",
+            "trata de personas",
+            "memoria",
+            "lesa humanidad",
+            "discriminacion",
+            "inclusion",
+        ),
+    ),
+    (
+        AreaTematica.SEGURIDAD,
+        (
+            "seguridad",
+            "policia",
+            "policial",
+            "fuerza de seguridad",
+            "narcotrafico",
+            "antinarc",
+            "armas",
+            "violenc",
+            "delito",
+            "delictiv",
+            "terrorism",
+        ),
+    ),
+    (
+        AreaTematica.TRANSPORTE,
+        (
+            "transporte",
+            "ferroviar",
+            "ferrocarril",
+            "aerea",
+            "aeroport",
+            "subte",
+            "colectiv",
+            "ruta nacional",
+            "ruta provincial",
+            "automotor",
+        ),
+    ),
+    (
+        AreaTematica.INFRAESTRUCTURA,
+        (
+            "infraestructura",
+            "obra publica",
+            "obras publicas",
+            "vivienda",
+            "viviendas",
+            "habitacional",
+            "agua potable",
+            "saneamiento",
+            "cloacas",
+            "energetica",
+            "energia",
+            "electric",
+        ),
+    ),
+    (
+        AreaTematica.JUSTICIA,
+        (
+            "judicial",
+            "codigo civil",
+            "codigo penal",
+            "codigo procesal",
+            "magistrado",
+            "fiscal",
+            "fiscalia",
+            "amparo",
+            "habeas",
+            "ministerio publico",
+            "reforma judicial",
+        ),
+    ),
+    (
+        AreaTematica.RELACIONES_EXTERIORES,
+        (
+            "tratado",
+            "convenio internacional",
+            "acuerdo internacional",
+            "cancilleria",
+            "relaciones exteriores",
+            "exterior",
+            "mercosur",
+            "naciones unidas",
+            "consulado",
+            "embajada",
+        ),
+    ),
+    (
+        AreaTematica.ECONOMIA,
+        (
+            "economia",
+            "economic",
+            "fiscal",
+            "impuesto",
+            "tributari",
+            "presupuest",
+            "deuda publica",
+            "exportacion",
+            "importacion",
+            "moneda",
+            "banco central",
+            "inflacion",
+            "subsidio",
+            "regimen tarifario",
+            "zona fria",
+        ),
+    ),
+]
 
 
 def _avance_segun_estado(estado: EstadoExpediente) -> str:

@@ -7,6 +7,12 @@ e infraestructura. La regla es: si una entidad o value object es parte del
 contrato público del dominio, vive en este __init__.
 """
 
+from praxis.domain.area_tematica import (
+    AREA_LABELS,
+    CLASIFICACION_PROMPT_VERSION,
+    AreaTematica,
+    ExpedienteAreaTematica,
+)
 from praxis.domain.auth import (
     AuthClaims,
     AuthError,
@@ -71,9 +77,12 @@ from praxis.domain.votacion import (
 )
 
 __all__ = [
+    "AREA_LABELS",
+    "CLASIFICACION_PROMPT_VERSION",
     "LIMIT_DEFAULT",
     "LIMIT_MAX",
     "PROMPT_VERSION",
+    "AreaTematica",
     "AuthClaims",
     "AuthError",
     "AuthErrorCode",
@@ -87,6 +96,7 @@ __all__ = [
     "EtapaPipeline",
     "EtapaProgreso",
     "Expediente",
+    "ExpedienteAreaTematica",
     "ExpedienteNoEncontrado",
     "ExpedienteQuery",
     "Firmante",
