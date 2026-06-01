@@ -22,6 +22,8 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    Time,
+    UniqueConstraint,
     Uuid,
 )
 from sqlalchemy import func as sa_func_now_module
@@ -396,6 +398,106 @@ class ExpedienteAreaTematicaOrm(Base, kw_only=True):
         return (
             f"ExpedienteAreaTematicaOrm(id={self.id!r}, "
             f"expediente_id={self.expediente_id!r}, area={self.area!r})"
+        )
+
+
+# ---------------------------------------------------------------------------
+# OrdenDelDia + Briefing (feat/29 — spec 14)
+# ---------------------------------------------------------------------------
+
+
+class OrdenDelDiaOrm(Base, kw_only=True):
+    """Lista de expedientes a tratar en una sesión específica.
+
+    Tenant-scoped: el OD lo carga (manual o automatic) cada despacho para
+    su propio briefing. Si en el futuro queremos compartir el OD entre
+    despachos del mismo bloque, hay que relajar esta restricción.
+
+    `expedientes_ids` se persiste como JSON (array de UUIDs serializados
+    como string). Suficiente para v1 — el OD típico tiene 30-60
+    expedientes y no se filtra por contenido.
+    """
+
+    __tablename__ = "orden_del_dia"
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    despacho_id: Mapped[UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
+        index=True,
+    )
+    camara: Mapped[str] = mapped_column(String(10), nullable=False)
+    fecha_sesion: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    hora_sesion: Mapped[Any] = mapped_column(Time, nullable=True, default=None)
+    titulo: Mapped[str | None] = mapped_column(String(200), nullable=True, default=None)
+    fuente: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="upload_manual",
+    )
+    expedientes_ids: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"OrdenDelDiaOrm(id={self.id!r}, camara={self.camara!r}, "
+            f"fecha={self.fecha_sesion!r}, n={len(self.expedientes_ids)})"
+        )
+
+
+class BriefingOrm(Base, kw_only=True):
+    """Snapshot del briefing pre-sesión para un (despacho, OD).
+
+    UNIQUE compuesto (despacho_id, orden_del_dia_id) — un briefing por
+    despacho por OD. Regenerar = delete + insert.
+
+    `contenido` guarda como JSON serializado todo el output del use case
+    (alertas, secciones de proyectos, secciones de áreas). Pensado para
+    inmutabilidad: el briefing es un snapshot temporal.
+    """
+
+    __tablename__ = "briefing"
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    despacho_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    orden_del_dia_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("orden_del_dia.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    modelo_llm: Mapped[str] = mapped_column(String(80), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="v1",
+    )
+    contenido: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    generado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "despacho_id", "orden_del_dia_id", name="uq_briefing_despacho_od",
+        ),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"BriefingOrm(id={self.id!r}, despacho_id={self.despacho_id!r}, "
+            f"od_id={self.orden_del_dia_id!r})"
         )
 
 

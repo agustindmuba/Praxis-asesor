@@ -9,11 +9,16 @@ Mantener acá toda la traducción evita que el dominio importe SQLAlchemy.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
+from uuid import UUID
 
 from praxis.domain import (
+    AlertaBriefing,
+    AntecedenteParecido,
     AreaTematica,
+    Briefing,
     Camara,
+    CofirmanteSugerido,
     EstadoExpediente,
     Expediente,
     ExpedienteAreaTematica,
@@ -21,10 +26,17 @@ from praxis.domain import (
     Giro,
     MembresiaDespacho,
     NumeroExpediente,
+    OrdenDelDia,
     OrigenExpediente,
     Prioridad,
+    PrioridadAlerta,
+    ProyectoEnAreaBriefing,
+    RecomendacionVoto,
     ResumenEjecutivo,
     Rol,
+    RolEnDespacho,
+    SeccionAreaBriefing,
+    SeccionProyectoBriefing,
     SeguimientoExpediente,
     TipoExpediente,
     TipoVotacion,
@@ -35,13 +47,16 @@ from praxis.domain import (
     VotoTipo,
 )
 from praxis.domain.despacho import Despacho
+from praxis.domain.orden_del_dia import FuenteOd
 from praxis.infrastructure.persistence.models import (
+    BriefingOrm,
     DespachoOrm,
     ExpedienteAreaTematicaOrm,
     ExpedienteOrm,
     FirmanteOrm,
     GiroOrm,
     MembresiaDespachoOrm,
+    OrdenDelDiaOrm,
     ResumenEjecutivoOrm,
     SeguimientoExpedienteOrm,
     TramiteEventoOrm,
@@ -432,3 +447,252 @@ def from_expediente_area_tematica(
     if domain.id is not None:
         kwargs["id"] = domain.id
     return ExpedienteAreaTematicaOrm(**kwargs)
+
+
+# ---------------------------------------------------------------------------
+# OrdenDelDia + Briefing (feat/29)
+# ---------------------------------------------------------------------------
+
+
+def to_orden_del_dia(orm: OrdenDelDiaOrm) -> OrdenDelDia:
+    return OrdenDelDia(
+        id=orm.id,
+        camara=Camara(orm.camara),
+        fecha_sesion=orm.fecha_sesion,
+        hora_sesion=orm.hora_sesion,
+        titulo=orm.titulo,
+        fuente=cast(FuenteOd, orm.fuente),
+        expedientes_ids=[UUID(str(i)) for i in orm.expedientes_ids],
+        creado_en=orm.creado_en,
+    )
+
+
+def from_orden_del_dia(
+    domain: OrdenDelDia, *, despacho_id: UUID | None = None,
+) -> OrdenDelDiaOrm:
+    """Materializa un ORM nuevo desde el dominio.
+
+    `despacho_id` se pasa aparte porque el dominio no lo tiene (el
+    `OrdenDelDia` se carga en contexto del despacho actual del request).
+    """
+    kwargs: dict[str, Any] = {
+        "despacho_id": despacho_id,
+        "camara": domain.camara.value,
+        "fecha_sesion": domain.fecha_sesion,
+        "hora_sesion": domain.hora_sesion,
+        "titulo": domain.titulo,
+        "fuente": domain.fuente,
+        "expedientes_ids": [str(i) for i in domain.expedientes_ids],
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    return OrdenDelDiaOrm(**kwargs)
+
+
+# --- Briefing: serialización JSON --------------------------------------------
+
+
+def _numero_to_dict(n: NumeroExpediente) -> dict[str, Any]:
+    return {
+        "numero": n.numero,
+        "origen": n.origen.value,
+        "anio": n.anio,
+        "camara": n.camara.value,
+    }
+
+
+def _numero_from_dict(d: dict[str, Any]) -> NumeroExpediente:
+    return NumeroExpediente(
+        numero=int(d["numero"]),
+        origen=OrigenExpediente(d["origen"]),
+        anio=int(d["anio"]),
+        camara=Camara(d["camara"]),
+    )
+
+
+def _alerta_to_dict(a: AlertaBriefing) -> dict[str, Any]:
+    return {
+        "prioridad": a.prioridad,
+        "titulo": a.titulo,
+        "detalle": a.detalle,
+        "expediente_id": str(a.expediente_id) if a.expediente_id else None,
+    }
+
+
+def _alerta_from_dict(d: dict[str, Any]) -> AlertaBriefing:
+    return AlertaBriefing(
+        prioridad=cast(PrioridadAlerta, d["prioridad"]),
+        titulo=d["titulo"],
+        detalle=d["detalle"],
+        expediente_id=UUID(d["expediente_id"]) if d.get("expediente_id") else None,
+    )
+
+
+def _cofirmante_to_dict(c: CofirmanteSugerido) -> dict[str, Any]:
+    return {
+        "nombre": c.nombre,
+        "bloque": c.bloque,
+        "distrito": c.distrito,
+        "proyectos_similares_firmados": c.proyectos_similares_firmados,
+        "razon": c.razon,
+    }
+
+
+def _cofirmante_from_dict(d: dict[str, Any]) -> CofirmanteSugerido:
+    return CofirmanteSugerido(
+        nombre=d["nombre"],
+        bloque=d.get("bloque"),
+        distrito=d.get("distrito"),
+        proyectos_similares_firmados=int(d["proyectos_similares_firmados"]),
+        razon=d["razon"],
+    )
+
+
+def _antecedente_to_dict(a: AntecedenteParecido | None) -> dict[str, Any] | None:
+    if a is None:
+        return None
+    return {
+        "numero": _numero_to_dict(a.numero),
+        "titulo": a.titulo,
+        "estado_terminal": a.estado_terminal.value,
+        "similitud": a.similitud,
+    }
+
+
+def _antecedente_from_dict(
+    d: dict[str, Any] | None,
+) -> AntecedenteParecido | None:
+    if d is None:
+        return None
+    return AntecedenteParecido(
+        numero=_numero_from_dict(d["numero"]),
+        titulo=d["titulo"],
+        estado_terminal=EstadoExpediente(d["estado_terminal"]),
+        similitud=float(d["similitud"]),
+    )
+
+
+def _seccion_proyecto_to_dict(s: SeccionProyectoBriefing) -> dict[str, Any]:
+    return {
+        "expediente_id": str(s.expediente_id),
+        "numero": _numero_to_dict(s.numero),
+        "titulo": s.titulo,
+        "estado": s.estado.value,
+        "tipo": s.tipo.value,
+        "rol_despacho": s.rol_despacho,
+        "area": s.area.value,
+        "dias_en_etapa": s.dias_en_etapa,
+        "argumentos": list(s.argumentos),
+        "contraargumentos": list(s.contraargumentos),
+        "cofirmantes_naturales": [
+            _cofirmante_to_dict(c) for c in s.cofirmantes_naturales
+        ],
+        "antecedente": _antecedente_to_dict(s.antecedente),
+    }
+
+
+def _seccion_proyecto_from_dict(
+    d: dict[str, Any],
+) -> SeccionProyectoBriefing:
+    return SeccionProyectoBriefing(
+        expediente_id=UUID(d["expediente_id"]),
+        numero=_numero_from_dict(d["numero"]),
+        titulo=d["titulo"],
+        estado=EstadoExpediente(d["estado"]),
+        tipo=TipoExpediente(d["tipo"]),
+        rol_despacho=cast(RolEnDespacho, d["rol_despacho"]),
+        area=AreaTematica(d["area"]),
+        dias_en_etapa=d.get("dias_en_etapa"),
+        argumentos=list(d.get("argumentos", [])),
+        contraargumentos=list(d.get("contraargumentos", [])),
+        cofirmantes_naturales=[
+            _cofirmante_from_dict(c) for c in d.get("cofirmantes_naturales", [])
+        ],
+        antecedente=_antecedente_from_dict(d.get("antecedente")),
+    )
+
+
+def _proyecto_area_to_dict(p: ProyectoEnAreaBriefing) -> dict[str, Any]:
+    return {
+        "expediente_id": str(p.expediente_id),
+        "numero": _numero_to_dict(p.numero),
+        "titulo": p.titulo,
+        "autor_principal": p.autor_principal,
+        "bloque_autor": p.bloque_autor,
+        "recomendacion": p.recomendacion,
+        "razon": p.razon,
+    }
+
+
+def _proyecto_area_from_dict(d: dict[str, Any]) -> ProyectoEnAreaBriefing:
+    return ProyectoEnAreaBriefing(
+        expediente_id=UUID(d["expediente_id"]),
+        numero=_numero_from_dict(d["numero"]),
+        titulo=d["titulo"],
+        autor_principal=d.get("autor_principal"),
+        bloque_autor=d.get("bloque_autor"),
+        recomendacion=cast(RecomendacionVoto, d["recomendacion"]),
+        razon=d["razon"],
+    )
+
+
+def _seccion_area_to_dict(s: SeccionAreaBriefing) -> dict[str, Any]:
+    return {
+        "area": s.area.value,
+        "proyectos": [_proyecto_area_to_dict(p) for p in s.proyectos],
+    }
+
+
+def _seccion_area_from_dict(d: dict[str, Any]) -> SeccionAreaBriefing:
+    return SeccionAreaBriefing(
+        area=AreaTematica(d["area"]),
+        proyectos=[_proyecto_area_from_dict(p) for p in d.get("proyectos", [])],
+    )
+
+
+def to_briefing(orm: BriefingOrm) -> Briefing:
+    c = orm.contenido or {}
+    return Briefing(
+        id=orm.id,
+        despacho_id=orm.despacho_id,
+        orden_del_dia_id=orm.orden_del_dia_id,
+        modelo_llm=orm.modelo_llm,
+        prompt_version=orm.prompt_version,
+        proyectos_del_despacho_total=int(c.get("proyectos_del_despacho_total", 0)),
+        proyectos_como_autor=int(c.get("proyectos_como_autor", 0)),
+        proyectos_como_cofirmante=int(c.get("proyectos_como_cofirmante", 0)),
+        alertas=[_alerta_from_dict(a) for a in c.get("alertas", [])],
+        secciones_proyectos=[
+            _seccion_proyecto_from_dict(s)
+            for s in c.get("secciones_proyectos", [])
+        ],
+        secciones_areas=[
+            _seccion_area_from_dict(s) for s in c.get("secciones_areas", [])
+        ],
+        generado_en=orm.generado_en,
+    )
+
+
+def from_briefing(domain: Briefing) -> BriefingOrm:
+    contenido: dict[str, Any] = {
+        "proyectos_del_despacho_total": domain.proyectos_del_despacho_total,
+        "proyectos_como_autor": domain.proyectos_como_autor,
+        "proyectos_como_cofirmante": domain.proyectos_como_cofirmante,
+        "alertas": [_alerta_to_dict(a) for a in domain.alertas],
+        "secciones_proyectos": [
+            _seccion_proyecto_to_dict(s) for s in domain.secciones_proyectos
+        ],
+        "secciones_areas": [
+            _seccion_area_to_dict(s) for s in domain.secciones_areas
+        ],
+    }
+    kwargs: dict[str, Any] = {
+        "despacho_id": domain.despacho_id,
+        "orden_del_dia_id": domain.orden_del_dia_id,
+        "modelo_llm": domain.modelo_llm,
+        "prompt_version": domain.prompt_version,
+        "contenido": contenido,
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    return BriefingOrm(**kwargs)

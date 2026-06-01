@@ -5,6 +5,7 @@ Ver `README.md` en esta carpeta para responsabilidades y restricciones.
 
 from praxis.application.ports import (
     AuthProvider,
+    BriefingRepository,
     CatalogoComisiones,
     CatalogoLegisladores,
     DespachoRepository,
@@ -13,6 +14,7 @@ from praxis.application.ports import (
     FuenteExpedientes,
     LlmProvider,
     MembresiaDespachoRepository,
+    OrdenDelDiaRepository,
     ResumenEjecutivoRepository,
     SeguimientoExpedienteRepository,
     UsuarioRepository,
@@ -23,6 +25,7 @@ from praxis.application.use_cases import (
     CalcularInteligenciaExpediente,
     ClasificarExpedienteTematicamente,
     EnriquecerExpediente,
+    GenerarBriefing,
     GenerarResumenEjecutivo,
     ResolverContextoRequest,
     SincronizarUsuarioDesdeClerk,
@@ -31,6 +34,7 @@ from praxis.application.use_cases import (
 
 __all__ = [
     "AuthProvider",
+    "BriefingRepository",
     "BuscarAntecedenteParecido",
     "BuscarExpediente",
     "CalcularInteligenciaExpediente",
@@ -42,9 +46,11 @@ __all__ = [
     "ExpedienteAreaTematicaRepository",
     "ExpedienteRepository",
     "FuenteExpedientes",
+    "GenerarBriefing",
     "GenerarResumenEjecutivo",
     "LlmProvider",
     "MembresiaDespachoRepository",
+    "OrdenDelDiaRepository",
     "ResolverContextoRequest",
     "ResumenEjecutivoRepository",
     "SeguimientoExpedienteRepository",

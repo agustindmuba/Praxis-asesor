@@ -4,6 +4,9 @@ Cada repo implementa un puerto definido en `praxis.application.ports`.
 Convención: una clase por agregado raíz.
 """
 
+from praxis.infrastructure.persistence.repositories.briefing import (
+    SqlAlchemyBriefingRepository,
+)
 from praxis.infrastructure.persistence.repositories.despacho import (
     SqlAlchemyDespachoRepository,
 )
@@ -15,6 +18,9 @@ from praxis.infrastructure.persistence.repositories.expediente_area_tematica imp
 )
 from praxis.infrastructure.persistence.repositories.membresia_despacho import (
     SqlAlchemyMembresiaDespachoRepository,
+)
+from praxis.infrastructure.persistence.repositories.orden_del_dia import (
+    SqlAlchemyOrdenDelDiaRepository,
 )
 from praxis.infrastructure.persistence.repositories.resumen_ejecutivo import (
     SqlAlchemyResumenEjecutivoRepository,
@@ -30,10 +36,12 @@ from praxis.infrastructure.persistence.repositories.votacion import (
 )
 
 __all__ = [
+    "SqlAlchemyBriefingRepository",
     "SqlAlchemyDespachoRepository",
     "SqlAlchemyExpedienteAreaTematicaRepository",
     "SqlAlchemyExpedienteRepository",
     "SqlAlchemyMembresiaDespachoRepository",
+    "SqlAlchemyOrdenDelDiaRepository",
     "SqlAlchemyResumenEjecutivoRepository",
     "SqlAlchemySeguimientoExpedienteRepository",
     "SqlAlchemyUsuarioRepository",
