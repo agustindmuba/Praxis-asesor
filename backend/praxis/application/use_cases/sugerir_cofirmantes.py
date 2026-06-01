@@ -15,7 +15,7 @@ Si en el futuro hay 3+ consumidores de la misma query, refactoreamos.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import date, timedelta
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy import bindparam, text
@@ -30,9 +30,10 @@ from praxis.domain import (
     ExpedienteNoEncontrado,
 )
 
-# Ventana de tiempo para considerar "actividad reciente". 18 meses
-# captura cofirmantes activos sin diluir con expedientes muy viejos.
-_VENTANA_DIAS = 18 * 30
+# Ventana en AÑOS para considerar "actividad reciente". Usamos `anio`
+# del NumeroExpediente (no `fecha_ingreso`, que el scraper HCDN deja en
+# NULL para la mayoría de los expedientes).
+_VENTANA_ANIOS = 2
 # Cantidad de sugerencias devueltas al briefing.
 _TOP_N = 5
 # Mínimo de proyectos similares firmados para sumar al ranking.
@@ -81,12 +82,15 @@ class SugerirCofirmantes:
         if clasif is None:
             return []
 
-        hoy = date.today()
-        desde = hoy - timedelta(days=_VENTANA_DIAS)
+        anio_min = date.today().year - _VENTANA_ANIOS
 
         excluir_bloques_list = [b.lower() for b in excluir_bloques if b]
         excluir_firmantes_list = [f.lower() for f in excluir_firmantes if f]
 
+        # Filtramos por `anio` del NumeroExpediente, no por `fecha_ingreso`:
+        # el scraper HCDN deja `fecha_ingreso` en NULL la mayoría de las
+        # veces (el portal no lo expone estructurado), pero `anio` siempre
+        # viene poblado.
         sql = text(
             """
             SELECT
@@ -99,7 +103,7 @@ class SugerirCofirmantes:
             JOIN expediente_area_tematica eat ON eat.expediente_id = e.id
             WHERE eat.area = :area
               AND e.tipo = :tipo
-              AND e.fecha_ingreso >= :desde
+              AND e.anio >= :anio_min
               AND e.id != :propio_id
             GROUP BY f.nombre, f.bloque, f.distrito
             HAVING COUNT(DISTINCT e.id) >= :min_proyectos
@@ -109,7 +113,7 @@ class SugerirCofirmantes:
         ).bindparams(
             bindparam("area", value=clasif.area.value),
             bindparam("tipo", value=expediente.tipo.value),
-            bindparam("desde", value=desde),
+            bindparam("anio_min", value=anio_min),
             bindparam("propio_id", value=expediente_id),
             bindparam("min_proyectos", value=_MIN_PROYECTOS),
         )
