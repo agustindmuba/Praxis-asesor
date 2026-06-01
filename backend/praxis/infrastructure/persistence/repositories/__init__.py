@@ -10,6 +10,9 @@ from praxis.infrastructure.persistence.repositories.despacho import (
 from praxis.infrastructure.persistence.repositories.expediente import (
     SqlAlchemyExpedienteRepository,
 )
+from praxis.infrastructure.persistence.repositories.expediente_area_tematica import (
+    SqlAlchemyExpedienteAreaTematicaRepository,
+)
 from praxis.infrastructure.persistence.repositories.membresia_despacho import (
     SqlAlchemyMembresiaDespachoRepository,
 )
@@ -28,6 +31,7 @@ from praxis.infrastructure.persistence.repositories.votacion import (
 
 __all__ = [
     "SqlAlchemyDespachoRepository",
+    "SqlAlchemyExpedienteAreaTematicaRepository",
     "SqlAlchemyExpedienteRepository",
     "SqlAlchemyMembresiaDespachoRepository",
     "SqlAlchemyResumenEjecutivoRepository",

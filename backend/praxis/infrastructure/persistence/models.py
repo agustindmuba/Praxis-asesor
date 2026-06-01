@@ -359,6 +359,47 @@ class ResumenEjecutivoOrm(Base, kw_only=True):
 
 
 # ---------------------------------------------------------------------------
+# ExpedienteAreaTematica (cache de clasificación temática del LLM)
+# ---------------------------------------------------------------------------
+
+
+class ExpedienteAreaTematicaOrm(Base, kw_only=True):
+    """Cache de clasificación temática por expediente.
+
+    UNIQUE en `expediente_id`: una sola clasificación por expediente.
+    Para reclasificar se borra primero (delete + insert).
+    """
+
+    __tablename__ = "expediente_area_tematica"
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    expediente_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("expediente.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    area: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    modelo: Mapped[str] = mapped_column(String(80), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="v1",
+    )
+    generado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"ExpedienteAreaTematicaOrm(id={self.id!r}, "
+            f"expediente_id={self.expediente_id!r}, area={self.area!r})"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Votacion + VotoLegislador (ADR 0005)
 # ---------------------------------------------------------------------------
 

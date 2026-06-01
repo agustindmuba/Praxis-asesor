@@ -17,10 +17,12 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from praxis.domain import (
+    AreaTematica,
     AuthClaims,
     Camara,
     Comision,
     Expediente,
+    ExpedienteAreaTematica,
     ExpedienteQuery,
     MembresiaDespacho,
     NumeroExpediente,
@@ -376,6 +378,18 @@ class LlmProvider(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    async def clasificar_area_tematica(self, expediente: Expediente) -> AreaTematica:
+        """Devuelve el área temática que mejor representa al expediente.
+
+        Las 12 áreas son fijas (`AreaTematica`). Los proyectos transversales
+        van a `AreaTematica.OTROS`.
+
+        El caller chequea cache (ExpedienteAreaTematicaRepository) antes de
+        llamar — esto NO cachea solo.
+        """
+        raise NotImplementedError
+
 
 class ResumenEjecutivoRepository(ABC):
     """Puerto: persistencia de resúmenes ejecutivos (caché por expediente).
@@ -395,6 +409,36 @@ class ResumenEjecutivoRepository(ABC):
     @abstractmethod
     async def eliminar(self, expediente_id: UUID) -> bool:
         """Borra el resumen del expediente. Devuelve True si había alguno."""
+        raise NotImplementedError
+
+
+class ExpedienteAreaTematicaRepository(ABC):
+    """Puerto: persistencia del cache de clasificación temática.
+
+    UNIQUE en `expediente_id`: a lo sumo una clasificación por expediente.
+    Para reclasificar (cambio de prompt_version), borrar y recrear.
+    """
+
+    @abstractmethod
+    async def buscar_por_expediente(
+        self, expediente_id: UUID
+    ) -> ExpedienteAreaTematica | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def crear(self, cache: ExpedienteAreaTematica) -> ExpedienteAreaTematica:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def eliminar(self, expediente_id: UUID) -> bool:
+        """Borra la clasificación del expediente. True si había alguna."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_por_area(
+        self, area: AreaTematica, *, limit: int = 100,
+    ) -> list[ExpedienteAreaTematica]:
+        """Útil para la página 3 del briefing (agrupar OD por área)."""
         raise NotImplementedError
 
 
