@@ -19,6 +19,7 @@ from uuid import UUID
 from praxis.domain import (
     AreaTematica,
     AuthClaims,
+    Briefing,
     Camara,
     Comision,
     Expediente,
@@ -26,6 +27,7 @@ from praxis.domain import (
     ExpedienteQuery,
     MembresiaDespacho,
     NumeroExpediente,
+    OrdenDelDia,
     ResultadoBusqueda,
     ResumenEjecutivo,
     SeguimientoExpediente,
@@ -390,6 +392,24 @@ class LlmProvider(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    async def generar_argumentos(
+        self,
+        expediente: Expediente,
+        *,
+        contraargumentos: bool = False,
+    ) -> list[str]:
+        """Devuelve 2-3 bullets de texto plano (sin markdown).
+
+        Si `contraargumentos=True`, los bullets son los que el bloque
+        rival va a decir, no los del que defiende el proyecto.
+
+        Pensado para alimentar las secciones de página 2 del briefing
+        (un proyecto del despacho). El caller decide cuándo invocar — no
+        cachea solo.
+        """
+        raise NotImplementedError
+
 
 class ResumenEjecutivoRepository(ABC):
     """Puerto: persistencia de resúmenes ejecutivos (caché por expediente).
@@ -439,6 +459,48 @@ class ExpedienteAreaTematicaRepository(ABC):
         self, area: AreaTematica, *, limit: int = 100,
     ) -> list[ExpedienteAreaTematica]:
         """Útil para la página 3 del briefing (agrupar OD por área)."""
+        raise NotImplementedError
+
+
+class OrdenDelDiaRepository(ABC):
+    """Puerto: persistencia del OrdenDelDia (lista de expedientes a tratar)."""
+
+    @abstractmethod
+    async def crear(self, od: OrdenDelDia) -> OrdenDelDia:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_id(self, od_id: UUID) -> OrdenDelDia | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_por_despacho(
+        self, despacho_id: UUID, *, limit: int = 20,
+    ) -> list[OrdenDelDia]:
+        raise NotImplementedError
+
+
+class BriefingRepository(ABC):
+    """Puerto: persistencia del Briefing (caché por despacho+OD).
+
+    UNIQUE en (despacho_id, orden_del_dia_id): un briefing por par.
+    Regenerar = delete + insert.
+    """
+
+    @abstractmethod
+    async def buscar_por_despacho_y_od(
+        self, *, despacho_id: UUID, orden_del_dia_id: UUID,
+    ) -> Briefing | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def crear(self, briefing: Briefing) -> Briefing:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def eliminar(
+        self, *, despacho_id: UUID, orden_del_dia_id: UUID,
+    ) -> bool:
         raise NotImplementedError
 
 

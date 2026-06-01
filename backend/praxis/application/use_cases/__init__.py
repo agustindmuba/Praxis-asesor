@@ -16,6 +16,7 @@ from praxis.application.use_cases.clasificar_area_tematica import (
     ClasificarExpedienteTematicamente,
 )
 from praxis.application.use_cases.enriquecer_expediente import EnriquecerExpediente
+from praxis.application.use_cases.generar_briefing import GenerarBriefing
 from praxis.application.use_cases.generar_resumen_ejecutivo import (
     GenerarResumenEjecutivo,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "CalcularInteligenciaExpediente",
     "ClasificarExpedienteTematicamente",
     "EnriquecerExpediente",
+    "GenerarBriefing",
     "GenerarResumenEjecutivo",
     "ResolverContextoRequest",
     "SincronizarUsuarioDesdeClerk",

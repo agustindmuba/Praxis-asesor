@@ -59,6 +59,22 @@ class FakeLlmProvider(LlmProvider):
                     return area
         return AreaTematica.OTROS
 
+    async def generar_argumentos(
+        self,
+        expediente: Expediente,
+        *,
+        contraargumentos: bool = False,
+    ) -> list[str]:
+        """Genera 3 bullets fake para alimentar el briefing.
+
+        No consulta APIs externas. Compone texto plausible usando título,
+        firmantes y estado del expediente. Sirve para que la UI tenga
+        contenido vendible mientras esperamos enchufar Sonnet real.
+        """
+        if contraargumentos:
+            return _contraargumentos_fake(expediente)
+        return _argumentos_fake(expediente)
+
 
 # ---------------------------------------------------------------------------
 # Composición de bullets
@@ -122,6 +138,53 @@ def _probabilidad_de_avance(e: Expediente) -> str:
         base += f" Trámite activo: {eventos} eventos registrados."
 
     return base + aviso_caducidad
+
+
+# ---------------------------------------------------------------------------
+# Argumentos / contraargumentos del briefing
+# ---------------------------------------------------------------------------
+
+
+def _argumentos_fake(e: Expediente) -> list[str]:
+    """3 bullets a favor del proyecto, plausibles pero genéricos."""
+    autor = _autor_principal(e.firmantes) if e.firmantes else None
+    nombre_autor = autor.nombre.strip() if autor else "el autor"
+    bloque = (autor.bloque or "").strip().title() if autor else ""
+    tipo_legible = e.tipo.value.replace("_", " ")
+    bullets = [
+        (
+            f"Acompaña la línea de trabajo histórica de {bloque or 'su bloque'} "
+            f"en la materia y consolida una posición política consistente "
+            f"de {nombre_autor.title()}."
+        ),
+        (
+            f"Es un {tipo_legible} con cofirmantes diversos, lo que aumenta "
+            f"la probabilidad de obtener dictamen favorable en comisión."
+        ),
+        (
+            "Atiende un reclamo concreto del electorado del despacho — el "
+            "tratamiento favorable suma capital político en distritos clave."
+        ),
+    ]
+    return bullets
+
+
+def _contraargumentos_fake(e: Expediente) -> list[str]:
+    """2 bullets de objeciones esperables del bloque rival."""
+    return [
+        (
+            "Costo fiscal sin financiamiento explícito — el bloque rival "
+            "va a plantear sobre el rojo presupuestario y la falta de "
+            "información de impacto."
+        ),
+        (
+            "Avanza sobre competencias provinciales / autonomías locales — "
+            "objeción federalista clásica que activa una porción del "
+            "interbloque federal."
+        ),
+    ]
+    # `e` se acepta por simetría con argumentos pero el texto v1 no lo usa.
+    _ = e
 
 
 # ---------------------------------------------------------------------------

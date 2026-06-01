@@ -19,6 +19,17 @@ from praxis.domain.auth import (
     AuthErrorCode,
     RequestContext,
 )
+from praxis.domain.briefing import (
+    BRIEFING_PROMPT_VERSION,
+    AlertaBriefing,
+    Briefing,
+    PrioridadAlerta,
+    ProyectoEnAreaBriefing,
+    RecomendacionVoto,
+    RolEnDespacho,
+    SeccionAreaBriefing,
+    SeccionProyectoBriefing,
+)
 from praxis.domain.briefing_similitud import (
     JACCARD_UMBRAL,
     AntecedenteParecido,
@@ -59,6 +70,7 @@ from praxis.domain.inteligencia import (
     ProgresoTramite,
 )
 from praxis.domain.legislador import Bloque, Legislador
+from praxis.domain.orden_del_dia import FuenteOd, OrdenDelDia
 from praxis.domain.resumen_ejecutivo import PROMPT_VERSION, ResumenEjecutivo
 from praxis.domain.seguimiento import Prioridad, SeguimientoExpediente
 from praxis.domain.tramite_historico import (
@@ -85,17 +97,20 @@ from praxis.domain.votacion import (
 
 __all__ = [
     "AREA_LABELS",
+    "BRIEFING_PROMPT_VERSION",
     "CLASIFICACION_PROMPT_VERSION",
     "JACCARD_UMBRAL",
     "LIMIT_DEFAULT",
     "LIMIT_MAX",
     "PROMPT_VERSION",
+    "AlertaBriefing",
     "AntecedenteParecido",
     "AreaTematica",
     "AuthClaims",
     "AuthError",
     "AuthErrorCode",
     "Bloque",
+    "Briefing",
     "Camara",
     "CofirmanteSugerido",
     "Comision",
@@ -111,19 +126,27 @@ __all__ = [
     "ExpedienteQuery",
     "Firmante",
     "FuenteNoDisponible",
+    "FuenteOd",
     "Giro",
     "InferenciaResult",
     "InteligenciaExpediente",
     "Legislador",
     "MembresiaDespacho",
     "NumeroExpediente",
+    "OrdenDelDia",
     "OrigenExpediente",
     "Prioridad",
+    "PrioridadAlerta",
     "ProgresoTramite",
+    "ProyectoEnAreaBriefing",
+    "RecomendacionVoto",
     "RequestContext",
     "ResultadoBusqueda",
     "ResumenEjecutivo",
     "Rol",
+    "RolEnDespacho",
+    "SeccionAreaBriefing",
+    "SeccionProyectoBriefing",
     "SeguimientoExpediente",
     "TipoComision",
     "TipoExpediente",
