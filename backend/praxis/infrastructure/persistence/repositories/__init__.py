@@ -22,6 +22,9 @@ from praxis.infrastructure.persistence.repositories.seguimiento import (
 from praxis.infrastructure.persistence.repositories.usuario import (
     SqlAlchemyUsuarioRepository,
 )
+from praxis.infrastructure.persistence.repositories.votacion import (
+    SqlAlchemyVotacionRepository,
+)
 
 __all__ = [
     "SqlAlchemyDespachoRepository",
@@ -30,4 +33,5 @@ __all__ = [
     "SqlAlchemyResumenEjecutivoRepository",
     "SqlAlchemySeguimientoExpedienteRepository",
     "SqlAlchemyUsuarioRepository",
+    "SqlAlchemyVotacionRepository",
 ]
