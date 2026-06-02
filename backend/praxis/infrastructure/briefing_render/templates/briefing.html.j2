@@ -188,20 +188,42 @@
   .cofirmante {
     display: flex;
     justify-content: space-between;
-    padding: 4pt 0;
+    gap: 12pt;
+    align-items: center;
+    padding: 6pt 0;
     border-bottom: 1px solid var(--crema-dark);
     font-size: 9.5pt;
   }
   .cofirmante:last-child { border-bottom: none; }
+  .cofirmante .cofirmante-info { flex: 1; }
   .cofirmante .nombre { font-weight: 600; color: var(--tinta); }
   .cofirmante .bloque { color: var(--tinta-muted); font-size: 8.5pt; margin-top: 1pt; }
+  .cofirmante .razon {
+    color: var(--tinta-muted);
+    font-size: 8.5pt;
+    font-style: italic;
+    margin-top: 3pt;
+    line-height: 1.4;
+  }
   .cofirmante .count {
     font-family: "Space Grotesk", sans-serif;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--salmon);
-    font-size: 9.5pt;
+    font-size: 16pt;
+    line-height: 1;
     white-space: nowrap;
+    text-align: center;
     align-self: center;
+  }
+  .cofirmante .count .count-label {
+    display: block;
+    font-family: "Inter", sans-serif;
+    font-size: 7pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--tinta-muted);
+    margin-top: 2pt;
   }
 
   .antecedente {
@@ -336,15 +358,19 @@
       {% if sec.cofirmantes_naturales %}
         {% for c in sec.cofirmantes_naturales %}
           <div class="cofirmante">
-            <div>
+            <div class="cofirmante-info">
               <div class="nombre">{{ c.nombre }}</div>
               <div class="bloque">{{ c.bloque or "—" }}{% if c.distrito %} · {{ c.distrito }}{% endif %}</div>
+              <div class="razon">{{ c.razon }}</div>
             </div>
-            <div class="count">{{ c.proyectos_similares_firmados }} firmas</div>
+            <div class="count">
+              {{ c.proyectos_similares_firmados }}
+              <span class="count-label">parecidos</span>
+            </div>
           </div>
         {% endfor %}
       {% else %}
-        <p style="color: #6b7280; font-size: 10pt;">Sin sugerencias disponibles.</p>
+        <p style="color: var(--tinta-muted); font-size: 10pt;">Sin sugerencias disponibles.</p>
       {% endif %}
 
       <h4>Antecedente más parecido</h4>
