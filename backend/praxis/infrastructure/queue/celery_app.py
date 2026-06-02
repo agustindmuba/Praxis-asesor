@@ -10,6 +10,7 @@ Y, en otro proceso, el scheduler (Celery Beat) para tareas periódicas:
 from __future__ import annotations
 
 from celery import Celery
+from celery.schedules import crontab
 
 from praxis.config import get_settings
 
@@ -20,7 +21,10 @@ celery_app = Celery(
     broker=str(_settings.redis_url),
     backend=str(_settings.redis_url),
     # Autodiscover de tareas: módulos cuyo path coincida con esta lista.
-    include=["praxis.infrastructure.queue.tasks"],
+    include=[
+        "praxis.infrastructure.queue.tasks",
+        "praxis.infrastructure.queue.tasks_bo",
+    ],
 )
 
 # Configuración general.
@@ -44,4 +48,24 @@ celery_app.conf.update(
     # Prefetch bajo: cada worker pide solo lo que está procesando.
     # Evita acumular tareas en workers que después mueren.
     worker_prefetch_multiplier=1,
+    # Beat schedule (UTC). Horarios pensados para Buenos Aires
+    # (UTC-3): 05:00 ART = 08:00 UTC, 05:30 ART = 08:30 UTC,
+    # 06:00 ART = 09:00 UTC. Ver spec 15 §"Pipeline diario".
+    beat_schedule={
+        "bo-ingestar-diario": {
+            "task": "praxis.bo.ingestar_diario",
+            # 08:00 UTC = 05:00 ART
+            "schedule": crontab(hour="8", minute="0"),
+        },
+        "bo-clasificar-pendientes": {
+            "task": "praxis.bo.clasificar_pendientes",
+            # 08:30 UTC = 05:30 ART
+            "schedule": crontab(hour="8", minute="30"),
+        },
+        "bo-evaluar-accionables-por-despacho": {
+            "task": "praxis.bo.evaluar_accionables_por_despacho",
+            # 09:00 UTC = 06:00 ART
+            "schedule": crontab(hour="9", minute="0"),
+        },
+    },
 )
