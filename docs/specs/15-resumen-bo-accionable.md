@@ -59,21 +59,31 @@ ENTONCES Praxis envía al despacho un único mensaje (app + WhatsApp)
 | Entrega | Parte del envío único de las 7:30 AM junto con noticias (ver spec 16) |
 | Canales | App (vista web) + WhatsApp (notificación con titulares + link a app) |
 
-### Cambio de approach tras spike 39.1.5
+### Cambio de approach tras spike 39.1.5 + hallazgo de feat-39.3
 
-El plan original (scraping HTML por sección y fecha) **no es viable**:
-el portal `boletinoficial.gob.ar` es una SPA React y todas las URLs de
-listado devuelven el mismo HTML inicial (verificado por MD5 en 3 fechas
-distintas). Reverse-engineering del SOAP API requiere sesión opaca.
+**Spike 39.1.5**: el plan original (scraping HTML por sección y fecha)
+**no es viable**: el portal `boletinoficial.gob.ar` es una SPA React y
+todas las URLs de listado devuelven el mismo HTML inicial (verificado
+por MD5 en 3 fechas distintas). Reverse-engineering del SOAP API
+requiere sesión opaca.
 
-Solución adoptada (ver `docs/spikes/39-boletin-oficial.md`): bajar los
-PDFs públicos del día por sección desde S3 y parsearlos con `pdfplumber`.
-Sin sesión, sin JS, sin Playwright.
+**Solución adoptada** (ver `docs/spikes/39-boletin-oficial.md`): bajar
+los PDFs públicos del día por sección desde S3 y parsearlos con
+`pdfplumber`. Sin sesión, sin JS, sin Playwright.
 
 **Sección Segunda (Avisos Oficiales) queda fuera del MVP** porque el
 robots.txt del portal la prohíbe explícitamente. Mantenemos
 `"avisos_oficiales"` en el enum `NormaBO.seccion` para habilitar la
 reapertura v2 si entra vía SAIJ.
+
+**Hallazgo de feat-39.3 (parser real):** la "Cuarta Sección" del BO
+es **"Registro de Dominios de Internet"**, NO designaciones. Las
+**designaciones se publican como decretos dentro de la Primera
+Sección** (ej. "MINISTERIO DE CAPITAL HUMANO. Decreto 412/2026 -
+Desígnase Subsecretario Legal"). Por lo tanto, **v1 sólo procesa la
+Primera Sección** (`primera.pdf`); el valor `SeccionBO.DESIGNACIONES`
+queda reservado para v2 cuando el clasificador LLM pueda categorizar
+designaciones específicamente y la UI las filtre como vista separada.
 
 ## Decisiones de dominio NUEVAS (resueltas)
 

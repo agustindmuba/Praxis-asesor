@@ -40,12 +40,26 @@ from praxis.domain.area_tematica import AreaTematica
 
 
 class SeccionBO(StrEnum):
-    """Las 3 secciones del BO que el modelo conoce.
+    """Secciones lógicas del BO que el modelo conoce.
 
-    v1 sólo procesa `LEGISLACION` y `DESIGNACIONES` (decisión D19 +
-    spike 39.1.5: la sección Segunda — `AVISOS_OFICIALES` — está
-    prohibida por el robots del portal y queda reservada para v2 vía
-    SAIJ).
+    **Importante:** estos valores NO se corresponden 1:1 con las
+    secciones formales del BO (Primera, Segunda, Tercera, Cuarta). Tras
+    feat-39.3 descubrimos que las **designaciones se publican como
+    Decretos dentro de la Primera Sección** (no en una sección aparte).
+    La "Cuarta Sección" del BO es "Registro de Dominios de Internet",
+    irrelevante v1.
+
+    En v1 procesamos sólo la **Primera Sección** (PDF `primera.pdf`) y
+    distinguimos legislación de designaciones por el contenido/tipo de
+    la norma. Para no romper el modelo de datos, mantenemos los 3
+    valores enum como categorías lógicas:
+
+    - `LEGISLACION`: el catch-all de la Primera Sección (decretos,
+      resoluciones, leyes, etc. — incluye designaciones implícitamente).
+    - `DESIGNACIONES`: reservado para v2, cuando el LLM podrá
+      clasificar específicamente designaciones y mostrar la sección
+      filtrada en la UI.
+    - `AVISOS_OFICIALES`: reservado para v2 vía SAIJ.
     """
 
     LEGISLACION = "legislacion"
@@ -54,8 +68,12 @@ class SeccionBO(StrEnum):
 
 
 # Secciones efectivamente procesadas en runtime v1.
+#
+# Solo LEGISLACION en v1: bajamos el PDF de la Primera Sección y de ahí
+# salen todas las normas (incluso designaciones, que están como Decretos).
+# Ver `docs/spikes/39-boletin-oficial.md` §"Conclusiones tras feat-39.3".
 SECCIONES_ACTIVAS_V1: frozenset[SeccionBO] = frozenset(
-    {SeccionBO.LEGISLACION, SeccionBO.DESIGNACIONES}
+    {SeccionBO.LEGISLACION}
 )
 
 

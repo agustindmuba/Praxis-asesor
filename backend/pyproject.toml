@@ -51,6 +51,10 @@ dependencies = [
 
     # Claude API (feat/32). Solo se usa si ANTHROPIC_API_KEY está seteada.
     "anthropic>=0.40",
+
+    # Parser PDF para BO (feat/39 spec 15 — los PDFs de boletinoficial.gob.ar
+    # son la fuente principal tras el spike 39.1.5).
+    "pdfplumber>=0.11",
 ]
 
 # Dependencias de desarrollo (PEP 735 — soportado por uv).

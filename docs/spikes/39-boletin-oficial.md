@@ -203,3 +203,30 @@ PYTHONUTF8=1 .venv/Scripts/python -m scripts.spike_bo_round2
 
 Cada round corre ~40 segundos respetando 1 req/s. UA identificable. Sin
 LLM, costo cero.
+
+## Conclusiones tras feat-39.3 (parser real)
+
+Al escribir el `BoletinOficialPdfClient` real (no el spike) descubrimos
+un **hallazgo adicional importante** sobre la "Cuarta Sección":
+
+- El PDF de `cuarta.pdf` (que bajamos en el spike) NO contiene
+  designaciones. Contiene **"Registro de Dominios de Internet"** — un
+  listado de altas, bajas y transferencias de dominios `.ar`. Nada que
+  ver con designaciones políticas.
+- Las designaciones de funcionarios públicos se publican como
+  **decretos dentro de la Primera Sección**. Ejemplo del PDF fixture:
+  > MINISTERIO DE CAPITAL HUMANO. Decreto 412/2026.
+  > DECTO-2026-412-APN-PTE - Desígnase Subsecretario Legal.
+
+Implicación: **v1 sólo procesa la Primera Sección**. El enum
+`SeccionBO.DESIGNACIONES` queda como categoría lógica reservada para
+v2, cuando el clasificador LLM podrá distinguir designaciones (es
+decreto + sumario empieza con "Desígnase…") de otras leyes/decretos
+y la UI las filtrará como vista separada.
+
+`SECCIONES_ACTIVAS_V1 = {SeccionBO.LEGISLACION}` se redujo en
+consecuencia. El test `test_solo_legislacion_y_designaciones` se
+renombró a `test_solo_legislacion`.
+
+Los PDFs `cuarta.pdf` y los HTML de `designaciones__*.html` del spike
+quedan en el repo como evidencia documental.

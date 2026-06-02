@@ -90,13 +90,20 @@ class TestHashSumario:
 
 
 class TestSeccionesActivasV1:
-    def test_solo_legislacion_y_designaciones(self) -> None:
-        """Spike 39.1.5: avisos_oficiales prohibida por robots."""
-        assert frozenset(
-            {SeccionBO.LEGISLACION, SeccionBO.DESIGNACIONES}
-        ) == SECCIONES_ACTIVAS_V1
+    def test_solo_legislacion(self) -> None:
+        """Tras feat-39.3 descubrimos que la cuarta sección del BO no
+        son "designaciones" (son "Registro de Dominios"); las
+        designaciones se publican como decretos dentro de Primera. v1
+        sólo procesa Primera = LEGISLACION."""
+        assert frozenset({SeccionBO.LEGISLACION}) == SECCIONES_ACTIVAS_V1
 
-    def test_avisos_oficiales_existe_en_enum_pero_no_activa(self) -> None:
+    def test_designaciones_reservada_para_v2(self) -> None:
+        """Valor enum existe; en runtime se ignora v1 (deja la puerta
+        abierta para que la clasificación LLM distinga designaciones en
+        v2 sin migración de datos)."""
+        assert SeccionBO.DESIGNACIONES not in SECCIONES_ACTIVAS_V1
+
+    def test_avisos_oficiales_reservada_para_v2(self) -> None:
         """Reservado para v2 (SAIJ). Ver decisión D19."""
         assert SeccionBO.AVISOS_OFICIALES not in SECCIONES_ACTIVAS_V1
 
