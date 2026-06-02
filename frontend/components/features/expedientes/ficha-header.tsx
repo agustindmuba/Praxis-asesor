@@ -26,23 +26,29 @@ export function FichaHeader({ expediente }: Props) {
         </Link>
       </Button>
 
-      <Card className="space-y-4 p-6">
-        <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <Card className="space-y-4 border-border bg-card p-6 shadow-none">
+        <div className="space-y-1.5">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             {buildSubtitulo(e)}
           </p>
-          <h2 className="text-xl font-bold leading-tight tracking-tight">{e.titulo}</h2>
+          <h2 className="font-display text-[22px] font-bold leading-snug tracking-tight text-[var(--color-praxis-azul)]">
+            {e.titulo}
+          </h2>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
           <EstadoBadge estado={e.estado} />
           {e.fecha_caducidad && (
             <p className="text-xs text-muted-foreground">
               Vence{" "}
-              <span className="font-medium text-foreground">
+              <span className="font-semibold text-foreground">
                 {formatFechaCorta(e.fecha_caducidad)}
               </span>
-              {e.prorrogado && " (prorrogado)"}
+              {e.prorrogado && (
+                <span className="ml-1 text-[var(--color-praxis-salmon)]">
+                  · prorrogado
+                </span>
+              )}
             </p>
           )}
           <div className="ml-auto">

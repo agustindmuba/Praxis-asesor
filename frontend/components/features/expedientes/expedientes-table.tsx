@@ -38,10 +38,12 @@ function formatFecha(iso: string | null): string {
 export function ExpedientesTable({ resultado }: { resultado: ResultadoBusquedaDTO }) {
   if (resultado.items.length === 0) {
     return (
-      <Card className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-        <FileText className="size-8 text-muted-foreground" />
-        <p className="text-sm font-medium">No hay expedientes que matcheen los filtros.</p>
-        <p className="text-xs text-muted-foreground">
+      <Card className="flex flex-col items-center justify-center gap-3 border-border bg-card py-16 text-center shadow-none">
+        <FileText className="size-9 text-[var(--color-praxis-salmon)]" />
+        <p className="font-display text-base font-semibold text-[var(--color-praxis-azul)]">
+          No hay expedientes que matcheen los filtros
+        </p>
+        <p className="max-w-md text-xs text-muted-foreground">
           Probá con menos filtros o cambiá el texto de búsqueda.
         </p>
       </Card>
@@ -49,37 +51,55 @@ export function ExpedientesTable({ resultado }: { resultado: ResultadoBusquedaDT
   }
 
   return (
-    <Card className="overflow-hidden p-0">
+    <Card className="overflow-hidden border-border bg-card p-0 shadow-none">
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[160px]">N°</TableHead>
-            <TableHead>Título</TableHead>
-            <TableHead className="w-[140px]">Cámara</TableHead>
-            <TableHead className="w-[180px]">Estado</TableHead>
-            <TableHead className="w-[120px]">Ingreso</TableHead>
+        <TableHeader className="bg-[var(--color-praxis-crema)]/60">
+          <TableRow className="border-border">
+            <TableHead className="w-[160px] text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-praxis-azul)]">
+              N°
+            </TableHead>
+            <TableHead className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-praxis-azul)]">
+              Título
+            </TableHead>
+            <TableHead className="w-[120px] text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-praxis-azul)]">
+              Cámara
+            </TableHead>
+            <TableHead className="w-[180px] text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-praxis-azul)]">
+              Estado
+            </TableHead>
+            <TableHead className="w-[120px] text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-praxis-azul)]">
+              Ingreso
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {resultado.items.map((e) => (
-            <TableRow key={e.id} className="cursor-pointer hover:bg-muted/40">
-              <TableCell className="font-mono text-xs">
+            <TableRow
+              key={e.id}
+              className="cursor-pointer border-border transition-colors hover:bg-[var(--color-praxis-crema)]/60"
+            >
+              <TableCell className="font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
                 <Link href={`/expedientes/${e.id}`} className="block">
                   {formatNumero(e)}
                 </Link>
               </TableCell>
               <TableCell>
                 <Link href={`/expedientes/${e.id}`} className="block">
-                  <span className="line-clamp-1 text-sm font-medium">{e.titulo}</span>
+                  <span className="line-clamp-1 text-[13.5px] font-medium leading-snug">
+                    {e.titulo}
+                  </span>
                   {e.sumario && (
-                    <span className="line-clamp-1 text-xs text-muted-foreground">
+                    <span className="line-clamp-1 text-[11.5px] text-muted-foreground">
                       {e.sumario}
                     </span>
                   )}
                 </Link>
               </TableCell>
               <TableCell>
-                <Link href={`/expedientes/${e.id}`} className="block text-xs uppercase">
+                <Link
+                  href={`/expedientes/${e.id}`}
+                  className="block text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground"
+                >
                   {e.numero.camara}
                 </Link>
               </TableCell>

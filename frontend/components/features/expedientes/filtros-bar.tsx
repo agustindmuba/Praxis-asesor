@@ -77,7 +77,7 @@ export function FiltrosBar({ initial }: Props) {
   return (
     <form
       onSubmit={apply}
-      className="space-y-3 rounded-lg border border-border bg-card p-4"
+      className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-none"
     >
       {/* Fila 1: texto + año */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[2fr_1fr_1fr]">

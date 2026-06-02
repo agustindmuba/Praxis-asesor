@@ -1,8 +1,13 @@
 /**
  * Badge para el estado del expediente. Mapea cada estado a una variante
- * visual y a un label legible.
+ * visual con la paleta Praxis (feat/33).
+ *
+ * Convención cromática:
+ * - Verde (#3B6652) → estados positivos (sancionado, media sanción).
+ * - Azul (#2A3D75) → estados de tránsito activos (con dictamen, en comisión).
+ * - Salmón (#D48D7C) → atención (caduco, archivado).
+ * - Crema/muted → neutros (ingresado, desconocido).
  */
-import { Badge } from "@/components/ui/badge";
 import type { EstadoExpediente } from "@/lib/api/types";
 
 const LABELS: Record<EstadoExpediente, string> = {
@@ -14,25 +19,33 @@ const LABELS: Record<EstadoExpediente, string> = {
   sancionado: "Sancionado",
   archivado: "Archivado",
   caduco: "Caduco",
-  desconocido: "Desconocido",
+  desconocido: "Sin estado claro",
 };
 
-const VARIANTS: Record<EstadoExpediente, "default" | "secondary" | "outline" | "destructive"> = {
-  ingresado: "outline",
-  en_comision: "secondary",
-  con_dictamen: "default",
-  media_sancion_hcdn: "default",
-  media_sancion_hsn: "default",
-  sancionado: "default",
-  archivado: "outline",
-  caduco: "destructive",
-  desconocido: "outline",
+const STYLES: Record<EstadoExpediente, { bg: string; fg: string; ring?: string }> = {
+  ingresado: { bg: "#E6E0DE", fg: "#5A5D6E" },
+  en_comision: { bg: "#F0F3FA", fg: "#2A3D75", ring: "#D8DFF0" },
+  con_dictamen: { bg: "#2A3D75", fg: "#FFFFFF" },
+  media_sancion_hcdn: { bg: "#3B6652", fg: "#FFFFFF" },
+  media_sancion_hsn: { bg: "#3B6652", fg: "#FFFFFF" },
+  sancionado: { bg: "#3B6652", fg: "#FFFFFF" },
+  archivado: { bg: "#FBF3F0", fg: "#9A5F4F", ring: "#E8C7BB" },
+  caduco: { bg: "#D48D7C", fg: "#FFFFFF" },
+  desconocido: { bg: "#E6E0DE", fg: "#5A5D6E" },
 };
 
 export function EstadoBadge({ estado }: { estado: EstadoExpediente }) {
+  const s = STYLES[estado];
   return (
-    <Badge variant={VARIANTS[estado]} className="whitespace-nowrap">
+    <span
+      className="inline-flex items-center whitespace-nowrap rounded-md px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide"
+      style={{
+        backgroundColor: s.bg,
+        color: s.fg,
+        boxShadow: s.ring ? `inset 0 0 0 1px ${s.ring}` : undefined,
+      }}
+    >
       {LABELS[estado]}
-    </Badge>
+    </span>
   );
 }

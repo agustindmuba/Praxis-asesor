@@ -63,28 +63,41 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Resumen de tus seguimientos. {enriquecidos.length} expedientes activos.
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Despacho · Dashboard
+        </p>
+        <h2 className="mt-1 font-display text-3xl font-bold tracking-tight text-[var(--color-praxis-azul)]">
+          Mis seguimientos
+        </h2>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          {enriquecidos.length}{" "}
+          {enriquecidos.length === 1 ? "expediente activo" : "expedientes activos"}{" "}
+          marcados por el despacho.
         </p>
       </div>
 
       {enriquecidos.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-          <Inbox className="size-10 text-muted-foreground" />
-          <p className="text-base font-medium">Todavía no marcaste ningún expediente.</p>
-          <p className="text-sm text-muted-foreground">
-            Andá a{" "}
-            <Link href="/expedientes" className="underline hover:text-foreground">
+        <Card className="flex flex-col items-center justify-center gap-3 border-border bg-card py-20 text-center shadow-none">
+          <Inbox className="size-10 text-[var(--color-praxis-salmon)]" />
+          <p className="font-display text-lg font-semibold text-[var(--color-praxis-azul)]">
+            Todavía no marcaste ningún expediente
+          </p>
+          <p className="max-w-md text-sm text-muted-foreground">
+            Empezá por{" "}
+            <Link
+              href="/expedientes"
+              className="font-medium text-[var(--color-praxis-azul)] underline-offset-2 hover:underline"
+            >
               Expedientes
             </Link>{" "}
-            y marcá el primero con ★.
+            y marcá el primero con la estrella. Acá lo vas a ver agrupado por
+            prioridad.
           </p>
         </Card>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-7">
           {PRIORIDADES.map((p) => (
             <PrioridadSection key={p} prioridad={p} items={porPrioridad[p]} />
           ))}
@@ -93,6 +106,12 @@ export default async function DashboardPage() {
     </div>
   );
 }
+
+const PRIORIDAD_DOT: Record<Prioridad, string> = {
+  alta: "var(--color-praxis-azul)",
+  media: "var(--color-praxis-salmon)",
+  baja: "var(--color-praxis-verde)",
+};
 
 function PrioridadSection({
   prioridad,
@@ -103,28 +122,36 @@ function PrioridadSection({
 }) {
   if (items.length === 0) return null;
   return (
-    <section className="space-y-2">
-      <h3 className="text-sm font-semibold text-muted-foreground">
-        Prioridad {formatPrioridad(prioridad)}{" "}
-        <span className="text-xs font-normal">({items.length})</span>
-      </h3>
-      <Card className="overflow-hidden p-0">
+    <section className="space-y-3">
+      <div className="flex items-baseline gap-2.5">
+        <span
+          className="inline-block size-2 rounded-full"
+          style={{ backgroundColor: PRIORIDAD_DOT[prioridad] }}
+        />
+        <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-[var(--color-praxis-azul)]">
+          Prioridad {formatPrioridad(prioridad)}
+        </h3>
+        <span className="text-xs font-medium text-muted-foreground">
+          {items.length}
+        </span>
+      </div>
+      <Card className="overflow-hidden border-border bg-card p-0 shadow-none">
         <ul className="divide-y divide-border">
           {items.map(({ seguimiento, expediente }) => (
             <li key={seguimiento.id}>
               {expediente ? (
                 <Link
                   href={`/expedientes/${expediente.id}`}
-                  className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/40"
+                  className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-[var(--color-praxis-crema)]/60"
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
                         {formatNumeroExpediente(expediente.numero)}
                       </span>
                       <EstadoBadge estado={expediente.estado} />
                     </div>
-                    <p className="mt-1 line-clamp-1 text-sm font-medium">
+                    <p className="mt-1 line-clamp-1 text-[13.5px] font-medium leading-snug text-foreground">
                       {expediente.titulo}
                     </p>
                   </div>
@@ -135,7 +162,7 @@ function PrioridadSection({
                   )}
                 </Link>
               ) : (
-                <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 px-5 py-3.5 text-sm text-muted-foreground">
                   <FileText className="size-4" />
                   Expediente {seguimiento.expediente_id.slice(0, 8)}… no encontrado.
                 </div>
