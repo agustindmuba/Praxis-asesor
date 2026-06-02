@@ -17,9 +17,11 @@ from sqlalchemy import (
     Boolean,
     Date,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
+    SmallInteger,
     String,
     Text,
     Time,
@@ -599,6 +601,547 @@ class VotoLegisladorOrm(Base, kw_only=True):
         back_populates="votos",
         default=None,
     )
+
+
+# ---------------------------------------------------------------------------
+# Perfil de interés del despacho (compartido entre specs 15, 16, 17).
+# ---------------------------------------------------------------------------
+
+
+class PerfilInteresDespachoOrm(Base, TimestampsMixin, kw_only=True):
+    """Perfil declarativo del despacho — D1 sembrado híbrido + editable.
+
+    PK = `despacho_id` (una fila por despacho).
+    Listas se serializan a JSON: SQLite-friendly y suficiente para
+    perfiles chicos (≤20 áreas/comisiones/aliases típicamente).
+    """
+
+    __tablename__ = "perfil_interes_despacho"
+
+    despacho_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    areas_tematicas: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    comisiones_legislador: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    distritos_observados: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    aliases_legislador: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    sembrado_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
+    editado_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
+
+    def __repr__(self) -> str:
+        return f"PerfilInteresDespachoOrm(despacho_id={self.despacho_id!r})"
+
+
+# ---------------------------------------------------------------------------
+# Boletín Oficial (spec 15)
+# ---------------------------------------------------------------------------
+
+
+class NormaBOOrm(Base, kw_only=True):
+    """Snapshot de una norma publicada en el BO."""
+
+    __tablename__ = "norma_bo"
+    __table_args__ = (
+        Index(
+            "uq_norma_bo_identidad_natural",
+            "fecha_publicacion", "seccion", "tipo_norma", "numero_norma",
+            unique=True,
+        ),
+        Index("ix_norma_bo_fecha_seccion", "fecha_publicacion", "seccion"),
+        Index("ix_norma_bo_hash_sumario", "hash_sumario", unique=True),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    fecha_publicacion: Mapped[date] = mapped_column(Date, nullable=False)
+    seccion: Mapped[str] = mapped_column(String(30), nullable=False)
+    tipo_norma: Mapped[str] = mapped_column(String(80), nullable=False)
+    numero_norma: Mapped[str] = mapped_column(String(80), nullable=False)
+    organismo_emisor: Mapped[str] = mapped_column(String(400), nullable=False)
+    sumario: Mapped[str] = mapped_column(Text, nullable=False)
+    url_oficial: Mapped[str] = mapped_column(String(1000), nullable=False)
+    hash_sumario: Mapped[str] = mapped_column(String(64), nullable=False)
+    capturado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"NormaBOOrm(id={self.id!r}, "
+            f"fecha={self.fecha_publicacion!r}, "
+            f"seccion={self.seccion!r}, numero={self.numero_norma!r})"
+        )
+
+
+class NormaBOTextoOrm(Base, kw_only=True):
+    """Cuerpo completo del texto. Tabla aparte (ADR 0006 §D2)."""
+
+    __tablename__ = "norma_bo_texto"
+
+    norma_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("norma_bo.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    texto: Mapped[str] = mapped_column(Text, nullable=False)
+    capturado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+    def __repr__(self) -> str:
+        return f"NormaBOTextoOrm(norma_id={self.norma_id!r})"
+
+
+class ClasificacionNormaBOOrm(Base, kw_only=True):
+    """Cache de clasificación general de una norma BO."""
+
+    __tablename__ = "clasificacion_norma_bo"
+    __table_args__ = (
+        UniqueConstraint("norma_id", name="uq_clasif_norma_bo_norma_id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    norma_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("norma_bo.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    area_tematica: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    palabras_clave: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    afecta_expedientes_hcdn: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False,
+    )
+    referencias_legales: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    modelo: Mapped[str] = mapped_column(String(80), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="v1",
+    )
+    generado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+
+class NormaBOAccionableOrm(Base, kw_only=True):
+    """Vista por despacho del scoring. PK compuesta tenant-scoped."""
+
+    __tablename__ = "norma_bo_accionable"
+    __table_args__ = (
+        Index(
+            "ix_accionable_despacho_fecha",
+            "despacho_id",
+        ),
+    )
+
+    norma_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("norma_bo.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    despacho_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    score: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    prioridad: Mapped[str] = mapped_column(String(10), nullable=False)
+    razon: Mapped[str] = mapped_column(String(200), nullable=False)
+    expedientes_tocados: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    generado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Noticias + Menciones (spec 16)
+# ---------------------------------------------------------------------------
+
+
+class FuenteNoticiaOrm(Base, TimestampsMixin, kw_only=True):
+    """Un medio monitoreado. Catálogo global + extensión por despacho."""
+
+    __tablename__ = "fuente_noticia"
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    nombre: Mapped[str] = mapped_column(String(200), nullable=False)
+    dominio: Mapped[str] = mapped_column(
+        String(255), nullable=False, unique=True, index=True,
+    )
+    tipo: Mapped[str] = mapped_column(String(20), nullable=False)
+    alcance: Mapped[str] = mapped_column(String(20), nullable=False)
+    modo_acceso: Mapped[str] = mapped_column(String(20), nullable=False)
+    feed_url: Mapped[str | None] = mapped_column(String(1000), nullable=True, default=None)
+    distrito: Mapped[str | None] = mapped_column(String(100), nullable=True, default=None)
+    robots_ok: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    ultima_revision: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
+    activa: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    def __repr__(self) -> str:
+        return f"FuenteNoticiaOrm(id={self.id!r}, dominio={self.dominio!r})"
+
+
+class FuenteNoticiaDespachoOrm(Base, kw_only=True):
+    """Puente: fuentes distritales agregadas por un despacho."""
+
+    __tablename__ = "fuente_noticia_despacho"
+
+    fuente_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("fuente_noticia.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    despacho_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="CASCADE"),
+        primary_key=True,
+        index=True,
+    )
+    agregada_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+
+class ArticuloOrm(Base, kw_only=True):
+    """Snapshot mínimo de un artículo.
+
+    Sin columna texto_completo (restricción legal, ADR 0006).
+    """
+
+    __tablename__ = "articulo"
+    __table_args__ = (
+        Index("uq_articulo_hash", "hash_dedup", unique=True),
+        Index("ix_articulo_fuente_capturado", "fuente_id", "capturado_en"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    fuente_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("fuente_noticia.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    url: Mapped[str] = mapped_column(String(2000), nullable=False)
+    titulo: Mapped[str] = mapped_column(String(1000), nullable=False)
+    bajada_propia: Mapped[str | None] = mapped_column(
+        String(400), nullable=True, default=None,
+    )
+    publicado_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
+    capturado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+    hash_dedup: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
+class ArticuloHashOrm(Base, kw_only=True):
+    """Dedup forever: la URL ya se vio aunque el artículo se purgue.
+
+    Retención: forever. La tabla `articulo` purga a los 12 meses (D10).
+    Este hash queda para evitar reprocesar URLs vistas previamente.
+    """
+
+    __tablename__ = "articulo_hash"
+
+    hash_dedup: Mapped[str] = mapped_column(String(64), primary_key=True)
+    visto_por_primera_vez: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+
+class ClasificacionArticuloOrm(Base, kw_only=True):
+    """Cache de clasificación general de un artículo."""
+
+    __tablename__ = "clasificacion_articulo"
+    __table_args__ = (
+        UniqueConstraint("articulo_id", name="uq_clasif_articulo_articulo_id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    articulo_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("articulo.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    area_tematica: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    palabras_clave: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    modelo: Mapped[str] = mapped_column(String(80), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="v1",
+    )
+    generado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+
+class ArticuloRelevanteOrm(Base, kw_only=True):
+    """Vista por despacho. Análoga a NormaBOAccionable."""
+
+    __tablename__ = "articulo_relevante"
+
+    articulo_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("articulo.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    despacho_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="CASCADE"),
+        primary_key=True,
+        index=True,
+    )
+    score: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    razon: Mapped[str] = mapped_column(String(200), nullable=False)
+    expedientes_tocados: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    generado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+
+class MencionOrm(Base, kw_only=True):
+    """Mención de un legislador en un artículo."""
+
+    __tablename__ = "mencion"
+    __table_args__ = (
+        Index("ix_mencion_despacho_detectado", "despacho_id", "detectado_en"),
+        Index("ix_mencion_legislador_detectado", "legislador_id", "detectado_en"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    articulo_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("articulo.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # legislador_id no tiene FK estricta v1 — el catálogo de legisladores
+    # vive en CSV vendored (`feat/05`), no en DB. Sigue el patrón de
+    # `voto_legislador.legislador_nombre` (ADR 0005 §"Por qué no FK
+    # estricta").
+    legislador_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
+    despacho_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    snippet_contexto: Mapped[str] = mapped_column(String(400), nullable=False)
+    tono: Mapped[str] = mapped_column(String(15), nullable=False)
+    confianza_tono: Mapped[float] = mapped_column(Float, nullable=False)
+    alcance_medio: Mapped[str] = mapped_column(String(20), nullable=False)
+    detectado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+    notificada: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+# ---------------------------------------------------------------------------
+# WhatsApp (spec 17)
+# ---------------------------------------------------------------------------
+
+
+class DestinatarioOrm(Base, TimestampsMixin, kw_only=True):
+    """Persona del despacho que recibe mensajes Praxis por WhatsApp."""
+
+    __tablename__ = "destinatario"
+    __table_args__ = (
+        UniqueConstraint(
+            "despacho_id", "telefono_e164",
+            name="uq_destinatario_despacho_telefono",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    despacho_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    usuario_id: Mapped[UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("usuario.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
+    )
+    nombre: Mapped[str] = mapped_column(String(200), nullable=False)
+    rol_interno: Mapped[str] = mapped_column(String(40), nullable=False)
+    telefono_e164: Mapped[str] = mapped_column(String(20), nullable=False)
+    recibe_briefing_diario: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True,
+    )
+    recibe_alertas_menciones: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True,
+    )
+    recibe_alertas_otras: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False,
+    )
+    opt_in_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
+    opt_out_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+class PlantillaWhatsAppOrm(Base, kw_only=True):
+    """Plantilla pre-aprobada por Meta. Catálogo interno."""
+
+    __tablename__ = "plantilla_whatsapp"
+
+    name: Mapped[str] = mapped_column(String(100), primary_key=True)
+    idioma: Mapped[str] = mapped_column(String(10), nullable=False, default="es_AR")
+    categoria: Mapped[str] = mapped_column(String(20), nullable=False)
+    body_params: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    estado_meta: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="pendiente_aprobacion",
+    )
+    aprobada_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
+    contenido_referencia: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class EnvioWhatsAppOrm(Base, kw_only=True):
+    """Registro auditable de envíos. despacho_id desnormalizado (ADR 0006)."""
+
+    __tablename__ = "envio_whatsapp"
+    __table_args__ = (
+        Index(
+            "ix_envio_whatsapp_message_id_meta",
+            "message_id_meta",
+            unique=True,
+        ),
+        Index(
+            "ix_envio_whatsapp_despacho_enviado",
+            "despacho_id", "enviado_en",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    destinatario_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("destinatario.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # Desnormalizado para queries tenant-scoped sin JOIN (ADR 0006).
+    despacho_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    plantilla_name: Mapped[str] = mapped_column(
+        String(100),
+        ForeignKey("plantilla_whatsapp.name", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    tipo: Mapped[str] = mapped_column(String(40), nullable=False)
+    payload_params: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default_factory=dict,
+    )
+    correlativo_id: Mapped[UUID | None] = mapped_column(
+        Uuid, nullable=True, default=None,
+    )
+    enviado_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
+    estado: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="pendiente",
+    )
+    message_id_meta: Mapped[str | None] = mapped_column(
+        String(120), nullable=True, default=None,
+    )
+    error: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+
+
+class AlertaMencionEnviadaOrm(Base, kw_only=True):
+    """Auditoría de alertas de mención efectivamente enviadas.
+
+    Para alertas individuales, `menciones_ids` tiene 1 elemento. Para
+    agrupadas, N. La FK al destinatario es cascade; las menciones se
+    referencian por UUID en JSON (no FK estricta — la mención puede
+    purgarse a los 24 meses, D10).
+    """
+
+    __tablename__ = "alerta_mencion_enviada"
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    destinatario_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("destinatario.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    tipo: Mapped[str] = mapped_column(String(20), nullable=False)
+    menciones_ids: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    plantilla_meta: Mapped[str] = mapped_column(String(100), nullable=False)
+    enviado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+    estado: Mapped[str] = mapped_column(String(20), nullable=False)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
 
 
 # Marker para que mypy/ruff entiendan que estos imports son legítimos.
