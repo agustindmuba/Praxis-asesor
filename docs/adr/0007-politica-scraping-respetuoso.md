@@ -190,12 +190,18 @@ Sin negociación.
 - 1 corrida nocturna ~5:00 AM ART, 1 retry a las 5:30 si falla la
   primera. Si falla la segunda, ese día queda sin BO; el briefing
   diario 7:30 incluye solo noticias.
+- **Patrón adoptado tras spike 39.1.5**: descargar PDFs públicos del
+  día desde `s3.arsat.com.ar/cdn-bo-001/pdf-del-dia/<seccion>.pdf` en
+  lugar de scrapear HTML. El dominio S3 es distinto del portal y su
+  `robots.txt` (si tiene) aplica por separado. Por respeto al espíritu
+  del robots del portal, **igual no procesamos la sección "segunda"**
+  aunque el PDF sea técnicamente accesible.
 
 ### Aplicabilidad
 
 Esta política aplica a:
 
-- `BoletinOficialScraper` (spec 15).
+- `BoletinOficialPdfClient` (spec 15, tras spike 39.1.5).
 - `RssFeedAdapter`, `SitemapAdapter`, `MedioScraper` (spec 16).
 - `HcdnScraper`, `HsnScraper`, `HcdnVotacionesScraper`: **revisión
   retroactiva** para asegurar UA + rate limit alineados; ya cumplen el

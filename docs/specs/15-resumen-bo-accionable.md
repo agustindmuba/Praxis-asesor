@@ -52,12 +52,28 @@ ENTONCES Praxis envía al despacho un único mensaje (app + WhatsApp)
 
 | Tema | Decisión |
 |---|---|
-| Fuente | `boletinoficial.gob.ar` (no agregadores) |
-| Secciones cubiertas en MVP | Legislación (leyes, decretos, resoluciones), Designaciones en cargos públicos, Avisos oficiales |
-| Modo de captura | Scraping respetuoso programado, una corrida nocturna ~5:00 AM ART del BO del día anterior |
+| Fuente | PDF del día desde `s3.arsat.com.ar/cdn-bo-001/pdf-del-dia/` (público, sin auth) |
+| Secciones cubiertas en MVP | **Primera (Legislación)** y **Cuarta (Designaciones)** |
+| Modo de captura | Descarga del PDF del día + parsing local con `pdfplumber` |
 | Clasificación IA | Tema + organismo emisor + tipo + **score de accionabilidad por despacho** |
 | Entrega | Parte del envío único de las 7:30 AM junto con noticias (ver spec 16) |
 | Canales | App (vista web) + WhatsApp (notificación con titulares + link a app) |
+
+### Cambio de approach tras spike 39.1.5
+
+El plan original (scraping HTML por sección y fecha) **no es viable**:
+el portal `boletinoficial.gob.ar` es una SPA React y todas las URLs de
+listado devuelven el mismo HTML inicial (verificado por MD5 en 3 fechas
+distintas). Reverse-engineering del SOAP API requiere sesión opaca.
+
+Solución adoptada (ver `docs/spikes/39-boletin-oficial.md`): bajar los
+PDFs públicos del día por sección desde S3 y parsearlos con `pdfplumber`.
+Sin sesión, sin JS, sin Playwright.
+
+**Sección Segunda (Avisos Oficiales) queda fuera del MVP** porque el
+robots.txt del portal la prohíbe explícitamente. Mantenemos
+`"avisos_oficiales"` en el enum `NormaBO.seccion` para habilitar la
+reapertura v2 si entra vía SAIJ.
 
 ## Decisiones de dominio NUEVAS (resueltas)
 
@@ -82,8 +98,10 @@ ENTONCES Praxis envía al despacho un único mensaje (app + WhatsApp)
 Pipeline diario nocturno + entrega coordinada:
 
 ```
-05:00 ART  ScrapeBoletinOficial.run(fecha=ayer)
-           ↓ por sección, paginar, parsear cada norma
+05:00 ART  IngestarBoletinOficial.run()
+           ↓ por sección activa (primera, cuarta):
+           ↓   - GET s3.arsat.com.ar/cdn-bo-001/pdf-del-dia/<seccion>.pdf
+           ↓   - parsear con pdfplumber → list[NormaBO]
            ↓ NormaBO[] persistida (sin clasificar todavía)
 
 05:30 ART  ClasificarNormasBO.run(fecha=ayer)
@@ -178,6 +196,8 @@ class NormaBO:
     """Una norma publicada en el BO. Snapshot al momento del scrape."""
     id: UUID | None
     fecha_publicacion: date
+    # v1 sólo persiste "legislacion" y "designaciones". El valor
+    # "avisos_oficiales" queda reservado para v2 (vía SAIJ) si entra.
     seccion: Literal["legislacion", "designaciones", "avisos_oficiales"]
     tipo_norma: str             # "decreto", "ley", "resolucion", "decision_administrativa", "aviso", etc.
     numero_norma: str           # "412/2026", "27.812", "88/2026"
@@ -222,20 +242,25 @@ despacho puede cambiar).
 
 ## Algoritmos clave
 
-### Scraping del BO
+### Ingesta del BO (vía PDF S3)
 
-`BoletinOficialScraper` implementa el puerto `FuenteBO`. Por fecha:
+`BoletinOficialPdfClient` implementa el puerto `FuenteBO`. Por día:
 
-1. Por cada sección de las 3 cubiertas, navegar al índice del día.
-2. Paginar (el BO devuelve listados por bloques de 25 normas).
-3. Por cada norma listada: bajar metadata (tipo + número + organismo +
-   sumario + URL).
-4. Persistir `NormaBO` por upsert sobre `(fecha_publicacion, seccion,
-   tipo_norma, numero_norma)`.
+1. Por cada sección activa (`primera`, `cuarta` en v1) bajar el PDF
+   público de `s3.arsat.com.ar/cdn-bo-001/pdf-del-dia/<seccion>.pdf`.
+2. Parsear con `pdfplumber`: detectar inicio/fin de cada norma por
+   heurística (encabezados con tipo + número + organismo emisor),
+   extraer sumario, número y url al texto oficial.
+3. Persistir `NormaBO` + `NormaBOTexto` (texto completo) por upsert
+   sobre `(fecha_publicacion, seccion, tipo_norma, numero_norma)`.
 
-**Respetuoso:** UA identificado (`PraxisAsesor/0.x (+contacto@dominio.com)`),
-rate limit 1 req/seg, retries con backoff, `robots.txt` consultado en el
-arranque del job. Documentado en **ADR 0007** (política de scraping).
+**Respetuoso:** UA identificado, sin sesión, sin reintentos agresivos.
+ADR 0007 §"Respetuoso para BO" se aplica aunque el endpoint sea S3 y
+no el portal.
+
+**Limitación v1:** sólo PDF del DÍA en curso. Histórico de fechas
+pasadas requiere otro vector (SAIJ o reverse-engineer) — fuera del
+MVP.
 
 ### Clasificación
 
@@ -364,9 +389,14 @@ vista completa. Vista completa `/bo` con:
 
 ## Fuera de alcance (v1)
 
-- **Secciones del BO no cubiertas**: Sección de Sociedades, Asociaciones
-  Civiles, Convocatorias, Edictos Judiciales, etc. Reabrir en v2 si un
+- **Sección Segunda (Avisos Oficiales)**: prohibida por robots.txt del
+  portal BO. Se contemplaba en spec original; tras spike 39.1.5 sale del
+  MVP. Reabrir vía SAIJ en v2.
+- **Sección Tercera (Convocatorias, Edictos Judiciales, Sociedades,
+  Asociaciones Civiles)**: out of scope desde siempre. Reabrir si un
   despacho lo pide.
+- **Histórico de normas BO** (fechas previas al día corriente). El
+  endpoint S3 sólo sirve el día en curso; reabrir vía SAIJ en v2.
 - **Resumen IA del cuerpo de la norma.** El sumario del BO es público y
   oficial, lo usamos tal cual. El cuerpo completo no lo resumimos para
   el usuario; sólo para uso interno (clasificación) si D2 lo habilita.

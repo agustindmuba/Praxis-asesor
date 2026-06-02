@@ -74,6 +74,8 @@ El asesor edita libremente. Se re-siembra si cambian los seguimientos
 class NormaBO:
     id: UUID | None
     fecha_publicacion: date
+    # v1 persiste sólo "legislacion" y "designaciones" (spec 15 tras
+    # spike 39.1.5). "avisos_oficiales" queda reservado para v2 (SAIJ).
     seccion: Literal["legislacion", "designaciones", "avisos_oficiales"]
     tipo_norma: str
     numero_norma: str
