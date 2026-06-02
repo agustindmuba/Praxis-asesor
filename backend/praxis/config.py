@@ -50,7 +50,20 @@ class Settings(BaseSettings):
     # --- IA ---
     anthropic_api_key: str | None = Field(
         default=None,
-        description="API key de Anthropic. Requerida solo para features de IA (v3+).",
+        description=(
+            "API key de Anthropic. Si está seteada, el LlmProvider real "
+            "(AnthropicLlmProvider) se inyecta; si está vacía, fallback a "
+            "FakeLlmProvider sin gasto."
+        ),
+    )
+    anthropic_model: str = Field(
+        default="claude-sonnet-4-5-20250929",
+        description=(
+            "Modelo Anthropic a usar. Default: Claude Sonnet 4.5 (snapshot "
+            "20250929). Para bajar gasto: 'claude-haiku-4-5-20251001' "
+            "(~4x más barato, calidad menor). Para subir: 'claude-opus-4-8' "
+            "(snapshot más nuevo de Opus al momento del commit)."
+        ),
     )
 
     # --- Auth (Clerk) ---

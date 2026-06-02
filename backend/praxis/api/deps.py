@@ -28,6 +28,7 @@ from praxis.domain import AuthClaims, AuthError, AuthErrorCode, RequestContext
 from praxis.infrastructure.auth import ClerkAuthProvider, DevAuthProvider
 from praxis.infrastructure.db.engine import get_session
 from praxis.infrastructure.llm import FakeLlmProvider
+from praxis.infrastructure.llm.anthropic_provider import AnthropicLlmProvider
 from praxis.infrastructure.persistence.repositories import (
     SqlAlchemyDespachoRepository,
     SqlAlchemyMembresiaDespachoRepository,
@@ -215,16 +216,24 @@ def get_llm_provider(
 
     Selección:
     - Si `settings.anthropic_api_key` está seteada → `AnthropicLlmProvider`
-      (todavía no implementado; cae a Fake con warning).
+      (Sonnet 4.5 real con prompt caching, gasta API).
     - Sino → `FakeLlmProvider` (default en dev, costo cero).
+
+    Recordatorio operativo: setear cap mensual en Anthropic Console
+    (Settings → Limits) para acotar el gasto. Ver
+    `docs/runbooks/anthropic-llm.md`.
     """
     global _llm_provider
     if _llm_provider is not None:
         return _llm_provider
 
-    # TODO(feat/25): cuando exista AnthropicLlmProvider, elegirlo si hay key.
-    del settings  # no usado todavía.
-    _llm_provider = FakeLlmProvider()
+    if settings.anthropic_api_key:
+        _llm_provider = AnthropicLlmProvider(
+            api_key=settings.anthropic_api_key,
+            model=settings.anthropic_model,
+        )
+    else:
+        _llm_provider = FakeLlmProvider()
     return _llm_provider
 
 
