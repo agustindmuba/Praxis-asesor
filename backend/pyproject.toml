@@ -48,6 +48,9 @@ dependencies = [
 
     # Templates HTML (briefing PDF, ver feat/30 spec 14).
     "jinja2>=3.1",
+
+    # Claude API (feat/32). Solo se usa si ANTHROPIC_API_KEY está seteada.
+    "anthropic>=0.40",
 ]
 
 # Dependencias de desarrollo (PEP 735 — soportado por uv).
