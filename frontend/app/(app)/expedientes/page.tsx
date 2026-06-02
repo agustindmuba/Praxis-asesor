@@ -38,14 +38,18 @@ export default async function ExpedientesPage({ searchParams }: PageProps) {
   const qsSinOffset = paramsSinOffset.toString();
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Expedientes</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Buscá expedientes del catálogo y marcalos para seguimiento.
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Catálogo · Diputados + Senado
+        </p>
+        <h2 className="mt-1 font-display text-3xl font-bold tracking-tight text-[var(--color-praxis-azul)]">
+          Expedientes
+        </h2>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Buscá entre los {resultado.total.toLocaleString("es-AR")} expedientes
+          del catálogo y marcá los que querés seguir.
+        </p>
       </div>
 
       <FiltrosBar initial={filtros} />

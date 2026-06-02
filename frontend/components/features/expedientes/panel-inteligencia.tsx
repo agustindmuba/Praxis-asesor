@@ -30,7 +30,15 @@ export async function PanelInteligencia({ expedienteId }: Props) {
   const data = await getInteligenciaExpediente(ctx, expedienteId);
 
   return (
-    <Card className="space-y-6 p-6">
+    <Card className="space-y-6 border-border bg-card p-6 shadow-none">
+      <div>
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Panel de inteligencia
+        </p>
+        <h3 className="mt-0.5 font-display text-base font-bold text-[var(--color-praxis-azul)]">
+          Cómo viene el trámite
+        </h3>
+      </div>
       <BarraDePipeline data={data} />
       <ComparacionConPeers data={data} />
     </Card>
@@ -89,8 +97,10 @@ function EtapaDot({
       {!esUltima && (
         <div
           className={cn(
-            "absolute left-1/2 top-3 h-0.5 w-full",
-            siguienteAlcanzada ? "bg-primary" : "bg-border",
+            "absolute left-1/2 top-3.5 h-0.5 w-full",
+            siguienteAlcanzada
+              ? "bg-[var(--color-praxis-azul)]"
+              : "bg-border",
           )}
           aria-hidden
         />
@@ -99,26 +109,27 @@ function EtapaDot({
       {/* Dot */}
       <div
         className={cn(
-          "relative z-10 flex size-6 items-center justify-center rounded-full border-2 transition-colors",
+          "relative z-10 flex size-7 items-center justify-center rounded-full border-2 transition-colors",
           etapa.alcanzada
-            ? "border-primary bg-primary text-primary-foreground"
+            ? "border-[var(--color-praxis-azul)] bg-[var(--color-praxis-azul)] text-white"
             : "border-border bg-background text-muted-foreground",
-          esActual && "ring-4 ring-primary/20",
+          esActual &&
+            "ring-[6px] ring-[var(--color-praxis-salmon)]/30",
         )}
       >
         {etapa.alcanzada && !esActual ? (
-          <Check className="size-3" />
+          <Check className="size-3.5" />
         ) : esActual ? (
-          <div className="size-2 rounded-full bg-primary-foreground" />
+          <div className="size-2.5 rounded-full bg-white" />
         ) : null}
       </div>
 
       {/* Label */}
       <span
         className={cn(
-          "text-center text-[10px] font-medium leading-tight",
+          "text-center text-[10.5px] font-medium leading-tight",
           etapa.alcanzada ? "text-foreground" : "text-muted-foreground",
-          esActual && "font-semibold text-primary",
+          esActual && "font-semibold text-[var(--color-praxis-azul)]",
         )}
       >
         {etapa.label}
@@ -245,21 +256,21 @@ function Stat({
   return (
     <div
       className={cn(
-        "flex-1 rounded-md border px-3 py-2",
-        tone === "good" && "border-green-200 bg-green-50",
-        tone === "warn" && "border-amber-200 bg-amber-50",
-        tone === "muted" && "border-border bg-muted/40",
+        "flex-1 rounded-md border px-3.5 py-2.5",
+        tone === "good" && "border-[var(--color-praxis-verde)]/30 bg-[var(--color-praxis-verde)]/5",
+        tone === "warn" && "border-[var(--color-praxis-salmon)]/30 bg-[var(--color-praxis-salmon)]/10",
+        tone === "muted" && "border-border bg-[var(--color-praxis-crema)]/60",
       )}
     >
-      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
         {label}
       </p>
       <p
         className={cn(
-          "mt-0.5 flex items-center gap-1 text-base font-semibold tabular-nums",
-          tone === "good" && "text-green-700",
-          tone === "warn" && "text-amber-700",
-          tone === "muted" && "text-foreground",
+          "mt-1 flex items-center gap-1.5 font-display text-lg font-bold tabular-nums",
+          tone === "good" && "text-[var(--color-praxis-verde)]",
+          tone === "warn" && "text-[var(--color-praxis-salmon)]",
+          tone === "muted" && "text-[var(--color-praxis-azul)]",
         )}
       >
         {icon}
