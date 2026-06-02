@@ -18,6 +18,7 @@ from praxis.domain import (
     AreaTematica,
     Briefing,
     Camara,
+    ClasificacionNormaBO,
     CofirmanteSugerido,
     EstadoExpediente,
     Expediente,
@@ -25,10 +26,15 @@ from praxis.domain import (
     Firmante,
     Giro,
     MembresiaDespacho,
+    NormaBO,
+    NormaBOAccionable,
+    NormaBOTexto,
     NumeroExpediente,
     OrdenDelDia,
     OrigenExpediente,
+    PerfilInteresDespacho,
     Prioridad,
+    PrioridadAccionabilidad,
     PrioridadAlerta,
     ProyectoEnAreaBriefing,
     RecomendacionVoto,
@@ -36,6 +42,7 @@ from praxis.domain import (
     Rol,
     RolEnDespacho,
     SeccionAreaBriefing,
+    SeccionBO,
     SeccionProyectoBriefing,
     SeguimientoExpediente,
     TipoExpediente,
@@ -50,13 +57,18 @@ from praxis.domain.despacho import Despacho
 from praxis.domain.orden_del_dia import FuenteOd
 from praxis.infrastructure.persistence.models import (
     BriefingOrm,
+    ClasificacionNormaBOOrm,
     DespachoOrm,
     ExpedienteAreaTematicaOrm,
     ExpedienteOrm,
     FirmanteOrm,
     GiroOrm,
     MembresiaDespachoOrm,
+    NormaBOAccionableOrm,
+    NormaBOOrm,
+    NormaBOTextoOrm,
     OrdenDelDiaOrm,
+    PerfilInteresDespachoOrm,
     ResumenEjecutivoOrm,
     SeguimientoExpedienteOrm,
     TramiteEventoOrm,
@@ -696,3 +708,154 @@ def from_briefing(domain: Briefing) -> BriefingOrm:
     if domain.id is not None:
         kwargs["id"] = domain.id
     return BriefingOrm(**kwargs)
+
+
+# ---------------------------------------------------------------------------
+# PerfilInteresDespacho (feat-39, compartido entre specs 15/16/17)
+# ---------------------------------------------------------------------------
+
+
+def to_perfil_interes(
+    orm: PerfilInteresDespachoOrm,
+) -> PerfilInteresDespacho:
+    return PerfilInteresDespacho(
+        despacho_id=orm.despacho_id,
+        areas_tematicas=list(orm.areas_tematicas),
+        comisiones_legislador=list(orm.comisiones_legislador),
+        distritos_observados=list(orm.distritos_observados),
+        aliases_legislador=list(orm.aliases_legislador),
+        sembrado_at=orm.sembrado_at,
+        editado_at=orm.editado_at,
+        actualizado_en=orm.actualizado_en,
+    )
+
+
+def from_perfil_interes(
+    domain: PerfilInteresDespacho,
+) -> PerfilInteresDespachoOrm:
+    return PerfilInteresDespachoOrm(
+        despacho_id=domain.despacho_id,
+        areas_tematicas=list(domain.areas_tematicas),
+        comisiones_legislador=list(domain.comisiones_legislador),
+        distritos_observados=list(domain.distritos_observados),
+        aliases_legislador=list(domain.aliases_legislador),
+        sembrado_at=domain.sembrado_at,
+        editado_at=domain.editado_at,
+    )
+
+
+# ---------------------------------------------------------------------------
+# NormaBO + relacionadas (spec 15)
+# ---------------------------------------------------------------------------
+
+
+def to_norma_bo(orm: NormaBOOrm) -> NormaBO:
+    return NormaBO(
+        id=orm.id,
+        fecha_publicacion=orm.fecha_publicacion,
+        seccion=SeccionBO(orm.seccion),
+        tipo_norma=orm.tipo_norma,
+        numero_norma=orm.numero_norma,
+        organismo_emisor=orm.organismo_emisor,
+        sumario=orm.sumario,
+        url_oficial=orm.url_oficial,
+        hash_sumario=orm.hash_sumario,
+        capturado_en=orm.capturado_en,
+    )
+
+
+def from_norma_bo(domain: NormaBO) -> NormaBOOrm:
+    kwargs: dict[str, Any] = {
+        "fecha_publicacion": domain.fecha_publicacion,
+        "seccion": domain.seccion.value,
+        "tipo_norma": domain.tipo_norma,
+        "numero_norma": domain.numero_norma,
+        "organismo_emisor": domain.organismo_emisor,
+        "sumario": domain.sumario,
+        "url_oficial": domain.url_oficial,
+        "hash_sumario": domain.hash_sumario,
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    return NormaBOOrm(**kwargs)
+
+
+def to_norma_bo_texto(orm: NormaBOTextoOrm) -> NormaBOTexto:
+    return NormaBOTexto(
+        norma_id=orm.norma_id,
+        texto=orm.texto,
+        capturado_en=orm.capturado_en,
+    )
+
+
+def from_norma_bo_texto(domain: NormaBOTexto) -> NormaBOTextoOrm:
+    return NormaBOTextoOrm(
+        norma_id=domain.norma_id,
+        texto=domain.texto,
+    )
+
+
+def to_clasificacion_norma_bo(
+    orm: ClasificacionNormaBOOrm,
+) -> ClasificacionNormaBO:
+    return ClasificacionNormaBO(
+        id=orm.id,
+        norma_id=orm.norma_id,
+        area_tematica=AreaTematica(orm.area_tematica),
+        palabras_clave=list(orm.palabras_clave),
+        afecta_expedientes_hcdn=orm.afecta_expedientes_hcdn,
+        referencias_legales=list(orm.referencias_legales),
+        modelo=orm.modelo,
+        prompt_version=orm.prompt_version,
+        generado_en=orm.generado_en,
+    )
+
+
+def from_clasificacion_norma_bo(
+    domain: ClasificacionNormaBO,
+) -> ClasificacionNormaBOOrm:
+    kwargs: dict[str, Any] = {
+        "norma_id": domain.norma_id,
+        "area_tematica": domain.area_tematica.value,
+        "palabras_clave": list(domain.palabras_clave),
+        "afecta_expedientes_hcdn": domain.afecta_expedientes_hcdn,
+        "referencias_legales": list(domain.referencias_legales),
+        "modelo": domain.modelo,
+        "prompt_version": domain.prompt_version,
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    return ClasificacionNormaBOOrm(**kwargs)
+
+
+def to_norma_bo_accionable(
+    orm: NormaBOAccionableOrm,
+) -> NormaBOAccionable:
+    # SQLite devuelve JSON list[str]; UUID se preservan como strings.
+    expedientes = [
+        UUID(eid) if isinstance(eid, str) else cast(UUID, eid)
+        for eid in orm.expedientes_tocados
+    ]
+    return NormaBOAccionable(
+        norma_id=orm.norma_id,
+        despacho_id=orm.despacho_id,
+        score=int(orm.score),
+        prioridad=PrioridadAccionabilidad(orm.prioridad),
+        razon=orm.razon,
+        expedientes_tocados=expedientes,
+        generado_en=orm.generado_en,
+    )
+
+
+def from_norma_bo_accionable(
+    domain: NormaBOAccionable,
+) -> NormaBOAccionableOrm:
+    return NormaBOAccionableOrm(
+        norma_id=domain.norma_id,
+        despacho_id=domain.despacho_id,
+        score=domain.score,
+        prioridad=domain.prioridad.value,
+        razon=domain.razon,
+        expedientes_tocados=[str(eid) for eid in domain.expedientes_tocados],
+    )
+
