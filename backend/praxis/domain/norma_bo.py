@@ -298,3 +298,27 @@ def prioridad_para_score(score: int) -> PrioridadAccionabilidad:
             "no se debe construir NormaBOAccionable"
         )
     return _prioridad_para_score(score)
+
+
+# ---------------------------------------------------------------------------
+# Resultado del clasificador LLM
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class ClasificacionNormaBOResult:
+    """Resultado puro del `LlmProvider.clasificar_norma_bo()`.
+
+    Es lo que el provider devuelve; el caller (use case) hidrata a
+    `ClasificacionNormaBO` agregando `norma_id`, `modelo`, `prompt_version`
+    y `generado_en` antes de persistir.
+
+    Sigue el mismo patrón que `clasificar_area_tematica → AreaTematica`:
+    el provider sólo conoce el resultado conceptual, no la entidad de
+    persistencia.
+    """
+
+    area_tematica: AreaTematica
+    palabras_clave: list[str]
+    afecta_expedientes_hcdn: bool
+    referencias_legales: list[str]

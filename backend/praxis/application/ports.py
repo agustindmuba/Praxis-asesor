@@ -23,6 +23,7 @@ from praxis.domain import (
     Briefing,
     Camara,
     ClasificacionNormaBO,
+    ClasificacionNormaBOResult,
     Comision,
     Expediente,
     ExpedienteAreaTematica,
@@ -414,6 +415,28 @@ class LlmProvider(ABC):
         Pensado para alimentar las secciones de página 2 del briefing
         (un proyecto del despacho). El caller decide cuándo invocar — no
         cachea solo.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def clasificar_norma_bo(
+        self,
+        norma: NormaBO,
+        *,
+        texto: str | None = None,
+    ) -> ClasificacionNormaBOResult:
+        """Clasifica una norma del BO devolviendo área temática +
+        palabras clave + flag de afectación a expedientes HCDN +
+        referencias legales (otras leyes/decretos que menciona).
+
+        Si `texto` está disponible (cuerpo del PDF parseado), el provider
+        lo puede usar para mejorar la clasificación. Sino se basa en
+        `norma.sumario`, `norma.tipo_norma` y `norma.organismo_emisor`.
+
+        El caller hidrata `ClasificacionNormaBO` con `norma_id`,
+        `modelo` (= `self.nombre_modelo`), `prompt_version` (= ver
+        `BO_PROMPT_VERSION` del dominio) y `generado_en` antes de
+        persistir. NO cachea solo.
         """
         raise NotImplementedError
 

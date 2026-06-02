@@ -13,10 +13,18 @@ Estrategia:
 
 from __future__ import annotations
 
+import re
 from datetime import date
 
 from praxis.application.ports import LlmProvider
-from praxis.domain import AreaTematica, EstadoExpediente, Expediente, Firmante
+from praxis.domain import (
+    AreaTematica,
+    ClasificacionNormaBOResult,
+    EstadoExpediente,
+    Expediente,
+    Firmante,
+    NormaBO,
+)
 
 FAKE_MODEL_NAME = "fake-keywords"
 
@@ -74,6 +82,57 @@ class FakeLlmProvider(LlmProvider):
         if contraargumentos:
             return _contraargumentos_fake(expediente)
         return _argumentos_fake(expediente)
+
+    async def clasificar_norma_bo(
+        self,
+        norma: NormaBO,
+        *,
+        texto: str | None = None,
+    ) -> ClasificacionNormaBOResult:
+        """Clasifica una norma BO usando keywords sobre sumario +
+        organismo + texto (si está).
+
+        Estrategia:
+        - Area temática: reusa el mismo bucket de keywords del clasificador
+          de expedientes (`_AREA_KEYWORDS`); el mejor match gana.
+        - Palabras clave: las que matchearon en la búsqueda + términos
+          característicos del organismo.
+        - `afecta_expedientes_hcdn`: heurística — True si el texto
+          contiene "Ley NNN" o "Expediente NNN-X-YYYY".
+        - Referencias legales: regex de "Ley NNNNN" y "Decreto NNNN/AAAA".
+        """
+        haystack = _normalizar(
+            f"{norma.sumario} {norma.organismo_emisor} {texto or ''}"
+        )
+        area = AreaTematica.OTROS
+        palabras_match: list[str] = []
+        for cand_area, palabras in _AREA_KEYWORDS:
+            for palabra in palabras:
+                if palabra in haystack:
+                    if area == AreaTematica.OTROS:
+                        # Primer match define el área.
+                        area = cand_area
+                    if cand_area == area:
+                        palabras_match.append(palabra)
+        # Dedup conservando orden.
+        palabras_clave: list[str] = []
+        for p in palabras_match:
+            if p not in palabras_clave:
+                palabras_clave.append(p)
+            if len(palabras_clave) >= 5:
+                break
+
+        referencias = _detectar_referencias_legales(
+            f"{norma.sumario} {texto or ''}"
+        )
+        afecta_hcdn = bool(referencias) or "expediente" in haystack
+
+        return ClasificacionNormaBOResult(
+            area_tematica=area,
+            palabras_clave=palabras_clave,
+            afecta_expedientes_hcdn=afecta_hcdn,
+            referencias_legales=referencias,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -225,8 +284,6 @@ def _normalizar(s: str) -> str:
     porque el corpus del portal HCDN usa MAYÚSCULAS sin tilde
     consistentemente.
     """
-    import re
-
     out = s.lower()
     # Quitar tildes manualmente (sin importar unicodedata).
     table = str.maketrans("áéíóúüñ", "aeiouun")
@@ -460,3 +517,41 @@ def _avance_segun_estado(estado: EstadoExpediente) -> str:
             return (
                 "Indeterminada — el estado actual no fue posible inferirlo del trámite registrado."
             )
+
+
+# ---------------------------------------------------------------------------
+# Detección de referencias legales (para clasificar_norma_bo)
+# ---------------------------------------------------------------------------
+
+
+_REF_LEGAL_RE = re.compile(
+    r"""
+    \b(
+        # "Ley NN.NNN" o "Ley NNNNN" sin punto
+        Ley\s+N?[°º]?\s*(?P<ley_num>\d{1,3}\.\d{3}|\d{4,6})
+      | Decreto\s+N?[°º]?\s*(?P<dec_num>\d{1,5}/\d{2,4})
+      | Resolución\s+N?[°º]?\s*(?P<res_num>\d{1,5}/\d{2,4})
+    )
+    """,
+    re.VERBOSE | re.IGNORECASE,
+)
+
+
+def _detectar_referencias_legales(texto: str) -> list[str]:
+    """Extrae referencias a leyes/decretos/resoluciones mencionados en
+    el texto. Devuelve lista deduplicada y normalizada."""
+    refs: list[str] = []
+    for m in _REF_LEGAL_RE.finditer(texto):
+        if m.group("ley_num"):
+            ref = f"Ley {m.group('ley_num')}"
+        elif m.group("dec_num"):
+            ref = f"Decreto {m.group('dec_num')}"
+        elif m.group("res_num"):
+            ref = f"Resolución {m.group('res_num')}"
+        else:
+            continue
+        if ref not in refs:
+            refs.append(ref)
+        if len(refs) >= 10:
+            break
+    return refs
