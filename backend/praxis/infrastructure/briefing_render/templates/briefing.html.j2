@@ -4,77 +4,158 @@
 <meta charset="UTF-8">
 <title>Briefing pre-sesión</title>
 <style>
-  @page { size: A4; margin: 20mm 18mm; }
+  /* Paleta Praxis Consulting (manual de marca). */
+  :root {
+    --azul: #2A3D75;
+    --azul-dark: #1F2E58;
+    --salmon: #D48D7C;
+    --crema: #F4F0EF;
+    --crema-dark: #E6E0DE;
+    --verde: #3B6652;
+    --lavanda: #8097D0;
+    --tinta: #1A1D2E;
+    --tinta-muted: #5A5D6E;
+    --hairline: #D9D3D1;
+  }
+
+  /* Importamos las fuentes web. weasyprint las descarga al renderizar. */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+  @page { size: A4; margin: 18mm 16mm; }
+
   body {
     font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    color: #111827;
-    font-size: 11pt;
-    line-height: 1.45;
+    color: var(--tinta);
+    background: white;
+    font-size: 10.5pt;
+    line-height: 1.5;
     margin: 0;
   }
-  h1 { font-size: 18pt; margin: 0 0 4pt; letter-spacing: -0.01em; }
+
+  /* Tipografía display para titulares. */
+  h1, h2, h3 {
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    letter-spacing: -0.015em;
+    color: var(--azul);
+  }
+  h1 { font-size: 19pt; font-weight: 700; margin: 0 0 4pt; }
   h2 {
     font-size: 13pt;
-    margin: 14pt 0 6pt;
-    padding-bottom: 3pt;
-    border-bottom: 1px solid #d1d5db;
-    letter-spacing: -0.005em;
+    font-weight: 600;
+    margin: 16pt 0 8pt;
+    padding-bottom: 4pt;
+    border-bottom: 2px solid var(--azul);
+    letter-spacing: -0.01em;
   }
-  h3 { font-size: 12pt; margin: 10pt 0 4pt; color: #1f2937; }
+  h3 {
+    font-size: 11pt;
+    font-weight: 600;
+    margin: 12pt 0 6pt;
+    color: var(--azul);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
   h4 {
-    font-size: 9pt;
+    font-size: 8.5pt;
     margin: 0 0 2pt;
     text-transform: uppercase;
-    color: #6b7280;
-    letter-spacing: 0.05em;
+    color: var(--tinta-muted);
+    letter-spacing: 0.06em;
     font-weight: 600;
   }
+
+  /* Encabezado de portada con brand line. */
+  .brand-strip {
+    display: flex;
+    align-items: baseline;
+    gap: 8pt;
+    margin-bottom: 4pt;
+  }
+  .brand-strip .mark {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 13pt;
+    font-weight: 700;
+    color: var(--azul);
+    letter-spacing: -0.02em;
+  }
+  .brand-strip .mark .dot { color: var(--salmon); }
+  .brand-strip .tagline {
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--tinta-muted);
+  }
+
   .meta-row {
-    color: #6b7280;
+    color: var(--tinta-muted);
     font-size: 9.5pt;
-    margin-bottom: 10pt;
+    margin-bottom: 12pt;
   }
   .meta-row span { margin-right: 10pt; }
+
+  /* Counters de portada — placas limpias sobre crema. */
   .counter-grid {
     display: flex;
-    gap: 12pt;
-    margin: 8pt 0 14pt;
+    gap: 10pt;
+    margin: 8pt 0 16pt;
   }
   .counter {
     flex: 1;
-    background: #f9fafb;
-    border-left: 3px solid #2563eb;
-    padding: 8pt 10pt;
+    background: var(--crema);
+    border-left: 3px solid var(--azul);
+    padding: 9pt 11pt;
+    border-radius: 0 4pt 4pt 0;
   }
-  .counter .num { font-size: 18pt; font-weight: 700; color: #111827; }
-  .counter .label { font-size: 9pt; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+  .counter:nth-child(2) { border-left-color: var(--salmon); }
+  .counter:nth-child(3) { border-left-color: var(--verde); }
+  .counter .num {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 20pt;
+    font-weight: 700;
+    color: var(--azul);
+    line-height: 1;
+  }
+  .counter .label {
+    font-size: 8.5pt;
+    color: var(--tinta-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 4pt;
+  }
+
+  /* Alertas: borde lateral del color de la prioridad. */
   .alerta {
     display: flex;
-    gap: 8pt;
+    gap: 9pt;
     align-items: flex-start;
-    padding: 8pt 10pt;
-    margin-bottom: 6pt;
-    border-left: 3px solid #d1d5db;
-    background: #fafafa;
+    padding: 9pt 11pt;
+    margin-bottom: 7pt;
+    border-left: 3px solid var(--hairline);
+    background: var(--crema);
+    border-radius: 0 4pt 4pt 0;
   }
   .alerta .badge {
     color: white;
-    font-size: 8pt;
+    font-size: 7.5pt;
     font-weight: 700;
-    padding: 2pt 6pt;
+    padding: 2pt 7pt;
     border-radius: 3pt;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.07em;
     flex-shrink: 0;
-    line-height: 1.2;
+    line-height: 1.3;
+    font-family: "Space Grotesk", sans-serif;
   }
-  .alerta .titulo { font-weight: 600; margin-bottom: 2pt; }
-  .alerta .detalle { color: #4b5563; font-size: 10pt; }
+  .alerta .titulo { font-weight: 600; margin-bottom: 2pt; color: var(--tinta); }
+  .alerta .detalle { color: var(--tinta-muted); font-size: 9.5pt; }
+
+  /* Card de proyecto del despacho. */
   .proyecto {
     page-break-inside: avoid;
     margin-bottom: 14pt;
-    padding: 10pt;
-    border: 1px solid #e5e7eb;
-    border-radius: 4pt;
+    padding: 12pt 14pt;
+    border: 1px solid var(--hairline);
+    border-radius: 6pt;
+    background: white;
   }
   .proyecto .head {
     display: flex;
@@ -83,80 +164,104 @@
     margin-bottom: 4pt;
     align-items: baseline;
   }
-  .proyecto .titulo { font-weight: 700; font-size: 11.5pt; flex: 1; }
-  .proyecto .meta {
-    font-size: 9.5pt;
-    color: #6b7280;
-    margin-bottom: 8pt;
+  .proyecto .titulo {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 600;
+    font-size: 11.5pt;
+    flex: 1;
+    color: var(--azul);
+    letter-spacing: -0.01em;
   }
-  .proyecto .meta span { margin-right: 10pt; }
-  .proyecto h4 { margin-top: 8pt; }
-  .proyecto ul, .proyecto ol { margin: 2pt 0 6pt 16pt; padding: 0; }
-  .proyecto li { margin-bottom: 2pt; }
+  .proyecto .meta {
+    font-size: 9pt;
+    color: var(--tinta-muted);
+    margin-bottom: 10pt;
+    padding-bottom: 8pt;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .proyecto .meta span { margin-right: 12pt; }
+  .proyecto .meta strong { color: var(--azul); font-weight: 600; }
+  .proyecto h4 { margin-top: 10pt; color: var(--azul); }
+  .proyecto ul, .proyecto ol { margin: 4pt 0 6pt 18pt; padding: 0; }
+  .proyecto li { margin-bottom: 3pt; line-height: 1.45; }
+
   .cofirmante {
     display: flex;
     justify-content: space-between;
-    padding: 3pt 0;
-    border-bottom: 1px solid #f3f4f6;
-    font-size: 10pt;
+    padding: 4pt 0;
+    border-bottom: 1px solid var(--crema-dark);
+    font-size: 9.5pt;
   }
   .cofirmante:last-child { border-bottom: none; }
-  .cofirmante .nombre { font-weight: 600; }
-  .cofirmante .bloque { color: #6b7280; font-size: 9pt; }
-  .cofirmante .count { font-weight: 600; color: #1f2937; font-size: 9.5pt; }
+  .cofirmante .nombre { font-weight: 600; color: var(--tinta); }
+  .cofirmante .bloque { color: var(--tinta-muted); font-size: 8.5pt; margin-top: 1pt; }
+  .cofirmante .count {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 600;
+    color: var(--salmon);
+    font-size: 9.5pt;
+    white-space: nowrap;
+    align-self: center;
+  }
+
   .antecedente {
-    background: #f9fafb;
-    padding: 6pt 8pt;
-    border-radius: 3pt;
-    font-size: 10pt;
-    margin-top: 4pt;
+    background: var(--crema);
+    padding: 7pt 10pt;
+    border-radius: 4pt;
+    font-size: 9.5pt;
+    margin-top: 6pt;
+    border-left: 3px solid var(--lavanda);
   }
-  .area-section { page-break-inside: avoid; margin-bottom: 12pt; }
-  .area-section h3 {
-    font-size: 11pt;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #374151;
-    margin-bottom: 6pt;
-  }
+  .antecedente strong { color: var(--azul); }
+
+  /* Página 3: secciones por área. */
+  .area-section { page-break-inside: avoid; margin-bottom: 14pt; }
   .area-row {
     display: flex;
-    gap: 8pt;
-    padding: 5pt 6pt;
-    border-bottom: 1px solid #f3f4f6;
+    gap: 9pt;
+    padding: 6pt 8pt;
+    border-bottom: 1px solid var(--crema-dark);
     align-items: flex-start;
   }
   .area-row:last-child { border-bottom: none; }
-  .area-row .info { flex: 1; font-size: 10pt; }
-  .area-row .info .titulo { font-weight: 600; }
-  .area-row .info .autor { color: #6b7280; font-size: 9pt; }
-  .area-row .info .razon { color: #4b5563; font-size: 9.5pt; margin-top: 2pt; }
+  .area-row .info { flex: 1; font-size: 9.5pt; }
+  .area-row .info .titulo { font-weight: 600; color: var(--tinta); }
+  .area-row .info .autor { color: var(--tinta-muted); font-size: 8.5pt; margin-top: 2pt; }
+  .area-row .info .razon { color: var(--tinta-muted); font-size: 9pt; margin-top: 3pt; }
   .area-row .rec {
     color: white;
-    font-size: 8pt;
+    font-size: 7.5pt;
     font-weight: 700;
-    padding: 2pt 6pt;
+    padding: 3pt 7pt;
     border-radius: 3pt;
-    letter-spacing: 0.04em;
-    line-height: 1.2;
+    letter-spacing: 0.06em;
+    line-height: 1.3;
     align-self: flex-start;
     white-space: nowrap;
+    font-family: "Space Grotesk", sans-serif;
   }
+
   .page-break { page-break-after: always; }
   .footer {
-    margin-top: 30pt;
+    margin-top: 24pt;
     padding-top: 8pt;
-    border-top: 1px solid #e5e7eb;
-    font-size: 8.5pt;
-    color: #9ca3af;
+    border-top: 1px solid var(--hairline);
+    font-size: 8pt;
+    color: var(--tinta-muted);
     text-align: center;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 </style>
 </head>
 <body>
 
 {# ============== PÁGINA 1 — Resumen ejecutivo ============== #}
-<h1>PRAXIS ASESOR · Briefing pre-sesión</h1>
+<div class="brand-strip">
+  <span class="mark">Praxis<span class="dot">.</span></span>
+  <span class="tagline">Decisiones estratégicas basadas en datos</span>
+</div>
+<h1>Briefing pre-sesión</h1>
 <div class="meta-row">
   <span>Generado: {{ briefing.generado_en.strftime("%d/%m/%Y %H:%M") if briefing.generado_en else "—" }}</span>
   <span>Modelo: {{ briefing.modelo_llm }}</span>
@@ -296,7 +401,7 @@
 {% endif %}
 
 <div class="footer">
-  Generado por Praxis Asesor · Briefing pre-sesión {{ briefing.prompt_version }}
+  Praxis Consulting · Briefing pre-sesión {{ briefing.prompt_version }}
 </div>
 
 </body>

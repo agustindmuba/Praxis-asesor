@@ -3,11 +3,11 @@
  *
  * - `<ClerkProvider>` para que `useAuth` / `auth()` funcionen.
  * - `<QueryProvider>` para TanStack Query.
- * - Fuente Inter, lang="es", meta básico.
+ * - Tipografías Praxis: Inter (cuerpo) + Space Grotesk (títulos).
  */
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Inter } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 
 import { QueryProvider } from "@/components/providers/query-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -22,9 +22,19 @@ import "./globals.css";
  */
 const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === "true";
 
+/**
+ * Tipografías Praxis (feat/33 — manual de marca):
+ * - Inter como cuerpo (sustituto web de Aaux Next).
+ * - Space Grotesk para títulos (sustituto web de PP Radio Grotesk Black).
+ */
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
+});
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-display",
 });
 
 export const metadata: Metadata = {
@@ -32,13 +42,16 @@ export const metadata: Metadata = {
     default: "Praxis Asesor",
     template: "%s · Praxis Asesor",
   },
-  description: "Sistema operativo del despacho parlamentario.",
+  description:
+    "Decisiones estratégicas basadas en datos. Sistema operativo del despacho parlamentario.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const body = (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body
+        className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased`}
+      >
         <QueryProvider>
           <TooltipProvider>{children}</TooltipProvider>
         </QueryProvider>
@@ -54,7 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <ClerkProvider appearance={{ variables: { colorPrimary: "#1e293b" } }}>
+    <ClerkProvider appearance={{ variables: { colorPrimary: "#2A3D75" } }}>
       {body}
     </ClerkProvider>
   );
