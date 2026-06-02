@@ -71,6 +71,7 @@ from praxis.domain.inteligencia import (
 )
 from praxis.domain.legislador import Bloque, Legislador
 from praxis.domain.orden_del_dia import FuenteOd, OrdenDelDia
+from praxis.domain.perfil_interes_despacho import PerfilInteresDespacho
 from praxis.domain.resumen_ejecutivo import PROMPT_VERSION, ResumenEjecutivo
 from praxis.domain.seguimiento import Prioridad, SeguimientoExpediente
 from praxis.domain.tramite_historico import (
@@ -135,6 +136,7 @@ __all__ = [
     "NumeroExpediente",
     "OrdenDelDia",
     "OrigenExpediente",
+    "PerfilInteresDespacho",
     "Prioridad",
     "PrioridadAlerta",
     "ProgresoTramite",

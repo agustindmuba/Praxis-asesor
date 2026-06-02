@@ -28,6 +28,7 @@ from praxis.domain import (
     MembresiaDespacho,
     NumeroExpediente,
     OrdenDelDia,
+    PerfilInteresDespacho,
     ResultadoBusqueda,
     ResumenEjecutivo,
     SeguimientoExpediente,
@@ -501,6 +502,39 @@ class BriefingRepository(ABC):
     async def eliminar(
         self, *, despacho_id: UUID, orden_del_dia_id: UUID,
     ) -> bool:
+        raise NotImplementedError
+
+
+class PerfilInteresDespachoRepository(ABC):
+    """Puerto: persistencia del `PerfilInteresDespacho`.
+
+    Una fila por despacho (PK = `despacho_id`). El upsert reemplaza la
+    fila entera — no hay diff incremental. La distinción entre
+    "sembrado automático" y "edición manual" se mantiene en los timestamps
+    `sembrado_at` y `editado_at` que viajan en la entidad.
+
+    Tenant-scoped por design: cualquier operación filtra por `despacho_id`.
+    """
+
+    @abstractmethod
+    async def buscar_por_despacho(
+        self, despacho_id: UUID,
+    ) -> PerfilInteresDespacho | None:
+        """Devuelve el perfil del despacho o None si no se sembró nunca."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def upsert(
+        self, perfil: PerfilInteresDespacho,
+    ) -> PerfilInteresDespacho:
+        """UPSERT por `despacho_id`.
+
+        Reemplaza la fila entera. El caller setea `sembrado_at` cuando
+        viene de re-sembrado automático, y `editado_at` cuando viene de
+        edición manual desde la UI.
+
+        Devuelve la entidad con `actualizado_en` poblado por el server.
+        """
         raise NotImplementedError
 
 
