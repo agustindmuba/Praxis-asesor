@@ -6,8 +6,10 @@
  * - Topbar discreto sobre fondo crema.
  * - Geometría blanda (radius 0.625rem), sin sombras pesadas.
  */
+import Image from "next/image";
 import Link from "next/link";
 import {
+  BookOpen,
   FileText,
   LayoutDashboard,
   ListChecks,
@@ -27,6 +29,7 @@ const NAV = [
   { href: "/expedientes", label: "Expedientes", icon: FileText },
   { href: "/seguimientos", label: "Seguimientos", icon: ListChecks },
   { href: "/briefings", label: "Briefings", icon: Newspaper },
+  { href: "/bo", label: "Boletín Oficial", icon: BookOpen },
 ];
 
 export function AppShell({ me, children }: Props) {
@@ -37,14 +40,22 @@ export function AppShell({ me, children }: Props) {
         className="flex w-60 flex-col text-white"
         style={{ backgroundColor: "var(--color-praxis-azul)" }}
       >
-        <div className="border-b border-white/10 px-5 py-5">
-          <h1 className="font-display text-xl font-bold tracking-tight">
-            Praxis<span className="text-[var(--color-praxis-salmon)]">.</span>
-          </h1>
-          <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-white/55">
+        {/* Header con logo sobre fondo blanco (embebido en el sidebar azul). */}
+        <div className="flex items-center justify-center bg-white px-4 py-6">
+          <Image
+            src="/logo-praxis-asesor.png"
+            alt="Praxis Asesor"
+            width={800}
+            height={208}
+            priority
+            className="h-16 w-auto"
+          />
+        </div>
+        <div className="border-b border-white/10 px-5 py-4">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-white/55">
             Asesor parlamentario
           </p>
-          <div className="mt-4 border-t border-white/10 pt-3">
+          <div className="mt-3 border-t border-white/10 pt-3">
             <p className="text-xs font-medium text-white/85">
               {me.despacho.nombre}
             </p>

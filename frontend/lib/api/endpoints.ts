@@ -9,6 +9,7 @@ import type { ApiContext } from "./context";
 import {
   apiDelete,
   apiGet,
+  apiGetText,
   apiPatch,
   apiPost,
 } from "./client";
@@ -21,12 +22,17 @@ import type {
   FiltrosExpediente,
   InteligenciaExpedienteDTO,
   MeResponse,
+  NormaBOAccionableConNormaDTO,
+  NormaBODetalleDTO,
+  NormaBODTO,
   OrdenDelDiaCrear,
   OrdenDelDiaDTO,
+  ReclasificarPerfilResponse,
   ResolverNumerosBody,
   ResolverNumerosResponse,
   ResultadoBusquedaDTO,
   ResumenEjecutivoDTO,
+  SeccionBO,
   SeguimientoDTO,
 } from "./types";
 
@@ -150,8 +156,22 @@ export function getBriefing(ctx: ApiContext, id: string) {
 }
 
 /**
- * URLs absolutas al HTML/PDF del briefing (para iframe o link de download).
- * No invocan el endpoint — solo arman la URL contra la API pública.
+ * Fetch del HTML pre-renderizado del briefing.
+ *
+ * Lo usamos desde el Server Component que renderiza /briefings/[id]:
+ * el HTML viaja como string al cliente y se embebe en `<iframe srcDoc>`,
+ * lo que evita que el browser tenga que hacer un sub-request al endpoint
+ * sin headers de auth.
+ */
+export function getBriefingHtml(ctx: ApiContext, id: string): Promise<string> {
+  return apiGetText(`/api/v1/briefings/${id}/html`, { ctx });
+}
+
+/**
+ * URLs absolutas al HTML/PDF del briefing (para abrir en pestaña aparte
+ * o link de download). Estas URLs NO van a funcionar en un iframe `src`
+ * porque el browser no incluye headers de auth — para embebido usar
+ * `getBriefingHtml` y srcDoc.
  */
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -162,4 +182,50 @@ export function briefingHtmlUrl(id: string): string {
 
 export function briefingPdfUrl(id: string): string {
   return `${API_BASE}/api/v1/briefings/${id}/pdf`;
+}
+
+// ---------------------------------------------------------------------------
+// /bo (feat-39 — Boletín Oficial)
+// ---------------------------------------------------------------------------
+
+export function listarNormasBO(
+  ctx: ApiContext,
+  fecha: string,
+  seccion?: SeccionBO,
+) {
+  return apiGet<NormaBODTO[]>("/api/v1/bo/normas", {
+    ctx,
+    params: { fecha, seccion },
+    next: { revalidate: 60 },
+  });
+}
+
+export function getNormaBO(ctx: ApiContext, id: string) {
+  return apiGet<NormaBODetalleDTO>(`/api/v1/bo/normas/${id}`, {
+    ctx,
+    next: { revalidate: 60 },
+  });
+}
+
+export function listarAccionablesBO(
+  ctx: ApiContext,
+  fecha: string,
+  topN?: number,
+) {
+  return apiGet<NormaBOAccionableConNormaDTO[]>(
+    "/api/v1/bo/accionables",
+    {
+      ctx,
+      params: { fecha, top_n: topN },
+      next: { revalidate: 60 },
+    },
+  );
+}
+
+export function reclasificarPerfilBO(ctx: ApiContext, fecha: string) {
+  return apiPost<ReclasificarPerfilResponse>(
+    `/api/v1/bo/normas/reclasificar-perfil?fecha=${fecha}`,
+    {},
+    { ctx },
+  );
 }
