@@ -1,40 +1,103 @@
 @import "tailwindcss";
 
-/* Tailwind 4: la config va acá en lugar de tailwind.config.ts */
-@theme {
-  /* Tipografía: Inter como font default. */
-  --font-sans: "Inter", system-ui, sans-serif;
+/* -----------------------------------------------------------------------------
+ * Praxis Consulting — sistema visual
+ *
+ * Paleta y tipografías derivadas del manual de marca oficial de Praxis
+ * Consulting (María Eugenia Soler & Agustín De Marco).
+ *
+ *   Principal
+ *     #2A3D75  azul corporativo (primario)
+ *     #D48D7C  salmón / coral (acento cálido)
+ *     #F4F0EF  crema neutra (background dominante)
+ *
+ *   Complementaria
+ *     #3B6652  verde profundo (positivo, "a favor")
+ *     #8097D0  azul lavanda (secundario, info)
+ *
+ *   Tipografías
+ *     Títulos: Space Grotesk (sustituto web de PP Radio Grotesk Black)
+ *     Cuerpo:  Inter (sustituto web de Aaux Next)
+ *
+ * Estilo: placas limpias, geometría blanda (radius 0.5–0.75rem), sin
+ * sombras pesadas, iconos de línea continua (Lucide). Calidez +
+ * profesionalidad: el azul y el salmón se complementan, el crema baja
+ * el contraste para que el contenido respire.
+ * -------------------------------------------------------------------------- */
 
-  /* Variables shadcn (light theme). */
-  --color-background: #ffffff;
-  --color-foreground: #0a0e1a;
-  --color-card: #ffffff;
-  --color-card-foreground: #0a0e1a;
+@theme {
+  /* -- Tipografía --------------------------------------------------------- */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display:
+    "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* -- Colores de marca (raw) --------------------------------------------- */
+  --color-praxis-azul: #2a3d75;
+  --color-praxis-azul-50: #f0f3fa;
+  --color-praxis-azul-100: #d8dff0;
+  --color-praxis-azul-700: #1f2e58;
+  --color-praxis-salmon: #d48d7c;
+  --color-praxis-salmon-50: #fbf3f0;
+  --color-praxis-crema: #f4f0ef;
+  --color-praxis-crema-dark: #e6e0de;
+  --color-praxis-verde: #3b6652;
+  --color-praxis-lavanda: #8097d0;
+  --color-praxis-tinta: #1a1d2e; /* foreground principal */
+
+  /* -- Mapeo a tokens shadcn ---------------------------------------------- */
+  --color-background: #f4f0ef;        /* crema dominante */
+  --color-foreground: #1a1d2e;        /* tinta */
+  --color-card: #ffffff;               /* placa blanca sobre crema */
+  --color-card-foreground: #1a1d2e;
   --color-popover: #ffffff;
-  --color-popover-foreground: #0a0e1a;
-  --color-primary: #1e293b;
-  --color-primary-foreground: #f8fafc;
-  --color-secondary: #f1f5f9;
-  --color-secondary-foreground: #1e293b;
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: #64748b;
-  --color-accent: #f1f5f9;
-  --color-accent-foreground: #1e293b;
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #f8fafc;
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
-  --color-ring: #0a0e1a;
-  --radius: 0.5rem;
+  --color-popover-foreground: #1a1d2e;
+  --color-primary: #2a3d75;            /* azul de marca */
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #e6e0de;          /* crema oscurecido */
+  --color-secondary-foreground: #1a1d2e;
+  --color-muted: #e6e0de;
+  --color-muted-foreground: #5a5d6e;
+  --color-accent: #d48d7c;             /* salmón */
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #b94545;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #d9d3d1;
+  --color-input: #d9d3d1;
+  --color-ring: #2a3d75;
+
+  /* -- Geometría ---------------------------------------------------------- */
+  --radius: 0.625rem;
 }
 
-/* Reset suave. */
+/* -----------------------------------------------------------------------------
+ * Reset suave + reglas base
+ * -------------------------------------------------------------------------- */
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+  /* Énfasis tipográfico al estilo del manual de marca: títulos con
+     tracking apretado, weights audaces. */
+  h1 {
+    @apply text-3xl;
+  }
+  h2 {
+    @apply text-xl;
   }
 }

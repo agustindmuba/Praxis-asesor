@@ -1,8 +1,10 @@
 /**
- * Shell visual de la app autenticada: sidebar fijo + topbar + content.
+ * Shell visual de la app autenticada: sidebar de marca + topbar + content.
  *
- * Bootstrap mínimo. PR siguiente (feat/20) trae componentes shadcn reales,
- * Cmd+K, atajos, etc.
+ * Aplica el sistema visual Praxis (feat/33):
+ * - Sidebar en azul corporativo #2A3D75, tipografía Space Grotesk.
+ * - Topbar discreto sobre fondo crema.
+ * - Geometría blanda (radius 0.625rem), sin sombras pesadas.
  */
 import Link from "next/link";
 import {
@@ -30,38 +32,61 @@ const NAV = [
 export function AppShell({ me, children }: Props) {
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <aside className="flex w-56 flex-col border-r border-border bg-card">
-        <div className="border-b border-border p-4">
-          <h1 className="text-base font-semibold tracking-tight">Praxis Asesor</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">{me.despacho.nombre}</p>
+      {/* Sidebar — fondo azul corporativo Praxis */}
+      <aside
+        className="flex w-60 flex-col text-white"
+        style={{ backgroundColor: "var(--color-praxis-azul)" }}
+      >
+        <div className="border-b border-white/10 px-5 py-5">
+          <h1 className="font-display text-xl font-bold tracking-tight">
+            Praxis<span className="text-[var(--color-praxis-salmon)]">.</span>
+          </h1>
+          <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-white/55">
+            Asesor parlamentario
+          </p>
+          <div className="mt-4 border-t border-white/10 pt-3">
+            <p className="text-xs font-medium text-white/85">
+              {me.despacho.nombre}
+            </p>
+            <p className="mt-0.5 text-[10.5px] uppercase tracking-wide text-white/45">
+              {me.rol.replace("_", " ")}
+            </p>
+          </div>
         </div>
-        <nav className="flex-1 space-y-0.5 p-2">
+
+        <nav className="flex-1 space-y-0.5 p-3">
           {NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
             >
-              <item.icon className="size-4" />
+              <item.icon className="size-4 text-white/55 group-hover:text-[var(--color-praxis-salmon)]" />
               {item.label}
             </Link>
           ))}
         </nav>
+
+        <div className="px-5 py-4 text-[10.5px] uppercase tracking-[0.14em] text-white/35">
+          Decisiones estratégicas
+          <br />
+          basadas en datos
+        </div>
       </aside>
 
       {/* Main */}
       <div className="flex flex-1 flex-col">
-        {/* Topbar */}
-        <header className="flex h-14 items-center justify-between border-b border-border bg-card px-6">
+        {/* Topbar — discreto sobre crema */}
+        <header className="flex h-14 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur">
           <div className="text-sm text-muted-foreground">
-            {me.usuario.nombre} · <span className="capitalize">{me.rol.replace("_", " ")}</span>
+            <span className="text-foreground">{me.usuario.nombre}</span> ·{" "}
+            <span className="capitalize">{me.rol.replace("_", " ")}</span>
           </div>
           <UserAvatar nombre={me.usuario.nombre} email={me.usuario.email} />
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-8">{children}</main>
       </div>
     </div>
   );

@@ -6,6 +6,10 @@
  * normal y el backend acepta el token fake porque corre en `ENV=dev`.
  *
  * En producción (`NODE_ENV=production`), esta página tira 404.
+ *
+ * Diseño feat/33: marca Praxis aplicada. Fondo crema, brand strip
+ * superior, placa blanca con borde fino, tipografía display Space
+ * Grotesk en el titular.
  */
 import { notFound } from "next/navigation";
 
@@ -37,26 +41,37 @@ async function DevLoginForm({
   const presetDespacho = params.despachoId ?? "";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted p-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight">Praxis Asesor</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Modo desarrollo</p>
+    <main className="flex min-h-screen items-center justify-center bg-background p-6">
+      <div className="w-full max-w-md space-y-7">
+        {/* Brand strip */}
+        <div className="space-y-1 text-center">
+          <p className="font-display text-3xl font-bold tracking-tight text-[var(--color-praxis-azul)]">
+            Praxis
+            <span className="text-[var(--color-praxis-salmon)]">.</span>
+          </p>
+          <p className="text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground">
+            Decisiones estratégicas basadas en datos
+          </p>
         </div>
 
-        <Card className="space-y-4 p-6">
+        <Card className="space-y-5 border-border bg-card p-7 shadow-none">
           <div>
-            <p className="text-sm font-medium">Entrar sin Clerk</p>
+            <h2 className="font-display text-lg font-semibold text-[var(--color-praxis-azul)]">
+              Entrar al despacho
+            </h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Este atajo solo funciona en desarrollo local. Setea cookies que el backend
-              acepta porque está corriendo con <code>ENV=dev</code>.
+              Atajo de desarrollo local. Setea cookies que el backend acepta
+              porque corre con <code className="text-foreground">ENV=dev</code>.
             </p>
           </div>
 
-          <form action={devLoginAction} className="space-y-3">
-            <div className="space-y-1">
-              <label htmlFor="clerkId" className="text-xs font-medium uppercase text-muted-foreground">
-                ID del usuario (auth_provider_id seedeado)
+          <form action={devLoginAction} className="space-y-4">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="clerkId"
+                className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground"
+              >
+                Usuario (auth_provider_id)
               </label>
               <Input
                 id="clerkId"
@@ -67,15 +82,18 @@ async function DevLoginForm({
               />
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="despachoId" className="text-xs font-medium uppercase text-muted-foreground">
-                Despacho ID (UUID)
+            <div className="space-y-1.5">
+              <label
+                htmlFor="despachoId"
+                className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground"
+              >
+                Despacho (UUID)
               </label>
               <Input
                 id="despachoId"
                 name="despachoId"
                 defaultValue={presetDespacho}
-                placeholder="UUID del despacho seedeado"
+                placeholder="0a8cf4c0-3b95-44bf-93c5-c8aebff97306"
                 required
                 autoComplete="off"
                 pattern="^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
@@ -90,9 +108,10 @@ async function DevLoginForm({
 
         <p className="text-center text-xs text-muted-foreground">
           ¿Necesitás IDs? Corré{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">
-            uv run python -m scripts.seed_inicial --email tu@email --nombre Vos --clerk-id user_agustin
-          </code>
+          <code className="rounded bg-secondary px-1.5 py-0.5 text-[10.5px]">
+            uv run python -m scripts.seed_inicial
+          </code>{" "}
+          en el backend.
         </p>
       </div>
     </main>

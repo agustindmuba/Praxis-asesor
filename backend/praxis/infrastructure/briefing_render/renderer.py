@@ -39,16 +39,20 @@ _ESTADO_LABEL = {
 }
 
 _PRIORIDAD_BADGE = {
-    "alta": ("#dc2626", "ALTA"),
-    "media": ("#d97706", "MEDIA"),
-    "baja": ("#65a30d", "BAJA"),
+    # Colores de la paleta Praxis (azul/salmón/verde) para mantener la
+    # cohesión de marca. El "alta" usa el azul oscuro corporativo en vez
+    # de rojo brillante — más sobrio, consistente con "decisiones
+    # estratégicas basadas en datos".
+    "alta": ("#2A3D75", "ALTA"),
+    "media": ("#D48D7C", "MEDIA"),
+    "baja": ("#3B6652", "BAJA"),
 }
 
 _REC_LABEL = {
-    "a_favor": ("#16a34a", "A FAVOR"),
-    "abstencion": ("#a16207", "ABSTENCIÓN"),
-    "en_contra": ("#dc2626", "EN CONTRA"),
-    "sin_recomendacion": ("#6b7280", "SIN RECOMENDACIÓN"),
+    "a_favor": ("#3B6652", "A FAVOR"),         # verde Praxis
+    "abstencion": ("#D48D7C", "ABSTENCIÓN"),   # salmón Praxis
+    "en_contra": ("#2A3D75", "EN CONTRA"),     # azul corporativo (sobrio)
+    "sin_recomendacion": ("#5A5D6E", "SIN RECOMENDACIÓN"),
 }
 
 _ROL_LABEL = {"autor": "Autor", "cofirmante": "Cofirmante"}
