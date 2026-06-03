@@ -24,6 +24,12 @@ from praxis.application.use_cases.generar_briefing import GenerarBriefing
 from praxis.application.use_cases.generar_resumen_ejecutivo import (
     GenerarResumenEjecutivo,
 )
+from praxis.application.use_cases.procesar_articulos_de_fuente import (
+    DespachoSuscrito,
+    ProcesarArticulosDeFuente,
+    ResultadoProcesamiento,
+    calcular_score_relevancia,
+)
 from praxis.application.use_cases.resolver_contexto import ResolverContextoRequest
 from praxis.application.use_cases.sincronizar_usuario_clerk import (
     SincronizarUsuarioDesdeClerk,
@@ -35,12 +41,16 @@ __all__ = [
     "BuscarExpediente",
     "CalcularInteligenciaExpediente",
     "ClasificarExpedienteTematicamente",
+    "DespachoSuscrito",
     "DetectarMencionesEnArticulo",
     "EnriquecerExpediente",
     "GenerarBriefing",
     "GenerarResumenEjecutivo",
     "LegisladorAMonitorear",
+    "ProcesarArticulosDeFuente",
     "ResolverContextoRequest",
+    "ResultadoProcesamiento",
     "SincronizarUsuarioDesdeClerk",
     "SugerirCofirmantes",
+    "calcular_score_relevancia",
 ]
