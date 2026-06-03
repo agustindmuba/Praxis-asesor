@@ -187,3 +187,45 @@ export function apiDelete<T>(
 ): Promise<T> {
   return request<T>(path, { ...opts, method: "DELETE" });
 }
+
+/**
+ * Fetch de un endpoint que devuelve HTML / texto plano.
+ *
+ * Usado por el render del briefing: el endpoint /briefings/{id}/html
+ * devuelve `text/html` y necesita ir embebido en un iframe via `srcDoc`
+ * (cargar la URL directo en `<iframe src>` no funciona porque el
+ * browser no incluye los headers de auth en sub-requests del iframe).
+ */
+export async function apiGetText(
+  path: string,
+  opts: Omit<RequestOptions, "method" | "body"> = {},
+): Promise<string> {
+  const url = buildUrl(path, opts.params);
+  const headers: Record<string, string> = { Accept: "text/html" };
+  if (opts.ctx?.token) {
+    headers["Authorization"] = `Bearer ${opts.ctx.token}`;
+  }
+  if (opts.ctx?.despachoId) {
+    headers["X-Despacho-Id"] = opts.ctx.despachoId;
+  }
+  const res = await fetch(url, {
+    method: "GET",
+    headers,
+    signal: opts.signal,
+    next: opts.next,
+  });
+  const body = await res.text();
+  if (!res.ok) {
+    switch (res.status) {
+      case 401:
+        throw new ApiError401(body);
+      case 403:
+        throw new ApiError403(body);
+      case 404:
+        throw new ApiError404(body);
+      default:
+        throw new ApiError(res.status, body, `HTTP ${res.status}`);
+    }
+  }
+  return body;
+}

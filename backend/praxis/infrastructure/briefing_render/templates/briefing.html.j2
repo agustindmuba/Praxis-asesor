@@ -64,27 +64,26 @@
     font-weight: 600;
   }
 
-  /* Encabezado de portada con brand line. */
+  /* Encabezado de portada con logo y tagline. */
   .brand-strip {
     display: flex;
-    align-items: baseline;
-    gap: 8pt;
-    margin-bottom: 4pt;
+    align-items: center;
+    gap: 18pt;
+    margin-bottom: 12pt;
+    padding-bottom: 12pt;
+    border-bottom: 1px solid var(--hairline);
   }
-  .brand-strip .mark {
-    font-family: "Space Grotesk", sans-serif;
-    font-size: 13pt;
-    font-weight: 700;
-    color: var(--azul);
-    letter-spacing: -0.02em;
-  }
-  .brand-strip .mark .dot { color: var(--salmon); }
+  .brand-strip .logo img { height: 56pt; width: auto; display: block; }
   .brand-strip .tagline {
     font-size: 8.5pt;
     text-transform: uppercase;
     letter-spacing: 0.14em;
     color: var(--tinta-muted);
+    line-height: 1.4;
+    max-width: 200pt;
   }
+  /* Pie con marca chiquita. */
+  .footer .footer-logo { height: 18pt; width: auto; display: inline-block; vertical-align: middle; }
 
   .meta-row {
     color: var(--tinta-muted);
@@ -280,8 +279,14 @@
 
 {# ============== PÁGINA 1 — Resumen ejecutivo ============== #}
 <div class="brand-strip">
-  <span class="mark">Praxis<span class="dot">.</span></span>
-  <span class="tagline">Decisiones estratégicas basadas en datos</span>
+  {% if logo_data_uri %}
+    <span class="logo"><img src="{{ logo_data_uri }}" alt="Praxis Asesor"></span>
+  {% else %}
+    <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18pt; font-weight: 700; color: var(--azul); letter-spacing: -0.02em;">
+      Praxis<span style="color: var(--salmon);">.</span> asesor
+    </span>
+  {% endif %}
+  <span class="tagline">Decisiones estratégicas<br>basadas en datos</span>
 </div>
 <h1>Briefing pre-sesión</h1>
 <div class="meta-row">
@@ -427,7 +432,12 @@
 {% endif %}
 
 <div class="footer">
-  Praxis Consulting · Briefing pre-sesión {{ briefing.prompt_version }}
+  {% if logo_data_uri %}
+    <img src="{{ logo_data_uri }}" alt="Praxis Asesor" class="footer-logo">
+    &nbsp;&nbsp;·&nbsp;&nbsp;Briefing pre-sesión {{ briefing.prompt_version }}
+  {% else %}
+    Praxis Asesor · Briefing pre-sesión {{ briefing.prompt_version }}
+  {% endif %}
 </div>
 
 </body>
