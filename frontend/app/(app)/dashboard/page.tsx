@@ -10,7 +10,7 @@
  * en una feature futura.
  */
 import Link from "next/link";
-import { FileText, Inbox, Newspaper } from "lucide-react";
+import { FileText, Inbox, Newspaper, Radio } from "lucide-react";
 
 import { EstadoBadge } from "@/components/features/expedientes/estado-badge";
 import { Badge } from "@/components/ui/badge";
@@ -20,9 +20,11 @@ import { getApiContextServer } from "@/lib/api/context-server";
 import {
   getExpediente,
   listarAccionablesBO,
+  listarNoticiasRelevantes,
   listarSeguimientos,
 } from "@/lib/api/endpoints";
 import type {
+  ArticuloRelevanteConArticuloDTO,
   ExpedienteFicha,
   NormaBOAccionableConNormaDTO,
   Prioridad,
@@ -52,10 +54,11 @@ export default async function DashboardPage() {
   const ctx = await getApiContextServer();
   const hoy = hoyISO();
 
-  // Fetch en paralelo: seguimientos + accionables BO del día.
-  const [seguimientos, accionablesBO] = await Promise.all([
+  // Fetch en paralelo: seguimientos + accionables BO + noticias relevantes.
+  const [seguimientos, accionablesBO, noticias] = await Promise.all([
     listarSeguimientos(ctx),
     listarAccionablesBO(ctx, hoy, 5).catch(() => []),
+    listarNoticiasRelevantes(ctx, 5).catch(() => []),
   ]);
 
   // Fetch en paralelo de los expedientes. Si alguno tira 404 (rare race),
@@ -100,6 +103,8 @@ export default async function DashboardPage() {
       </div>
 
       <BOSection accionables={accionablesBO} />
+
+      <NoticiasSection noticias={noticias} />
 
       {enriquecidos.length === 0 ? (
         <Card className="flex flex-col items-center justify-center gap-3 border-border bg-card py-20 text-center shadow-none">
@@ -273,6 +278,67 @@ function PrioridadSection({
           ))}
         </ul>
       </Card>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Card "Noticias relevantes" — feat-40
+// ---------------------------------------------------------------------------
+
+function NoticiasSection({
+  noticias,
+}: {
+  noticias: ArticuloRelevanteConArticuloDTO[];
+}) {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <h3 className="flex items-center gap-2 font-display text-sm font-semibold uppercase tracking-wider text-[var(--color-praxis-azul)]">
+          <Radio className="size-3.5" />
+          Noticias relevantes del día
+        </h3>
+        <Link
+          href="/noticias"
+          className="text-xs font-medium text-[var(--color-praxis-azul)] underline-offset-2 hover:underline"
+        >
+          Ver todas
+        </Link>
+      </div>
+      {noticias.length === 0 ? (
+        <p className="text-xs text-muted-foreground">
+          Sin artículos relevantes en las últimas 24 horas. El polling
+          corre cada 15 minutos.
+        </p>
+      ) : (
+        <Card className="overflow-hidden border-border bg-card p-0 shadow-none">
+          <ul className="divide-y divide-border">
+            {noticias.map((n) => (
+              <li key={n.articulo.id}>
+                <Link
+                  href={`/noticias/${n.articulo.id}`}
+                  className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-[var(--color-praxis-crema)]/60"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-1 text-[13.5px] font-medium text-foreground">
+                      {n.articulo.titulo}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {n.fuente.nombre}
+                      {n.clasificacion && (
+                        <span> · {n.clasificacion.area_tematica}</span>
+                      )}
+                    </p>
+                  </div>
+                  <span className="flex-shrink-0 text-xs font-semibold text-[var(--color-praxis-azul)]">
+                    {n.relevante.score}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
     </section>
   );
 }

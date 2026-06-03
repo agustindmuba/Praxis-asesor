@@ -13,7 +13,9 @@ import {
   FileText,
   LayoutDashboard,
   ListChecks,
+  MessageSquare,
   Newspaper,
+  Radio,
 } from "lucide-react";
 
 import { UserAvatar } from "@/components/user-avatar";
@@ -30,6 +32,8 @@ const NAV = [
   { href: "/seguimientos", label: "Seguimientos", icon: ListChecks },
   { href: "/briefings", label: "Briefings", icon: Newspaper },
   { href: "/bo", label: "Boletín Oficial", icon: BookOpen },
+  { href: "/noticias", label: "Noticias", icon: Radio },
+  { href: "/menciones", label: "Menciones", icon: MessageSquare },
 ];
 
 export function AppShell({ me, children }: Props) {
