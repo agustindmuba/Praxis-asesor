@@ -34,6 +34,10 @@ from praxis.application.use_cases.procesar_articulos_de_fuente import (
     ResultadoProcesamiento,
     calcular_score_relevancia,
 )
+from praxis.application.use_cases.procesar_webhook_whatsapp import (
+    ProcesarWebhookWhatsApp,
+    ResultadoWebhook,
+)
 from praxis.application.use_cases.resolver_contexto import ResolverContextoRequest
 from praxis.application.use_cases.sincronizar_usuario_clerk import (
     SincronizarUsuarioDesdeClerk,
@@ -54,8 +58,10 @@ __all__ = [
     "IntencionDeAlerta",
     "LegisladorAMonitorear",
     "ProcesarArticulosDeFuente",
+    "ProcesarWebhookWhatsApp",
     "ResolverContextoRequest",
     "ResultadoProcesamiento",
+    "ResultadoWebhook",
     "SincronizarUsuarioDesdeClerk",
     "SugerirCofirmantes",
     "calcular_score_relevancia",

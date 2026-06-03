@@ -142,6 +142,7 @@ from praxis.api.routers import expedientes as expedientes_router  # noqa: E402
 from praxis.api.routers import noticias as noticias_router  # noqa: E402
 from praxis.api.routers import seguimientos as seguimientos_router  # noqa: E402
 from praxis.api.routers import webhooks as webhooks_router  # noqa: E402
+from praxis.api.routers import webhooks_whatsapp as webhooks_whatsapp_router  # noqa: E402
 
 API_V1 = "/api/v1"
 app.include_router(auth_router.router, prefix=API_V1)
@@ -154,6 +155,7 @@ app.include_router(bo_router.router, prefix=API_V1)
 app.include_router(noticias_router.router_noticias, prefix=API_V1)
 app.include_router(noticias_router.router_menciones, prefix=API_V1)
 app.include_router(noticias_router.router_fuentes, prefix=API_V1)
+app.include_router(webhooks_whatsapp_router.router, prefix=API_V1)
 
 
 # -----------------------------------------------------------------------------
