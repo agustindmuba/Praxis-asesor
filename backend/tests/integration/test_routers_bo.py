@@ -106,6 +106,9 @@ class FakeLlmStub(LlmProvider):
     ) -> list[str]:
         raise NotImplementedError
 
+    async def disambiguar_mencion(self, **_: object) -> object:  # type: ignore[override]
+        raise NotImplementedError
+
 
 # ---------------------------------------------------------------------------
 # Fixtures

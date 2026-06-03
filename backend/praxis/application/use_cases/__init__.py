@@ -15,6 +15,10 @@ from praxis.application.use_cases.calcular_inteligencia import (
 from praxis.application.use_cases.clasificar_area_tematica import (
     ClasificarExpedienteTematicamente,
 )
+from praxis.application.use_cases.detectar_menciones_en_articulo import (
+    DetectarMencionesEnArticulo,
+    LegisladorAMonitorear,
+)
 from praxis.application.use_cases.enriquecer_expediente import EnriquecerExpediente
 from praxis.application.use_cases.generar_briefing import GenerarBriefing
 from praxis.application.use_cases.generar_resumen_ejecutivo import (
@@ -31,9 +35,11 @@ __all__ = [
     "BuscarExpediente",
     "CalcularInteligenciaExpediente",
     "ClasificarExpedienteTematicamente",
+    "DetectarMencionesEnArticulo",
     "EnriquecerExpediente",
     "GenerarBriefing",
     "GenerarResumenEjecutivo",
+    "LegisladorAMonitorear",
     "ResolverContextoRequest",
     "SincronizarUsuarioDesdeClerk",
     "SugerirCofirmantes",

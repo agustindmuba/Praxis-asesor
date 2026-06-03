@@ -304,6 +304,44 @@ class Mencion:
 
 
 @dataclass(frozen=True, slots=True)
+class DisambiguacionMencion:
+    """Resultado del LLM disambiguator (pase 2 del flujo de detección).
+
+    El detector regex (pase 1) encuentra candidatos en el texto. El LLM
+    confirma si cada candidato es ESE legislador (no un homónimo) y
+    clasifica el tono. Este value object NO se persiste — el caller lo
+    usa para decidir si construir `Mencion` o descartar el candidato.
+
+    - `es_el_legislador`: True si el LLM confirma que el match no es
+      homónimo. Si es False, el candidato se descarta.
+    - `tono`: clasificación pedida por la spec 16 D6.
+    - `confianza_tono`: 0-1, refleja qué tan seguro está el modelo.
+      Cuando el FakeLlm decide por keywords sin ambigüedad usa 0.8;
+      Anthropic puede subirla si la señal es clara.
+    - `razon`: explicación corta (≤200 chars) para debug y para
+      mostrar en la UI de auditoría. No se persiste en `Mencion`.
+    """
+
+    es_el_legislador: bool
+    tono: TonoMencion
+    confianza_tono: float
+    razon: str
+
+    def __post_init__(self) -> None:
+        if not 0.0 <= self.confianza_tono <= 1.0:
+            raise ValueError(
+                f"DisambiguacionMencion.confianza_tono debe estar en "
+                f"[0.0, 1.0], recibido {self.confianza_tono}"
+            )
+        if len(self.razon) > MAX_SNIPPET_CONTEXTO_CHARS:
+            raise ValueError(
+                f"DisambiguacionMencion.razon excede "
+                f"{MAX_SNIPPET_CONTEXTO_CHARS} chars (recibido "
+                f"{len(self.razon)})"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class AlertaMencionEnviada:
     """Auditoría de alertas WhatsApp efectivamente enviadas (spec 17 +
     ADR 0009 anti-flood)."""

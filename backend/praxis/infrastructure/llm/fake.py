@@ -20,10 +20,13 @@ from praxis.application.ports import LlmProvider
 from praxis.domain import (
     AreaTematica,
     ClasificacionNormaBOResult,
+    DisambiguacionMencion,
     EstadoExpediente,
     Expediente,
     Firmante,
+    Legislador,
     NormaBO,
+    TonoMencion,
 )
 
 FAKE_MODEL_NAME = "fake-keywords"
@@ -132,6 +135,101 @@ class FakeLlmProvider(LlmProvider):
             palabras_clave=palabras_clave,
             afecta_expedientes_hcdn=afecta_hcdn,
             referencias_legales=referencias,
+        )
+
+    async def disambiguar_mencion(
+        self,
+        *,
+        legislador: Legislador,
+        alias_matcheado: str,
+        snippet: str,
+        titulo_articulo: str,
+    ) -> DisambiguacionMencion:
+        """Heurística sin LLM:
+
+        - `es_el_legislador`: True si el snippet/titulo contiene
+          señales políticas (bloque del legislador, distrito, palabra
+          'diputado'/'senador'), O si el match fue por nombre completo
+          (más fuerte que apellido). False si el contexto sugiere otra
+          cosa (ej. "S.A.", "empresa", "futbolista").
+        - `tono`: keywords positivas vs negativas en el snippet. Sin
+          señal → neutro.
+        - `confianza_tono`: 0.8 si hay match claro de keywords, 0.5
+          si es neutro por falta de señal.
+        - `razon`: explicación corta.
+        """
+        haystack = _normalizar(f"{titulo_articulo} {snippet}")
+        alias_norm = _normalizar(alias_matcheado)
+        nombre_completo_norm = _normalizar(
+            f"{legislador.nombre} {legislador.apellido}"
+        )
+
+        # Heurística de identidad.
+        coincide_nombre_completo = alias_norm == nombre_completo_norm
+        senales_negativas_identidad = (
+            " s.a." in haystack
+            or " sa " in haystack
+            or "empresa" in haystack
+            or "futbolista" in haystack
+            or "actor" in haystack
+            or "cantante" in haystack
+        )
+        senales_politicas = (
+            "diputad" in haystack
+            or "senador" in haystack
+            or "legislad" in haystack
+            or "bloque" in haystack
+            or "congreso" in haystack
+            or _normalizar(legislador.bloque.nombre) in haystack
+            or _normalizar(legislador.distrito) in haystack
+        )
+        if coincide_nombre_completo and not senales_negativas_identidad:
+            es_el = True
+            razon_id = "Match por nombre completo."
+        elif senales_negativas_identidad and not senales_politicas:
+            es_el = False
+            razon_id = "Contexto no político (homónimo probable)."
+        elif senales_politicas:
+            es_el = True
+            razon_id = "Contexto político confirma identidad."
+        else:
+            # Apellido suelto sin señales — el Fake es conservador y lo
+            # acepta con baja confianza para que la suite no descarte
+            # menciones legítimas en textos cortos.
+            es_el = True
+            razon_id = "Sin señales contradictorias; acepta con cautela."
+
+        # Heurística de tono.
+        positivos = (
+            "impulsa", "promueve", "acompaña", "defiende", "destaca",
+            "celebra", "lidera", "logra", "presenta",
+        )
+        negativos = (
+            "critica", "rechaza", "cuestiona", "denuncia", "acusa",
+            "ataca", "tilda", "fustiga", "renuncia", "polemiza",
+            "denunciado", "acusado",
+        )
+        hay_pos = any(p in haystack for p in positivos)
+        hay_neg = any(n in haystack for n in negativos)
+        if hay_pos and not hay_neg:
+            tono = TonoMencion.POSITIVO
+            confianza = 0.8
+            razon_tono = "Verbo positivo en el snippet."
+        elif hay_neg and not hay_pos:
+            tono = TonoMencion.NEGATIVO
+            confianza = 0.8
+            razon_tono = "Verbo negativo en el snippet."
+        else:
+            tono = TonoMencion.NEUTRO
+            confianza = 0.5
+            razon_tono = "Sin señales claras de tono."
+
+        razon = f"{razon_id} {razon_tono}"[:200]
+        return DisambiguacionMencion(
+            es_el_legislador=es_el,
+            tono=tono,
+            confianza_tono=confianza,
+            razon=razon,
         )
 
 

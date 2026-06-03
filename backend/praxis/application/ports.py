@@ -28,10 +28,12 @@ from praxis.domain import (
     ClasificacionNormaBO,
     ClasificacionNormaBOResult,
     Comision,
+    DisambiguacionMencion,
     Expediente,
     ExpedienteAreaTematica,
     ExpedienteQuery,
     FuenteNoticia,
+    Legislador,
     MembresiaDespacho,
     Mencion,
     NormaBO,
@@ -48,7 +50,6 @@ from praxis.domain import (
     Usuario,
 )
 from praxis.domain.despacho import Despacho
-from praxis.domain.legislador import Legislador
 
 
 class FuenteExpedientes(ABC):
@@ -442,6 +443,33 @@ class LlmProvider(ABC):
         `modelo` (= `self.nombre_modelo`), `prompt_version` (= ver
         `BO_PROMPT_VERSION` del dominio) y `generado_en` antes de
         persistir. NO cachea solo.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def disambiguar_mencion(
+        self,
+        *,
+        legislador: Legislador,
+        alias_matcheado: str,
+        snippet: str,
+        titulo_articulo: str,
+    ) -> DisambiguacionMencion:
+        """Pase 2 del detector de menciones (spec 16 D6 / ADR 0009).
+
+        Recibe un candidato encontrado por el regex (`alias_matcheado`
+        en `snippet`) y decide:
+
+        1. Si el match es ESE legislador (no un homónimo). Devuelve
+           `es_el_legislador=False` para descartar candidatos como
+           "Juliano S.A." o un homónimo en otro distrito.
+        2. Tono de la mención hacia el legislador (positivo / neutro /
+           negativo) + confianza.
+
+        El caller (caso de uso `DetectarMencionesEnArticulo`) usa el
+        resultado para decidir si construir un `Mencion` o descartar
+        el candidato. Si `es_el_legislador=False`, no se construye
+        `Mencion`. NO cachea solo.
         """
         raise NotImplementedError
 

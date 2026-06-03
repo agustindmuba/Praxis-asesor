@@ -33,8 +33,11 @@ from praxis.application.ports import LlmProvider
 from praxis.domain import (
     AreaTematica,
     ClasificacionNormaBOResult,
+    DisambiguacionMencion,
     Expediente,
+    Legislador,
     NormaBO,
+    TonoMencion,
 )
 
 # Las 12 áreas, cada una en una sola línea para que el modelo no se
@@ -245,6 +248,70 @@ DATOS DE LA NORMA:
         return _parsear_clasificacion_norma_bo(respuesta)
 
     # ------------------------------------------------------------------
+    # Disambiguación de mención (JSON estructurado)
+    # ------------------------------------------------------------------
+
+    async def disambiguar_mencion(
+        self,
+        *,
+        legislador: Legislador,
+        alias_matcheado: str,
+        snippet: str,
+        titulo_articulo: str,
+    ) -> DisambiguacionMencion:
+        # Snippet ya viene capado a ≤200 chars (más elipsis) por el
+        # detector regex; lo cortamos por seguridad si excede.
+        snippet_seguro = snippet[:300]
+        bloque = legislador.bloque.nombre
+        prompt = f"""\
+Tenemos que decidir DOS cosas sobre la siguiente mención en una nota
+periodística:
+
+1. ¿El texto se refiere a ESTE legislador, o a un homónimo (otra
+   persona, una empresa con el mismo apellido, etc.)?
+2. ¿Cuál es el tono hacia el legislador? Una de: positivo, neutro,
+   negativo.
+
+Tu salida debe ser EXCLUSIVAMENTE un JSON válido con este esquema:
+{{
+  "es_el_legislador": true|false,
+  "tono": "positivo"|"neutro"|"negativo",
+  "confianza_tono": 0.0-1.0,
+  "razon": "máx 200 chars, en castellano, sin floreo"
+}}
+
+REGLAS:
+- "es_el_legislador" = false si el snippet sugiere claramente otro
+  referente (ej. una S.A., un actor/futbolista homónimo, un homónimo
+  político en otra cámara o distrito). En caso de duda, devolvé true:
+  el flujo posterior puede revisarlo. Pero si hay señales contrarias
+  fuertes, devolvé false.
+- "tono" hacia el legislador:
+  - "positivo": lo destacan, acompañan, presentan logro.
+  - "negativo": lo critican, denuncian, cuestionan, acusan.
+  - "neutro": mención informativa sin valoración clara.
+- "confianza_tono" refleja qué tan claro está el tono (0.5 = duda
+  alta, 0.9 = muy claro).
+- "razon" justifica las dos decisiones en una frase ≤200 chars.
+- Sin ```json``` fences, sin texto fuera del JSON.
+
+CONTEXTO DEL LEGISLADOR (al que estamos rastreando):
+- Nombre completo: {legislador.nombre} {legislador.apellido}
+- Cámara: {legislador.camara.value}
+- Bloque: {bloque}
+- Distrito: {legislador.distrito}
+
+ALIAS QUE MATCHEÓ EL REGEX: "{alias_matcheado}"
+
+TÍTULO DEL ARTÍCULO: {titulo_articulo}
+
+SNIPPET DEL ARTÍCULO (≤200 chars de contexto alrededor del match):
+{snippet_seguro}
+"""
+        respuesta = await self._call_text(prompt, max_tokens=300)
+        return _parsear_disambiguacion_mencion(respuesta)
+
+    # ------------------------------------------------------------------
     # Helper común: llamada a la API con prompt caching
     # ------------------------------------------------------------------
 
@@ -323,6 +390,57 @@ def _parsear_clasificacion_norma_bo(
         palabras_clave=palabras,
         afecta_expedientes_hcdn=afecta,
         referencias_legales=referencias,
+    )
+
+
+def _parsear_disambiguacion_mencion(respuesta: str) -> DisambiguacionMencion:
+    """Parsea la respuesta JSON con fallback conservador.
+
+    Si el modelo se va al pasto (no JSON, claves faltantes, valores
+    fuera de rango), devolvemos un default seguro: `es_el_legislador=
+    True` (porque preferimos no descartar menciones legítimas por un
+    parsing fallido) + tono neutro + confianza 0.5. El caller
+    persiste igual y lo marca para revisión humana.
+    """
+    texto = respuesta.strip()
+    texto = re.sub(r"^```(?:json)?\s*", "", texto)
+    texto = re.sub(r"\s*```$", "", texto)
+
+    fallback = DisambiguacionMencion(
+        es_el_legislador=True,
+        tono=TonoMencion.NEUTRO,
+        confianza_tono=0.5,
+        razon="LLM no devolvió JSON parseable; default conservador.",
+    )
+
+    try:
+        data = json.loads(texto)
+    except (json.JSONDecodeError, ValueError):
+        return fallback
+    if not isinstance(data, dict):
+        return fallback
+
+    es_el = bool(data.get("es_el_legislador", True))
+
+    tono_raw = str(data.get("tono", "neutro")).strip().lower()
+    try:
+        tono = TonoMencion(tono_raw)
+    except ValueError:
+        tono = TonoMencion.NEUTRO
+
+    try:
+        confianza = float(data.get("confianza_tono", 0.5))
+    except (TypeError, ValueError):
+        confianza = 0.5
+    confianza = max(0.0, min(1.0, confianza))
+
+    razon = str(data.get("razon", "")).strip()[:200] or "(sin razón)"
+
+    return DisambiguacionMencion(
+        es_el_legislador=es_el,
+        tono=tono,
+        confianza_tono=confianza,
+        razon=razon,
     )
 
 
