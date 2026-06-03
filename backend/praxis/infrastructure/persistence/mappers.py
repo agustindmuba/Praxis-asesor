@@ -13,19 +13,26 @@ from typing import Any, cast
 from uuid import UUID
 
 from praxis.domain import (
+    AlcanceMedio,
     AlertaBriefing,
     AntecedenteParecido,
     AreaTematica,
+    Articulo,
+    ArticuloRelevante,
     Briefing,
     Camara,
+    ClasificacionArticulo,
     ClasificacionNormaBO,
     CofirmanteSugerido,
     EstadoExpediente,
     Expediente,
     ExpedienteAreaTematica,
     Firmante,
+    FuenteNoticia,
     Giro,
     MembresiaDespacho,
+    Mencion,
+    ModoAccesoFuente,
     NormaBO,
     NormaBOAccionable,
     NormaBOTexto,
@@ -46,7 +53,9 @@ from praxis.domain import (
     SeccionProyectoBriefing,
     SeguimientoExpediente,
     TipoExpediente,
+    TipoFuenteNoticia,
     TipoVotacion,
+    TonoMencion,
     TramiteEvento,
     Usuario,
     Votacion,
@@ -56,14 +65,19 @@ from praxis.domain import (
 from praxis.domain.despacho import Despacho
 from praxis.domain.orden_del_dia import FuenteOd
 from praxis.infrastructure.persistence.models import (
+    ArticuloOrm,
+    ArticuloRelevanteOrm,
     BriefingOrm,
+    ClasificacionArticuloOrm,
     ClasificacionNormaBOOrm,
     DespachoOrm,
     ExpedienteAreaTematicaOrm,
     ExpedienteOrm,
     FirmanteOrm,
+    FuenteNoticiaOrm,
     GiroOrm,
     MembresiaDespachoOrm,
+    MencionOrm,
     NormaBOAccionableOrm,
     NormaBOOrm,
     NormaBOTextoOrm,
@@ -859,3 +873,165 @@ def from_norma_bo_accionable(
         expedientes_tocados=[str(eid) for eid in domain.expedientes_tocados],
     )
 
+
+
+# ---------------------------------------------------------------------------
+# Noticias (FuenteNoticia, Articulo, ClasificacionArticulo,
+#           ArticuloRelevante, Mencion)
+# ---------------------------------------------------------------------------
+
+
+def to_fuente_noticia(orm: FuenteNoticiaOrm) -> FuenteNoticia:
+    return FuenteNoticia(
+        id=orm.id,
+        nombre=orm.nombre,
+        dominio=orm.dominio,
+        tipo=TipoFuenteNoticia(orm.tipo),
+        alcance=AlcanceMedio(orm.alcance),
+        modo_acceso=ModoAccesoFuente(orm.modo_acceso),
+        feed_url=orm.feed_url,
+        distrito=orm.distrito,
+        robots_ok=orm.robots_ok,
+        ultima_revision=orm.ultima_revision,
+        activa=orm.activa,
+    )
+
+
+def from_fuente_noticia(domain: FuenteNoticia) -> FuenteNoticiaOrm:
+    kwargs: dict[str, Any] = {
+        "nombre": domain.nombre,
+        "dominio": domain.dominio,
+        "tipo": domain.tipo.value,
+        "alcance": domain.alcance.value,
+        "modo_acceso": domain.modo_acceso.value,
+        "feed_url": domain.feed_url,
+        "distrito": domain.distrito,
+        "robots_ok": domain.robots_ok,
+        "ultima_revision": domain.ultima_revision,
+        "activa": domain.activa,
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    return FuenteNoticiaOrm(**kwargs)
+
+
+def to_articulo(orm: ArticuloOrm) -> Articulo:
+    """Hidrata Articulo. `hash_dedup` viene del ORM (autocalculado al
+    insertar). NUNCA leemos el cuerpo — el campo no existe en el ORM
+    (restricción legal materializada, ADR 0006)."""
+    return Articulo(
+        id=orm.id,
+        fuente_id=orm.fuente_id,
+        url=orm.url,
+        titulo=orm.titulo,
+        bajada_propia=orm.bajada_propia,
+        publicado_en=orm.publicado_en,
+        capturado_en=orm.capturado_en,
+        hash_dedup=orm.hash_dedup,
+    )
+
+
+def from_articulo(domain: Articulo) -> ArticuloOrm:
+    kwargs: dict[str, Any] = {
+        "fuente_id": domain.fuente_id,
+        "url": domain.url,
+        "titulo": domain.titulo,
+        "bajada_propia": domain.bajada_propia,
+        "publicado_en": domain.publicado_en,
+        "hash_dedup": domain.hash_dedup,
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    if domain.capturado_en is not None:
+        kwargs["capturado_en"] = domain.capturado_en
+    return ArticuloOrm(**kwargs)
+
+
+def to_clasificacion_articulo(
+    orm: ClasificacionArticuloOrm,
+) -> ClasificacionArticulo:
+    return ClasificacionArticulo(
+        id=orm.id,
+        articulo_id=orm.articulo_id,
+        area_tematica=AreaTematica(orm.area_tematica),
+        palabras_clave=list(orm.palabras_clave),
+        modelo=orm.modelo,
+        prompt_version=orm.prompt_version,
+        generado_en=orm.generado_en,
+    )
+
+
+def from_clasificacion_articulo(
+    domain: ClasificacionArticulo,
+) -> ClasificacionArticuloOrm:
+    kwargs: dict[str, Any] = {
+        "articulo_id": domain.articulo_id,
+        "area_tematica": domain.area_tematica.value,
+        "palabras_clave": list(domain.palabras_clave),
+        "modelo": domain.modelo,
+        "prompt_version": domain.prompt_version,
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    if domain.generado_en is not None:
+        kwargs["generado_en"] = domain.generado_en
+    return ClasificacionArticuloOrm(**kwargs)
+
+
+def to_articulo_relevante(orm: ArticuloRelevanteOrm) -> ArticuloRelevante:
+    return ArticuloRelevante(
+        articulo_id=orm.articulo_id,
+        despacho_id=orm.despacho_id,
+        score=orm.score,
+        razon=orm.razon,
+        expedientes_tocados=[UUID(eid) for eid in orm.expedientes_tocados],
+        generado_en=orm.generado_en,
+    )
+
+
+def from_articulo_relevante(
+    domain: ArticuloRelevante,
+) -> ArticuloRelevanteOrm:
+    kwargs: dict[str, Any] = {
+        "articulo_id": domain.articulo_id,
+        "despacho_id": domain.despacho_id,
+        "score": domain.score,
+        "razon": domain.razon,
+        "expedientes_tocados": [str(eid) for eid in domain.expedientes_tocados],
+    }
+    if domain.generado_en is not None:
+        kwargs["generado_en"] = domain.generado_en
+    return ArticuloRelevanteOrm(**kwargs)
+
+
+def to_mencion(orm: MencionOrm) -> Mencion:
+    return Mencion(
+        id=orm.id,
+        articulo_id=orm.articulo_id,
+        legislador_id=orm.legislador_id,
+        despacho_id=orm.despacho_id,
+        snippet_contexto=orm.snippet_contexto,
+        tono=TonoMencion(orm.tono),
+        confianza_tono=orm.confianza_tono,
+        alcance_medio=AlcanceMedio(orm.alcance_medio),
+        detectado_en=orm.detectado_en,
+        notificada=orm.notificada,
+    )
+
+
+def from_mencion(domain: Mencion) -> MencionOrm:
+    kwargs: dict[str, Any] = {
+        "articulo_id": domain.articulo_id,
+        "legislador_id": domain.legislador_id,
+        "despacho_id": domain.despacho_id,
+        "snippet_contexto": domain.snippet_contexto,
+        "tono": domain.tono.value,
+        "confianza_tono": domain.confianza_tono,
+        "alcance_medio": domain.alcance_medio.value,
+        "notificada": domain.notificada,
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    if domain.detectado_en is not None:
+        kwargs["detectado_en"] = domain.detectado_en
+    return MencionOrm(**kwargs)

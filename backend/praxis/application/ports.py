@@ -840,6 +840,15 @@ class FuenteNoticiaRepository(ABC):
         POLITICO) + DISTRITAL agregadas por ese despacho."""
         raise NotImplementedError
 
+    @abstractmethod
+    async def marcar_revisada(
+        self, fuente_id: UUID, *, momento: datetime,
+    ) -> None:
+        """Setea `ultima_revision` para tracking del polling. El job
+        de Celery lo invoca al final de cada corrida exitosa por
+        fuente."""
+        raise NotImplementedError
+
 
 class ArticuloRepository(ABC):
     """Puerto: persistencia de `Articulo` (sin cuerpo).
@@ -944,7 +953,8 @@ class ArticuloRelevanteRepository(ABC):
         top_n: int | None = None,
     ) -> list[ArticuloRelevante]:
         """Top-N artículos relevantes de las últimas 24hs (D9 del
-        briefing matinal). Ordenado por score DESC."""
+        briefing matinal). Ordenado por score DESC. Si `top_n` es
+        `None`, devuelve todos los de la ventana."""
         raise NotImplementedError
 
     @abstractmethod
@@ -968,7 +978,12 @@ class MencionRepository(ABC):
     """
 
     @abstractmethod
-    async def crear(self, mencion: Mencion) -> Mencion:
+    async def crear_lote(self, menciones: list[Mencion]) -> list[Mencion]:
+        """Idempotente: ignora menciones que ya existen para la tupla
+        natural `(articulo_id, legislador_id, despacho_id)`. Devuelve
+        las menciones efectivamente persistidas (incluye las que ya
+        estaban). Atomicidad: si una falla, no afecta a las otras del
+        lote por design del caller (commit tras el use case)."""
         raise NotImplementedError
 
     @abstractmethod
@@ -993,11 +1008,32 @@ class MencionRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def marcar_notificada(
-        self, *, despacho_id: UUID, mencion_id: UUID,
-    ) -> bool:
-        """Marca `notificada=True` tras envío exitoso de alerta. True
-        si afectó una fila."""
+    async def listar_por_despacho_no_notificadas(
+        self, despacho_id: UUID, *, limite: int = 100,
+    ) -> list[Mencion]:
+        """Menciones con `notificada=False` (consumidor del anti-flood
+        en feat-40.5C). Ordenadas por `detectado_en DESC`."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_recientes_por_despacho(
+        self,
+        despacho_id: UUID,
+        *,
+        desde: datetime,
+        hasta: datetime,
+    ) -> list[Mencion]:
+        """Menciones detectadas en la ventana `[desde, hasta]`. Usado
+        por el anti-flood: si hay >0 menciones notificadas en la última
+        hora, no se manda otra alerta."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def marcar_notificadas(self, mencion_ids: list[UUID]) -> int:
+        """Bulk update: setea `notificada=True` para `mencion_ids`.
+        Devuelve cuántas filas se actualizaron. Llamado por
+        `EnviarAlertaMencion` en la misma transacción que la creación
+        de `AlertaMencionEnviada` (atomicidad anti-flood)."""
         raise NotImplementedError
 
 

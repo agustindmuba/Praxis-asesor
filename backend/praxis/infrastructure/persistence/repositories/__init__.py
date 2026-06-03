@@ -25,6 +25,14 @@ from praxis.infrastructure.persistence.repositories.norma_bo import (
     SqlAlchemyNormaBORepository,
     SqlAlchemyNormaBOTextoRepository,
 )
+from praxis.infrastructure.persistence.repositories.noticia import (
+    SqlAlchemyArticuloHashRepository,
+    SqlAlchemyArticuloRelevanteRepository,
+    SqlAlchemyArticuloRepository,
+    SqlAlchemyClasificacionArticuloRepository,
+    SqlAlchemyFuenteNoticiaRepository,
+    SqlAlchemyMencionRepository,
+)
 from praxis.infrastructure.persistence.repositories.orden_del_dia import (
     SqlAlchemyOrdenDelDiaRepository,
 )
@@ -45,12 +53,18 @@ from praxis.infrastructure.persistence.repositories.votacion import (
 )
 
 __all__ = [
+    "SqlAlchemyArticuloHashRepository",
+    "SqlAlchemyArticuloRelevanteRepository",
+    "SqlAlchemyArticuloRepository",
     "SqlAlchemyBriefingRepository",
+    "SqlAlchemyClasificacionArticuloRepository",
     "SqlAlchemyClasificacionNormaBORepository",
     "SqlAlchemyDespachoRepository",
     "SqlAlchemyExpedienteAreaTematicaRepository",
     "SqlAlchemyExpedienteRepository",
+    "SqlAlchemyFuenteNoticiaRepository",
     "SqlAlchemyMembresiaDespachoRepository",
+    "SqlAlchemyMencionRepository",
     "SqlAlchemyNormaBOAccionableRepository",
     "SqlAlchemyNormaBORepository",
     "SqlAlchemyNormaBOTextoRepository",
