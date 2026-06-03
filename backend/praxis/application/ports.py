@@ -25,6 +25,7 @@ from praxis.domain import (
     Briefing,
     Camara,
     ClasificacionArticulo,
+    ClasificacionArticuloResult,
     ClasificacionNormaBO,
     ClasificacionNormaBOResult,
     Comision,
@@ -473,6 +474,47 @@ class LlmProvider(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    async def generar_bajada_propia(
+        self,
+        articulo: Articulo,
+        *,
+        texto_articulo: str,
+    ) -> str:
+        """Devuelve una bajada propia ≤MAX_BAJADA_PROPIA_CHARS (240).
+
+        Estilo: castellano rioplatense neutro, una sola oración
+        informativa que resume QUÉ pasó. NO recurre al título
+        textualmente (no es paráfrasis); reformula con info del
+        cuerpo. Sin opinión, sin titular sensacionalista (D9: tono
+        neutro estilo Reuters/AFP).
+
+        El caller persiste vía
+        `ArticuloRepository.actualizar_bajada_propia()`. NO cachea solo.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def clasificar_articulo(
+        self,
+        articulo: Articulo,
+        *,
+        texto_articulo: str,
+    ) -> ClasificacionArticuloResult:
+        """Clasifica un artículo: área temática + 3-7 palabras clave.
+
+        Recibe `articulo` (título) + `texto_articulo` (cuerpo bajado
+        en memoria; ADR 0006 — no se persiste). Devuelve
+        `ClasificacionArticuloResult`. El caller hidrata
+        `ClasificacionArticulo` con `articulo_id`, `modelo`,
+        `prompt_version` (= `NOTICIA_PROMPT_VERSION`) y `generado_en`
+        antes de persistir.
+
+        El caller chequea cache (`ClasificacionArticuloRepository`)
+        antes de llamar. NO cachea solo.
+        """
+        raise NotImplementedError
+
 
 class ResumenEjecutivoRepository(ABC):
     """Puerto: persistencia de resúmenes ejecutivos (caché por expediente).
@@ -825,6 +867,18 @@ class ArticuloRepository(ABC):
     async def listar_por_fuente(
         self, fuente_id: UUID, *, desde: datetime,
     ) -> list[Articulo]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def actualizar_bajada_propia(
+        self, articulo_id: UUID, *, bajada: str,
+    ) -> Articulo:
+        """Setea/sobrescribe la bajada propia generada por LLM.
+
+        Valida en dominio que `len(bajada) <= MAX_BAJADA_PROPIA_CHARS`.
+        Devuelve el `Articulo` actualizado. Lanza `ValueError` si el
+        artículo no existe.
+        """
         raise NotImplementedError
 
 

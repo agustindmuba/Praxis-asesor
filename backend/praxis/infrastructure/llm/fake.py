@@ -18,7 +18,10 @@ from datetime import date
 
 from praxis.application.ports import LlmProvider
 from praxis.domain import (
+    MAX_BAJADA_PROPIA_CHARS,
     AreaTematica,
+    Articulo,
+    ClasificacionArticuloResult,
     ClasificacionNormaBOResult,
     DisambiguacionMencion,
     EstadoExpediente,
@@ -231,6 +234,95 @@ class FakeLlmProvider(LlmProvider):
             confianza_tono=confianza,
             razon=razon,
         )
+
+    async def generar_bajada_propia(
+        self,
+        articulo: Articulo,
+        *,
+        texto_articulo: str,
+    ) -> str:
+        """Bajada propia heurística:
+
+        - Toma la primera frase "rica" del texto (≥40 chars, hasta el
+          primer punto) y la combina con el título.
+        - Si no hay frase rica, devuelve el título capitalizado.
+        - Capada a `MAX_BAJADA_PROPIA_CHARS` con elipsis si recorta.
+
+        Estilo intencionalmente seco. La versión real (Anthropic) lo
+        reformula con tono neutro Reuters.
+        """
+        titulo = articulo.titulo.strip().rstrip(".")
+        primera_frase = _primera_frase_rica(texto_articulo)
+        base = (
+            f"{titulo}. {primera_frase}".strip()
+            if primera_frase
+            else titulo
+        )
+        return _cap_con_elipsis(base, MAX_BAJADA_PROPIA_CHARS)
+
+    async def clasificar_articulo(
+        self,
+        articulo: Articulo,
+        *,
+        texto_articulo: str,
+    ) -> ClasificacionArticuloResult:
+        """Clasifica un artículo con las mismas keywords que usamos en
+        `clasificar_area_tematica`. Devuelve área + 3-5 palabras clave
+        que efectivamente matchearon en el texto.
+
+        Si nada matchea → `OTROS` + lista vacía.
+        """
+        haystack = _normalizar(
+            f"{articulo.titulo} {texto_articulo}"
+        )
+        area = AreaTematica.OTROS
+        palabras_match: list[str] = []
+        for cand_area, palabras in _AREA_KEYWORDS:
+            for palabra in palabras:
+                if palabra in haystack:
+                    if area == AreaTematica.OTROS:
+                        area = cand_area
+                    if cand_area == area:
+                        palabras_match.append(palabra)
+        # Dedup conservando orden, máx 5.
+        palabras_clave: list[str] = []
+        for p in palabras_match:
+            if p not in palabras_clave:
+                palabras_clave.append(p)
+            if len(palabras_clave) >= 5:
+                break
+        return ClasificacionArticuloResult(
+            area_tematica=area,
+            palabras_clave=palabras_clave,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Helpers de bajada propia
+# ---------------------------------------------------------------------------
+
+
+def _primera_frase_rica(texto: str) -> str:
+    """Devuelve la primera frase del cuerpo con ≥40 chars hasta el
+    primer punto. Sirve como aproximación cruda al lead del artículo.
+
+    Si nada califica, devuelve "". El caller decide qué hacer.
+    """
+    if not texto:
+        return ""
+    for raw in texto.split("."):
+        frase = raw.strip()
+        if len(frase) >= 40:
+            return frase + "."
+    return ""
+
+
+def _cap_con_elipsis(texto: str, max_chars: int) -> str:
+    """Recorta a `max_chars` agregando "…" si quedó cortado."""
+    if len(texto) <= max_chars:
+        return texto
+    # Dejamos espacio para el "…".
+    return texto[: max_chars - 1].rstrip() + "…"
 
 
 # ---------------------------------------------------------------------------

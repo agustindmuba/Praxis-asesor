@@ -242,6 +242,23 @@ class ClasificacionArticulo:
 
 
 @dataclass(frozen=True, slots=True)
+class ClasificacionArticuloResult:
+    """Salida cruda del LLM al clasificar un artículo.
+
+    Análoga a `ClasificacionNormaBOResult` para BO. El caller hidrata
+    `ClasificacionArticulo` con `articulo_id`, `modelo`, `prompt_version`
+    y `generado_en` antes de persistir. Este value object es solo el
+    contrato entre LLM y caso de uso — no se persiste como tal.
+
+    `alcance_medio` NO está acá: el alcance del medio es catálogo fijo
+    en `FuenteNoticia` (spec 16 D7), no lo decide el LLM.
+    """
+
+    area_tematica: AreaTematica
+    palabras_clave: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
 class ArticuloRelevante:
     """Vista por despacho del scoring de relevancia.
 

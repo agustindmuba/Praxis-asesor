@@ -31,7 +31,10 @@ from anthropic import AsyncAnthropic
 
 from praxis.application.ports import LlmProvider
 from praxis.domain import (
+    MAX_BAJADA_PROPIA_CHARS,
     AreaTematica,
+    Articulo,
+    ClasificacionArticuloResult,
     ClasificacionNormaBOResult,
     DisambiguacionMencion,
     Expediente,
@@ -312,6 +315,80 @@ SNIPPET DEL ARTÍCULO (≤200 chars de contexto alrededor del match):
         return _parsear_disambiguacion_mencion(respuesta)
 
     # ------------------------------------------------------------------
+    # Bajada propia de artículo (texto plano)
+    # ------------------------------------------------------------------
+
+    async def generar_bajada_propia(
+        self,
+        articulo: Articulo,
+        *,
+        texto_articulo: str,
+    ) -> str:
+        # Capamos el cuerpo para no inflar tokens. 4000 chars cubren
+        # un artículo típico de medios argentinos.
+        cuerpo = texto_articulo.strip()[:4000] or "(sin texto disponible)"
+        prompt = f"""\
+Escribí UNA sola oración informativa que resuma qué pasa en este
+artículo. Va a aparecer como bajada propia en una app de monitoreo
+para asesores parlamentarios — el lector ya vio el título y quiere
+saber el QUÉ concreto en 5 segundos.
+
+REGLAS:
+- Máximo {MAX_BAJADA_PROPIA_CHARS} caracteres (es duro: contalos).
+- Castellano rioplatense neutro, estilo Reuters/AFP. Cero opinión,
+  cero adjetivos cargados, cero comillas dramáticas.
+- NO parafrasees el título — agregá información del cuerpo.
+- Sin "el artículo dice", "según el medio", "reportan que". Decí el
+  hecho directo.
+- Sin punto final si te ayuda a ahorrar chars.
+- Devolvé SOLO la oración. Sin titular, sin comillas envolventes,
+  sin etiqueta "Bajada:".
+
+TÍTULO DEL ARTÍCULO: {articulo.titulo}
+
+CUERPO (≤4000 chars):
+{cuerpo}
+"""
+        respuesta = await self._call_text(prompt, max_tokens=200)
+        return _limpiar_y_cap_bajada(respuesta, MAX_BAJADA_PROPIA_CHARS)
+
+    # ------------------------------------------------------------------
+    # Clasificación de artículo (JSON)
+    # ------------------------------------------------------------------
+
+    async def clasificar_articulo(
+        self,
+        articulo: Articulo,
+        *,
+        texto_articulo: str,
+    ) -> ClasificacionArticuloResult:
+        cuerpo = texto_articulo.strip()[:4000] or "(sin texto disponible)"
+        prompt = f"""\
+Clasificá el siguiente artículo en UNA de estas áreas temáticas:
+{", ".join(_AREAS_VALIDAS)}
+
+Tu salida debe ser EXCLUSIVAMENTE un JSON válido con este esquema:
+{{
+  "area_tematica": "una de las áreas listadas",
+  "palabras_clave": ["3 a 5 tokens en minúsculas, sin tilde, sin puntuación"]
+}}
+
+REGLAS:
+- "area_tematica" debe ser EXACTAMENTE una de las áreas listadas.
+  Si no encaja claramente en ninguna, devolvé "otros".
+- "palabras_clave" son los conceptos clave del artículo — no copies
+  palabras del título textualmente, abstraé el tema.
+- NO incluyas texto adicional fuera del JSON. Sin ```json``` fences.
+
+TÍTULO: {articulo.titulo}
+
+CUERPO (≤4000 chars):
+{cuerpo}
+"""
+        respuesta = await self._call_text(prompt, max_tokens=200)
+        return _parsear_clasificacion_articulo(respuesta)
+
+    # ------------------------------------------------------------------
     # Helper común: llamada a la API con prompt caching
     # ------------------------------------------------------------------
 
@@ -390,6 +467,72 @@ def _parsear_clasificacion_norma_bo(
         palabras_clave=palabras,
         afecta_expedientes_hcdn=afecta,
         referencias_legales=referencias,
+    )
+
+
+def _limpiar_y_cap_bajada(respuesta: str, max_chars: int) -> str:
+    """Saca cualquier wrapping del modelo y capa a `max_chars`.
+
+    El modelo a veces devuelve la bajada envuelta en comillas o
+    precedida de "Bajada: ". Limpiamos y agregamos elipsis si
+    cortamos a la fuerza.
+    """
+    texto = respuesta.strip()
+    # Saca prefijos típicos.
+    texto = re.sub(r"^(bajada|resumen)\s*:\s*", "", texto, flags=re.IGNORECASE)
+    # Saca comillas envolventes (rectas y tipográficas).
+    if len(texto) >= 2 and texto[0] in '"“«' and texto[-1] in '"”»':
+        texto = texto[1:-1].strip()
+    # Saca espacios duplicados y salto de línea.
+    texto = re.sub(r"\s+", " ", texto).strip()
+    if len(texto) <= max_chars:
+        return texto
+    # Cortamos cuidando no terminar a la mitad de una palabra si se puede.
+    cortado = texto[: max_chars - 1].rstrip()
+    espacio = cortado.rfind(" ")
+    if espacio > max_chars - 30:
+        cortado = cortado[:espacio].rstrip(" ,;:.")
+    return f"{cortado}…"
+
+
+def _parsear_clasificacion_articulo(
+    respuesta: str,
+) -> ClasificacionArticuloResult:
+    """Parsea JSON con fallback conservador.
+
+    Si el modelo se va al pasto → área OTROS + lista vacía. El caller
+    persiste igual y lo marca para revisión.
+    """
+    texto = respuesta.strip()
+    texto = re.sub(r"^```(?:json)?\s*", "", texto)
+    texto = re.sub(r"\s*```$", "", texto)
+
+    fallback = ClasificacionArticuloResult(
+        area_tematica=AreaTematica.OTROS,
+        palabras_clave=[],
+    )
+
+    try:
+        data = json.loads(texto)
+    except (json.JSONDecodeError, ValueError):
+        return fallback
+    if not isinstance(data, dict):
+        return fallback
+
+    area_raw = str(data.get("area_tematica", "otros")).strip().lower()
+    try:
+        area = AreaTematica(area_raw)
+    except ValueError:
+        area = AreaTematica.OTROS
+
+    palabras = data.get("palabras_clave", [])
+    if not isinstance(palabras, list):
+        palabras = []
+    palabras = [str(p).strip() for p in palabras if str(p).strip()][:5]
+
+    return ClasificacionArticuloResult(
+        area_tematica=area,
+        palabras_clave=palabras,
     )
 
 
