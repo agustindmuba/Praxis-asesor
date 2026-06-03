@@ -55,6 +55,10 @@ dependencies = [
     # Parser PDF para BO (feat/39 spec 15 — los PDFs de boletinoficial.gob.ar
     # son la fuente principal tras el spike 39.1.5).
     "pdfplumber>=0.11",
+
+    # Parser RSS/Atom para feat/40 spec 16 (Noticias). RssFeedAdapter
+    # consume feeds de medios nacionales y políticos.
+    "feedparser>=6.0",
 ]
 
 # Dependencias de desarrollo (PEP 735 — soportado por uv).
