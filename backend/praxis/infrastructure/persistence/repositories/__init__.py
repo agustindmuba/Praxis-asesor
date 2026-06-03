@@ -51,6 +51,11 @@ from praxis.infrastructure.persistence.repositories.usuario import (
 from praxis.infrastructure.persistence.repositories.votacion import (
     SqlAlchemyVotacionRepository,
 )
+from praxis.infrastructure.persistence.repositories.whatsapp import (
+    SqlAlchemyDestinatarioRepository,
+    SqlAlchemyEnvioWhatsAppRepository,
+    SqlAlchemyPlantillaWhatsAppRepository,
+)
 
 __all__ = [
     "SqlAlchemyArticuloHashRepository",
@@ -60,6 +65,8 @@ __all__ = [
     "SqlAlchemyClasificacionArticuloRepository",
     "SqlAlchemyClasificacionNormaBORepository",
     "SqlAlchemyDespachoRepository",
+    "SqlAlchemyDestinatarioRepository",
+    "SqlAlchemyEnvioWhatsAppRepository",
     "SqlAlchemyExpedienteAreaTematicaRepository",
     "SqlAlchemyExpedienteRepository",
     "SqlAlchemyFuenteNoticiaRepository",
@@ -70,6 +77,7 @@ __all__ = [
     "SqlAlchemyNormaBOTextoRepository",
     "SqlAlchemyOrdenDelDiaRepository",
     "SqlAlchemyPerfilInteresDespachoRepository",
+    "SqlAlchemyPlantillaWhatsAppRepository",
     "SqlAlchemyResumenEjecutivoRepository",
     "SqlAlchemySeguimientoExpedienteRepository",
     "SqlAlchemyUsuarioRepository",

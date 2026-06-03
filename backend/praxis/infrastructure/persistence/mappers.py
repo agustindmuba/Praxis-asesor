@@ -21,10 +21,15 @@ from praxis.domain import (
     ArticuloRelevante,
     Briefing,
     Camara,
+    CategoriaPlantilla,
     ClasificacionArticulo,
     ClasificacionNormaBO,
     CofirmanteSugerido,
+    Destinatario,
+    EnvioWhatsApp,
+    EstadoEnvio,
     EstadoExpediente,
+    EstadoMetaPlantilla,
     Expediente,
     ExpedienteAreaTematica,
     Firmante,
@@ -40,6 +45,7 @@ from praxis.domain import (
     OrdenDelDia,
     OrigenExpediente,
     PerfilInteresDespacho,
+    PlantillaWhatsApp,
     Prioridad,
     PrioridadAccionabilidad,
     PrioridadAlerta,
@@ -47,11 +53,13 @@ from praxis.domain import (
     RecomendacionVoto,
     ResumenEjecutivo,
     Rol,
+    RolDestinatario,
     RolEnDespacho,
     SeccionAreaBriefing,
     SeccionBO,
     SeccionProyectoBriefing,
     SeguimientoExpediente,
+    TipoEnvio,
     TipoExpediente,
     TipoFuenteNoticia,
     TipoVotacion,
@@ -71,6 +79,8 @@ from praxis.infrastructure.persistence.models import (
     ClasificacionArticuloOrm,
     ClasificacionNormaBOOrm,
     DespachoOrm,
+    DestinatarioOrm,
+    EnvioWhatsAppOrm,
     ExpedienteAreaTematicaOrm,
     ExpedienteOrm,
     FirmanteOrm,
@@ -83,6 +93,7 @@ from praxis.infrastructure.persistence.models import (
     NormaBOTextoOrm,
     OrdenDelDiaOrm,
     PerfilInteresDespachoOrm,
+    PlantillaWhatsAppOrm,
     ResumenEjecutivoOrm,
     SeguimientoExpedienteOrm,
     TramiteEventoOrm,
@@ -1035,3 +1046,105 @@ def from_mencion(domain: Mencion) -> MencionOrm:
     if domain.detectado_en is not None:
         kwargs["detectado_en"] = domain.detectado_en
     return MencionOrm(**kwargs)
+
+
+# ---------------------------------------------------------------------------
+# WhatsApp (Destinatario, PlantillaWhatsApp, EnvioWhatsApp)
+# ---------------------------------------------------------------------------
+
+
+def to_destinatario(orm: DestinatarioOrm) -> Destinatario:
+    return Destinatario(
+        id=orm.id,
+        despacho_id=orm.despacho_id,
+        usuario_id=orm.usuario_id,
+        nombre=orm.nombre,
+        rol_interno=RolDestinatario(orm.rol_interno),
+        telefono_e164=orm.telefono_e164,
+        recibe_briefing_diario=orm.recibe_briefing_diario,
+        recibe_alertas_menciones=orm.recibe_alertas_menciones,
+        recibe_alertas_otras=orm.recibe_alertas_otras,
+        opt_in_en=orm.opt_in_en,
+        opt_out_en=orm.opt_out_en,
+        activo=orm.activo,
+    )
+
+
+def from_destinatario(domain: Destinatario) -> DestinatarioOrm:
+    kwargs: dict[str, Any] = {
+        "despacho_id": domain.despacho_id,
+        "usuario_id": domain.usuario_id,
+        "nombre": domain.nombre,
+        "rol_interno": domain.rol_interno.value,
+        "telefono_e164": domain.telefono_e164,
+        "recibe_briefing_diario": domain.recibe_briefing_diario,
+        "recibe_alertas_menciones": domain.recibe_alertas_menciones,
+        "recibe_alertas_otras": domain.recibe_alertas_otras,
+        "opt_in_en": domain.opt_in_en,
+        "opt_out_en": domain.opt_out_en,
+        "activo": domain.activo,
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    return DestinatarioOrm(**kwargs)
+
+
+def to_plantilla_whatsapp(orm: PlantillaWhatsAppOrm) -> PlantillaWhatsApp:
+    # `idioma` viene como str — el dominio usa Literal. Cast directo.
+    return PlantillaWhatsApp(
+        name=orm.name,
+        idioma=cast(Any, orm.idioma),  # Literal en dominio
+        categoria=CategoriaPlantilla(orm.categoria),
+        body_params=list(orm.body_params),
+        estado_meta=EstadoMetaPlantilla(orm.estado_meta),
+        aprobada_en=orm.aprobada_en,
+        contenido_referencia=orm.contenido_referencia,
+    )
+
+
+def from_plantilla_whatsapp(
+    domain: PlantillaWhatsApp,
+) -> PlantillaWhatsAppOrm:
+    return PlantillaWhatsAppOrm(
+        name=domain.name,
+        idioma=domain.idioma,
+        categoria=domain.categoria.value,
+        body_params=list(domain.body_params),
+        estado_meta=domain.estado_meta.value,
+        aprobada_en=domain.aprobada_en,
+        contenido_referencia=domain.contenido_referencia,
+    )
+
+
+def to_envio_whatsapp(orm: EnvioWhatsAppOrm) -> EnvioWhatsApp:
+    return EnvioWhatsApp(
+        id=orm.id,
+        destinatario_id=orm.destinatario_id,
+        despacho_id=orm.despacho_id,
+        plantilla_name=orm.plantilla_name,
+        tipo=TipoEnvio(orm.tipo),
+        payload_params=dict(orm.payload_params),
+        correlativo_id=orm.correlativo_id,
+        enviado_en=orm.enviado_en,
+        estado=EstadoEnvio(orm.estado),
+        message_id_meta=orm.message_id_meta,
+        error=orm.error,
+    )
+
+
+def from_envio_whatsapp(domain: EnvioWhatsApp) -> EnvioWhatsAppOrm:
+    kwargs: dict[str, Any] = {
+        "destinatario_id": domain.destinatario_id,
+        "despacho_id": domain.despacho_id,
+        "plantilla_name": domain.plantilla_name,
+        "tipo": domain.tipo.value,
+        "payload_params": dict(domain.payload_params),
+        "correlativo_id": domain.correlativo_id,
+        "enviado_en": domain.enviado_en,
+        "estado": domain.estado.value,
+        "message_id_meta": domain.message_id_meta,
+        "error": domain.error,
+    }
+    if domain.id is not None:
+        kwargs["id"] = domain.id
+    return EnvioWhatsAppOrm(**kwargs)
