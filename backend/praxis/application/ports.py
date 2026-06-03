@@ -1235,3 +1235,64 @@ class EnvioWhatsAppRepository(ABC):
         """Histórico tenant-scoped del despacho con filtro temporal
         + filtro opcional por tipo."""
         raise NotImplementedError
+
+
+# ---------------------------------------------------------------------------
+# WhatsApp Sender (HTTP a Meta) — spec 17, feat-41.2
+# ---------------------------------------------------------------------------
+
+
+from dataclasses import dataclass  # noqa: E402
+
+
+@dataclass(frozen=True, slots=True)
+class ResultadoEnvioWhatsApp:
+    """Resultado de un POST a Meta WhatsApp Cloud API.
+
+    El caller (caso de uso `EnviarBriefingDiario` en feat-41.4) usa
+    esto para actualizar el `EnvioWhatsApp` correspondiente:
+    `marcar_enviado` si `exitoso`, `marcar_fallido` con `rechazado`
+    si Meta nos rebotó por opt-out / plantilla no aprobada / número
+    inválido.
+
+    `error_meta_code` ayuda a clasificar el error a nivel de Meta
+    (ver https://developers.facebook.com/docs/whatsapp/cloud-api/
+    support/error-codes). v1 lo loguea; iteraciones futuras pueden
+    rutear automáticamente (ej. 131056 = template paused → reintentar
+    en N horas).
+    """
+
+    exitoso: bool
+    message_id_meta: str | None = None
+    error: str | None = None
+    rechazado: bool = False
+    error_meta_code: int | None = None
+
+
+class WhatsAppSender(ABC):
+    """Puerto: cliente HTTP para Meta WhatsApp Cloud API.
+
+    Implementaciones esperadas:
+    - `praxis.infrastructure.whatsapp.fake.FakeWhatsAppSender` (dev/test,
+      sin red).
+    - `praxis.infrastructure.whatsapp.cloud_api.WhatsAppCloudApiSender`
+      (real, contra graph.facebook.com).
+    """
+
+    @abstractmethod
+    async def enviar(
+        self,
+        *,
+        telefono_e164: str,
+        plantilla_name: str,
+        idioma: str,
+        body_params_ordered: list[str],
+    ) -> ResultadoEnvioWhatsApp:
+        """Manda una plantilla pre-aprobada a un número E.164.
+
+        Returns: `ResultadoEnvioWhatsApp`. exitoso=True + message_id
+        si Meta aceptó (HTTP 200). Errores de red/5xx → exitoso=False
+        sin rechazado. Errores de negocio (opt-out, plantilla no
+        aprobada, número inválido) → exitoso=False + rechazado=True.
+        """
+        raise NotImplementedError
