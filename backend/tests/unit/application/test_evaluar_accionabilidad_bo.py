@@ -214,6 +214,15 @@ class FakeLlmProviderClasificadorBO(LlmProvider):
     ) -> list[str]:
         raise NotImplementedError
 
+    async def disambiguar_mencion(self, **_: object) -> object:  # type: ignore[override]
+        raise NotImplementedError
+
+    async def generar_bajada_propia(self, *_: object, **__: object) -> str:  # type: ignore[override]
+        raise NotImplementedError
+
+    async def clasificar_articulo(self, *_: object, **__: object) -> object:  # type: ignore[override]
+        raise NotImplementedError
+
 
 # ---------------------------------------------------------------------------
 # Helpers

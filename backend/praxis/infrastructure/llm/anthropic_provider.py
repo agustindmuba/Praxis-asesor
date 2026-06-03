@@ -31,10 +31,16 @@ from anthropic import AsyncAnthropic
 
 from praxis.application.ports import LlmProvider
 from praxis.domain import (
+    MAX_BAJADA_PROPIA_CHARS,
     AreaTematica,
+    Articulo,
+    ClasificacionArticuloResult,
     ClasificacionNormaBOResult,
+    DisambiguacionMencion,
     Expediente,
+    Legislador,
     NormaBO,
+    TonoMencion,
 )
 
 # Las 12 áreas, cada una en una sola línea para que el modelo no se
@@ -245,6 +251,144 @@ DATOS DE LA NORMA:
         return _parsear_clasificacion_norma_bo(respuesta)
 
     # ------------------------------------------------------------------
+    # Disambiguación de mención (JSON estructurado)
+    # ------------------------------------------------------------------
+
+    async def disambiguar_mencion(
+        self,
+        *,
+        legislador: Legislador,
+        alias_matcheado: str,
+        snippet: str,
+        titulo_articulo: str,
+    ) -> DisambiguacionMencion:
+        # Snippet ya viene capado a ≤200 chars (más elipsis) por el
+        # detector regex; lo cortamos por seguridad si excede.
+        snippet_seguro = snippet[:300]
+        bloque = legislador.bloque.nombre
+        prompt = f"""\
+Tenemos que decidir DOS cosas sobre la siguiente mención en una nota
+periodística:
+
+1. ¿El texto se refiere a ESTE legislador, o a un homónimo (otra
+   persona, una empresa con el mismo apellido, etc.)?
+2. ¿Cuál es el tono hacia el legislador? Una de: positivo, neutro,
+   negativo.
+
+Tu salida debe ser EXCLUSIVAMENTE un JSON válido con este esquema:
+{{
+  "es_el_legislador": true|false,
+  "tono": "positivo"|"neutro"|"negativo",
+  "confianza_tono": 0.0-1.0,
+  "razon": "máx 200 chars, en castellano, sin floreo"
+}}
+
+REGLAS:
+- "es_el_legislador" = false si el snippet sugiere claramente otro
+  referente (ej. una S.A., un actor/futbolista homónimo, un homónimo
+  político en otra cámara o distrito). En caso de duda, devolvé true:
+  el flujo posterior puede revisarlo. Pero si hay señales contrarias
+  fuertes, devolvé false.
+- "tono" hacia el legislador:
+  - "positivo": lo destacan, acompañan, presentan logro.
+  - "negativo": lo critican, denuncian, cuestionan, acusan.
+  - "neutro": mención informativa sin valoración clara.
+- "confianza_tono" refleja qué tan claro está el tono (0.5 = duda
+  alta, 0.9 = muy claro).
+- "razon" justifica las dos decisiones en una frase ≤200 chars.
+- Sin ```json``` fences, sin texto fuera del JSON.
+
+CONTEXTO DEL LEGISLADOR (al que estamos rastreando):
+- Nombre completo: {legislador.nombre} {legislador.apellido}
+- Cámara: {legislador.camara.value}
+- Bloque: {bloque}
+- Distrito: {legislador.distrito}
+
+ALIAS QUE MATCHEÓ EL REGEX: "{alias_matcheado}"
+
+TÍTULO DEL ARTÍCULO: {titulo_articulo}
+
+SNIPPET DEL ARTÍCULO (≤200 chars de contexto alrededor del match):
+{snippet_seguro}
+"""
+        respuesta = await self._call_text(prompt, max_tokens=300)
+        return _parsear_disambiguacion_mencion(respuesta)
+
+    # ------------------------------------------------------------------
+    # Bajada propia de artículo (texto plano)
+    # ------------------------------------------------------------------
+
+    async def generar_bajada_propia(
+        self,
+        articulo: Articulo,
+        *,
+        texto_articulo: str,
+    ) -> str:
+        # Capamos el cuerpo para no inflar tokens. 4000 chars cubren
+        # un artículo típico de medios argentinos.
+        cuerpo = texto_articulo.strip()[:4000] or "(sin texto disponible)"
+        prompt = f"""\
+Escribí UNA sola oración informativa que resuma qué pasa en este
+artículo. Va a aparecer como bajada propia en una app de monitoreo
+para asesores parlamentarios — el lector ya vio el título y quiere
+saber el QUÉ concreto en 5 segundos.
+
+REGLAS:
+- Máximo {MAX_BAJADA_PROPIA_CHARS} caracteres (es duro: contalos).
+- Castellano rioplatense neutro, estilo Reuters/AFP. Cero opinión,
+  cero adjetivos cargados, cero comillas dramáticas.
+- NO parafrasees el título — agregá información del cuerpo.
+- Sin "el artículo dice", "según el medio", "reportan que". Decí el
+  hecho directo.
+- Sin punto final si te ayuda a ahorrar chars.
+- Devolvé SOLO la oración. Sin titular, sin comillas envolventes,
+  sin etiqueta "Bajada:".
+
+TÍTULO DEL ARTÍCULO: {articulo.titulo}
+
+CUERPO (≤4000 chars):
+{cuerpo}
+"""
+        respuesta = await self._call_text(prompt, max_tokens=200)
+        return _limpiar_y_cap_bajada(respuesta, MAX_BAJADA_PROPIA_CHARS)
+
+    # ------------------------------------------------------------------
+    # Clasificación de artículo (JSON)
+    # ------------------------------------------------------------------
+
+    async def clasificar_articulo(
+        self,
+        articulo: Articulo,
+        *,
+        texto_articulo: str,
+    ) -> ClasificacionArticuloResult:
+        cuerpo = texto_articulo.strip()[:4000] or "(sin texto disponible)"
+        prompt = f"""\
+Clasificá el siguiente artículo en UNA de estas áreas temáticas:
+{", ".join(_AREAS_VALIDAS)}
+
+Tu salida debe ser EXCLUSIVAMENTE un JSON válido con este esquema:
+{{
+  "area_tematica": "una de las áreas listadas",
+  "palabras_clave": ["3 a 5 tokens en minúsculas, sin tilde, sin puntuación"]
+}}
+
+REGLAS:
+- "area_tematica" debe ser EXACTAMENTE una de las áreas listadas.
+  Si no encaja claramente en ninguna, devolvé "otros".
+- "palabras_clave" son los conceptos clave del artículo — no copies
+  palabras del título textualmente, abstraé el tema.
+- NO incluyas texto adicional fuera del JSON. Sin ```json``` fences.
+
+TÍTULO: {articulo.titulo}
+
+CUERPO (≤4000 chars):
+{cuerpo}
+"""
+        respuesta = await self._call_text(prompt, max_tokens=200)
+        return _parsear_clasificacion_articulo(respuesta)
+
+    # ------------------------------------------------------------------
     # Helper común: llamada a la API con prompt caching
     # ------------------------------------------------------------------
 
@@ -323,6 +467,123 @@ def _parsear_clasificacion_norma_bo(
         palabras_clave=palabras,
         afecta_expedientes_hcdn=afecta,
         referencias_legales=referencias,
+    )
+
+
+def _limpiar_y_cap_bajada(respuesta: str, max_chars: int) -> str:
+    """Saca cualquier wrapping del modelo y capa a `max_chars`.
+
+    El modelo a veces devuelve la bajada envuelta en comillas o
+    precedida de "Bajada: ". Limpiamos y agregamos elipsis si
+    cortamos a la fuerza.
+    """
+    texto = respuesta.strip()
+    # Saca prefijos típicos.
+    texto = re.sub(r"^(bajada|resumen)\s*:\s*", "", texto, flags=re.IGNORECASE)
+    # Saca comillas envolventes (rectas y tipográficas).
+    if len(texto) >= 2 and texto[0] in '"“«' and texto[-1] in '"”»':
+        texto = texto[1:-1].strip()
+    # Saca espacios duplicados y salto de línea.
+    texto = re.sub(r"\s+", " ", texto).strip()
+    if len(texto) <= max_chars:
+        return texto
+    # Cortamos cuidando no terminar a la mitad de una palabra si se puede.
+    cortado = texto[: max_chars - 1].rstrip()
+    espacio = cortado.rfind(" ")
+    if espacio > max_chars - 30:
+        cortado = cortado[:espacio].rstrip(" ,;:.")
+    return f"{cortado}…"
+
+
+def _parsear_clasificacion_articulo(
+    respuesta: str,
+) -> ClasificacionArticuloResult:
+    """Parsea JSON con fallback conservador.
+
+    Si el modelo se va al pasto → área OTROS + lista vacía. El caller
+    persiste igual y lo marca para revisión.
+    """
+    texto = respuesta.strip()
+    texto = re.sub(r"^```(?:json)?\s*", "", texto)
+    texto = re.sub(r"\s*```$", "", texto)
+
+    fallback = ClasificacionArticuloResult(
+        area_tematica=AreaTematica.OTROS,
+        palabras_clave=[],
+    )
+
+    try:
+        data = json.loads(texto)
+    except (json.JSONDecodeError, ValueError):
+        return fallback
+    if not isinstance(data, dict):
+        return fallback
+
+    area_raw = str(data.get("area_tematica", "otros")).strip().lower()
+    try:
+        area = AreaTematica(area_raw)
+    except ValueError:
+        area = AreaTematica.OTROS
+
+    palabras = data.get("palabras_clave", [])
+    if not isinstance(palabras, list):
+        palabras = []
+    palabras = [str(p).strip() for p in palabras if str(p).strip()][:5]
+
+    return ClasificacionArticuloResult(
+        area_tematica=area,
+        palabras_clave=palabras,
+    )
+
+
+def _parsear_disambiguacion_mencion(respuesta: str) -> DisambiguacionMencion:
+    """Parsea la respuesta JSON con fallback conservador.
+
+    Si el modelo se va al pasto (no JSON, claves faltantes, valores
+    fuera de rango), devolvemos un default seguro: `es_el_legislador=
+    True` (porque preferimos no descartar menciones legítimas por un
+    parsing fallido) + tono neutro + confianza 0.5. El caller
+    persiste igual y lo marca para revisión humana.
+    """
+    texto = respuesta.strip()
+    texto = re.sub(r"^```(?:json)?\s*", "", texto)
+    texto = re.sub(r"\s*```$", "", texto)
+
+    fallback = DisambiguacionMencion(
+        es_el_legislador=True,
+        tono=TonoMencion.NEUTRO,
+        confianza_tono=0.5,
+        razon="LLM no devolvió JSON parseable; default conservador.",
+    )
+
+    try:
+        data = json.loads(texto)
+    except (json.JSONDecodeError, ValueError):
+        return fallback
+    if not isinstance(data, dict):
+        return fallback
+
+    es_el = bool(data.get("es_el_legislador", True))
+
+    tono_raw = str(data.get("tono", "neutro")).strip().lower()
+    try:
+        tono = TonoMencion(tono_raw)
+    except ValueError:
+        tono = TonoMencion.NEUTRO
+
+    try:
+        confianza = float(data.get("confianza_tono", 0.5))
+    except (TypeError, ValueError):
+        confianza = 0.5
+    confianza = max(0.0, min(1.0, confianza))
+
+    razon = str(data.get("razon", "")).strip()[:200] or "(sin razón)"
+
+    return DisambiguacionMencion(
+        es_el_legislador=es_el,
+        tono=tono,
+        confianza_tono=confianza,
+        razon=razon,
     )
 
 

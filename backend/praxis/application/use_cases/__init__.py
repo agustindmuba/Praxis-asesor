@@ -15,10 +15,24 @@ from praxis.application.use_cases.calcular_inteligencia import (
 from praxis.application.use_cases.clasificar_area_tematica import (
     ClasificarExpedienteTematicamente,
 )
+from praxis.application.use_cases.detectar_menciones_en_articulo import (
+    DetectarMencionesEnArticulo,
+    LegisladorAMonitorear,
+)
 from praxis.application.use_cases.enriquecer_expediente import EnriquecerExpediente
+from praxis.application.use_cases.enviar_alerta_mencion import (
+    EnviarAlertaMencion,
+    IntencionDeAlerta,
+)
 from praxis.application.use_cases.generar_briefing import GenerarBriefing
 from praxis.application.use_cases.generar_resumen_ejecutivo import (
     GenerarResumenEjecutivo,
+)
+from praxis.application.use_cases.procesar_articulos_de_fuente import (
+    DespachoSuscrito,
+    ProcesarArticulosDeFuente,
+    ResultadoProcesamiento,
+    calcular_score_relevancia,
 )
 from praxis.application.use_cases.resolver_contexto import ResolverContextoRequest
 from praxis.application.use_cases.sincronizar_usuario_clerk import (
@@ -31,10 +45,18 @@ __all__ = [
     "BuscarExpediente",
     "CalcularInteligenciaExpediente",
     "ClasificarExpedienteTematicamente",
+    "DespachoSuscrito",
+    "DetectarMencionesEnArticulo",
     "EnriquecerExpediente",
+    "EnviarAlertaMencion",
     "GenerarBriefing",
     "GenerarResumenEjecutivo",
+    "IntencionDeAlerta",
+    "LegisladorAMonitorear",
+    "ProcesarArticulosDeFuente",
     "ResolverContextoRequest",
+    "ResultadoProcesamiento",
     "SincronizarUsuarioDesdeClerk",
     "SugerirCofirmantes",
+    "calcular_score_relevancia",
 ]

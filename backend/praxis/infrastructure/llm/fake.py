@@ -18,12 +18,18 @@ from datetime import date
 
 from praxis.application.ports import LlmProvider
 from praxis.domain import (
+    MAX_BAJADA_PROPIA_CHARS,
     AreaTematica,
+    Articulo,
+    ClasificacionArticuloResult,
     ClasificacionNormaBOResult,
+    DisambiguacionMencion,
     EstadoExpediente,
     Expediente,
     Firmante,
+    Legislador,
     NormaBO,
+    TonoMencion,
 )
 
 FAKE_MODEL_NAME = "fake-keywords"
@@ -133,6 +139,190 @@ class FakeLlmProvider(LlmProvider):
             afecta_expedientes_hcdn=afecta_hcdn,
             referencias_legales=referencias,
         )
+
+    async def disambiguar_mencion(
+        self,
+        *,
+        legislador: Legislador,
+        alias_matcheado: str,
+        snippet: str,
+        titulo_articulo: str,
+    ) -> DisambiguacionMencion:
+        """Heurística sin LLM:
+
+        - `es_el_legislador`: True si el snippet/titulo contiene
+          señales políticas (bloque del legislador, distrito, palabra
+          'diputado'/'senador'), O si el match fue por nombre completo
+          (más fuerte que apellido). False si el contexto sugiere otra
+          cosa (ej. "S.A.", "empresa", "futbolista").
+        - `tono`: keywords positivas vs negativas en el snippet. Sin
+          señal → neutro.
+        - `confianza_tono`: 0.8 si hay match claro de keywords, 0.5
+          si es neutro por falta de señal.
+        - `razon`: explicación corta.
+        """
+        haystack = _normalizar(f"{titulo_articulo} {snippet}")
+        alias_norm = _normalizar(alias_matcheado)
+        nombre_completo_norm = _normalizar(
+            f"{legislador.nombre} {legislador.apellido}"
+        )
+
+        # Heurística de identidad.
+        coincide_nombre_completo = alias_norm == nombre_completo_norm
+        senales_negativas_identidad = (
+            " s.a." in haystack
+            or " sa " in haystack
+            or "empresa" in haystack
+            or "futbolista" in haystack
+            or "actor" in haystack
+            or "cantante" in haystack
+        )
+        senales_politicas = (
+            "diputad" in haystack
+            or "senador" in haystack
+            or "legislad" in haystack
+            or "bloque" in haystack
+            or "congreso" in haystack
+            or _normalizar(legislador.bloque.nombre) in haystack
+            or _normalizar(legislador.distrito) in haystack
+        )
+        if coincide_nombre_completo and not senales_negativas_identidad:
+            es_el = True
+            razon_id = "Match por nombre completo."
+        elif senales_negativas_identidad and not senales_politicas:
+            es_el = False
+            razon_id = "Contexto no político (homónimo probable)."
+        elif senales_politicas:
+            es_el = True
+            razon_id = "Contexto político confirma identidad."
+        else:
+            # Apellido suelto sin señales — el Fake es conservador y lo
+            # acepta con baja confianza para que la suite no descarte
+            # menciones legítimas en textos cortos.
+            es_el = True
+            razon_id = "Sin señales contradictorias; acepta con cautela."
+
+        # Heurística de tono.
+        positivos = (
+            "impulsa", "promueve", "acompaña", "defiende", "destaca",
+            "celebra", "lidera", "logra", "presenta",
+        )
+        negativos = (
+            "critica", "rechaza", "cuestiona", "denuncia", "acusa",
+            "ataca", "tilda", "fustiga", "renuncia", "polemiza",
+            "denunciado", "acusado",
+        )
+        hay_pos = any(p in haystack for p in positivos)
+        hay_neg = any(n in haystack for n in negativos)
+        if hay_pos and not hay_neg:
+            tono = TonoMencion.POSITIVO
+            confianza = 0.8
+            razon_tono = "Verbo positivo en el snippet."
+        elif hay_neg and not hay_pos:
+            tono = TonoMencion.NEGATIVO
+            confianza = 0.8
+            razon_tono = "Verbo negativo en el snippet."
+        else:
+            tono = TonoMencion.NEUTRO
+            confianza = 0.5
+            razon_tono = "Sin señales claras de tono."
+
+        razon = f"{razon_id} {razon_tono}"[:200]
+        return DisambiguacionMencion(
+            es_el_legislador=es_el,
+            tono=tono,
+            confianza_tono=confianza,
+            razon=razon,
+        )
+
+    async def generar_bajada_propia(
+        self,
+        articulo: Articulo,
+        *,
+        texto_articulo: str,
+    ) -> str:
+        """Bajada propia heurística:
+
+        - Toma la primera frase "rica" del texto (≥40 chars, hasta el
+          primer punto) y la combina con el título.
+        - Si no hay frase rica, devuelve el título capitalizado.
+        - Capada a `MAX_BAJADA_PROPIA_CHARS` con elipsis si recorta.
+
+        Estilo intencionalmente seco. La versión real (Anthropic) lo
+        reformula con tono neutro Reuters.
+        """
+        titulo = articulo.titulo.strip().rstrip(".")
+        primera_frase = _primera_frase_rica(texto_articulo)
+        base = (
+            f"{titulo}. {primera_frase}".strip()
+            if primera_frase
+            else titulo
+        )
+        return _cap_con_elipsis(base, MAX_BAJADA_PROPIA_CHARS)
+
+    async def clasificar_articulo(
+        self,
+        articulo: Articulo,
+        *,
+        texto_articulo: str,
+    ) -> ClasificacionArticuloResult:
+        """Clasifica un artículo con las mismas keywords que usamos en
+        `clasificar_area_tematica`. Devuelve área + 3-5 palabras clave
+        que efectivamente matchearon en el texto.
+
+        Si nada matchea → `OTROS` + lista vacía.
+        """
+        haystack = _normalizar(
+            f"{articulo.titulo} {texto_articulo}"
+        )
+        area = AreaTematica.OTROS
+        palabras_match: list[str] = []
+        for cand_area, palabras in _AREA_KEYWORDS:
+            for palabra in palabras:
+                if palabra in haystack:
+                    if area == AreaTematica.OTROS:
+                        area = cand_area
+                    if cand_area == area:
+                        palabras_match.append(palabra)
+        # Dedup conservando orden, máx 5.
+        palabras_clave: list[str] = []
+        for p in palabras_match:
+            if p not in palabras_clave:
+                palabras_clave.append(p)
+            if len(palabras_clave) >= 5:
+                break
+        return ClasificacionArticuloResult(
+            area_tematica=area,
+            palabras_clave=palabras_clave,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Helpers de bajada propia
+# ---------------------------------------------------------------------------
+
+
+def _primera_frase_rica(texto: str) -> str:
+    """Devuelve la primera frase del cuerpo con ≥40 chars hasta el
+    primer punto. Sirve como aproximación cruda al lead del artículo.
+
+    Si nada califica, devuelve "". El caller decide qué hacer.
+    """
+    if not texto:
+        return ""
+    for raw in texto.split("."):
+        frase = raw.strip()
+        if len(frase) >= 40:
+            return frase + "."
+    return ""
+
+
+def _cap_con_elipsis(texto: str, max_chars: int) -> str:
+    """Recorta a `max_chars` agregando "…" si quedó cortado."""
+    if len(texto) <= max_chars:
+        return texto
+    # Dejamos espacio para el "…".
+    return texto[: max_chars - 1].rstrip() + "…"
 
 
 # ---------------------------------------------------------------------------

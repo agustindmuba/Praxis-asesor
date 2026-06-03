@@ -229,3 +229,62 @@ export function reclasificarPerfilBO(ctx: ApiContext, fecha: string) {
     { ctx },
   );
 }
+
+// ---------------------------------------------------------------------------
+// /noticias + /menciones + /fuentes (feat-40 — spec 16)
+// ---------------------------------------------------------------------------
+
+import type {
+  ArticuloDetalleDTO,
+  ArticuloRelevanteConArticuloDTO,
+  FuenteNoticiaDTO,
+  MencionConArticuloDTO,
+  TonoMencion,
+} from "./types";
+
+export function listarNoticiasRelevantes(ctx: ApiContext, topN?: number) {
+  return apiGet<ArticuloRelevanteConArticuloDTO[]>(
+    "/api/v1/noticias",
+    {
+      ctx,
+      params: { top_n: topN },
+      next: { revalidate: 60 },
+    },
+  );
+}
+
+export function getNoticiaDetalle(ctx: ApiContext, id: string) {
+  return apiGet<ArticuloDetalleDTO>(`/api/v1/noticias/${id}`, {
+    ctx,
+    next: { revalidate: 60 },
+  });
+}
+
+export interface FiltrosMenciones {
+  desde?: string;
+  hasta?: string;
+  tono?: TonoMencion;
+  fuente_id?: string;
+}
+
+export function listarMenciones(ctx: ApiContext, filtros?: FiltrosMenciones) {
+  return apiGet<MencionConArticuloDTO[]>("/api/v1/menciones", {
+    ctx,
+    params: { ...filtros },
+    next: { revalidate: 60 },
+  });
+}
+
+export function getMencionDetalle(ctx: ApiContext, id: string) {
+  return apiGet<MencionConArticuloDTO>(`/api/v1/menciones/${id}`, {
+    ctx,
+    next: { revalidate: 60 },
+  });
+}
+
+export function listarFuentesNoticias(ctx: ApiContext) {
+  return apiGet<FuenteNoticiaDTO[]>("/api/v1/fuentes", {
+    ctx,
+    next: { revalidate: 3600 },
+  });
+}

@@ -402,3 +402,81 @@ export interface ReclasificarPerfilResponse {
   fecha: string;
   accionables_recalculadas: number;
 }
+
+// ---------------------------------------------------------------------------
+// Noticias + Menciones (feat-40 — spec 16)
+// ---------------------------------------------------------------------------
+
+export type TipoFuenteNoticia = "nacional" | "politico" | "distrital";
+export type AlcanceMedio = "nacional" | "provincial" | "nicho";
+export type ModoAccesoFuente = "rss" | "sitemap" | "scraping";
+export type TonoMencion = "positivo" | "neutro" | "negativo";
+
+export interface FuenteNoticiaDTO {
+  id: string;
+  nombre: string;
+  dominio: string;
+  tipo: TipoFuenteNoticia;
+  alcance: AlcanceMedio;
+  modo_acceso: ModoAccesoFuente;
+  distrito: string | null;
+  activa: boolean;
+}
+
+export interface ArticuloDTO {
+  id: string;
+  fuente_id: string;
+  url: string;
+  titulo: string;
+  bajada_propia: string | null;
+  publicado_en: string | null;
+  capturado_en: string;
+}
+
+export interface ClasificacionArticuloDTO {
+  area_tematica: AreaTematica;
+  palabras_clave: string[];
+}
+
+export interface ArticuloRelevanteDTO {
+  articulo_id: string;
+  despacho_id: string;
+  score: number;
+  razon: string;
+  expedientes_tocados: string[];
+  generado_en: string | null;
+}
+
+export interface ArticuloRelevanteConArticuloDTO {
+  relevante: ArticuloRelevanteDTO;
+  articulo: ArticuloDTO;
+  fuente: FuenteNoticiaDTO;
+  clasificacion: ClasificacionArticuloDTO | null;
+}
+
+export interface MencionDTO {
+  id: string;
+  articulo_id: string;
+  legislador_id: string;
+  despacho_id: string;
+  snippet_contexto: string;
+  tono: TonoMencion;
+  confianza_tono: number;
+  alcance_medio: AlcanceMedio;
+  detectado_en: string | null;
+  notificada: boolean;
+}
+
+export interface MencionConArticuloDTO {
+  mencion: MencionDTO;
+  articulo: ArticuloDTO;
+  fuente: FuenteNoticiaDTO;
+}
+
+export interface ArticuloDetalleDTO {
+  articulo: ArticuloDTO;
+  fuente: FuenteNoticiaDTO;
+  clasificacion: ClasificacionArticuloDTO | null;
+  relevante: ArticuloRelevanteDTO | null;
+  menciones: MencionDTO[];
+}

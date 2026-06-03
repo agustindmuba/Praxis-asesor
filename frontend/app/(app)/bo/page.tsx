@@ -132,7 +132,7 @@ function AccionablesSection({
             Configurá tu perfil de interés desde {" "}
             <span className="text-foreground">Configuración → Perfil</span>{" "}
             y refrescá. Si recién cargaste el perfil, hacé clic en
-            "Refrescar" arriba.
+            &ldquo;Refrescar&rdquo; arriba.
           </p>
         </Card>
       ) : (
