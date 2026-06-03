@@ -20,6 +20,10 @@ from praxis.application.use_cases.detectar_menciones_en_articulo import (
     LegisladorAMonitorear,
 )
 from praxis.application.use_cases.enriquecer_expediente import EnriquecerExpediente
+from praxis.application.use_cases.enviar_alerta_mencion import (
+    EnviarAlertaMencion,
+    IntencionDeAlerta,
+)
 from praxis.application.use_cases.generar_briefing import GenerarBriefing
 from praxis.application.use_cases.generar_resumen_ejecutivo import (
     GenerarResumenEjecutivo,
@@ -44,8 +48,10 @@ __all__ = [
     "DespachoSuscrito",
     "DetectarMencionesEnArticulo",
     "EnriquecerExpediente",
+    "EnviarAlertaMencion",
     "GenerarBriefing",
     "GenerarResumenEjecutivo",
+    "IntencionDeAlerta",
     "LegisladorAMonitorear",
     "ProcesarArticulosDeFuente",
     "ResolverContextoRequest",
