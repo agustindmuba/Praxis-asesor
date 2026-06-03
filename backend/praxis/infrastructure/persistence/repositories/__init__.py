@@ -19,8 +19,17 @@ from praxis.infrastructure.persistence.repositories.expediente_area_tematica imp
 from praxis.infrastructure.persistence.repositories.membresia_despacho import (
     SqlAlchemyMembresiaDespachoRepository,
 )
+from praxis.infrastructure.persistence.repositories.norma_bo import (
+    SqlAlchemyClasificacionNormaBORepository,
+    SqlAlchemyNormaBOAccionableRepository,
+    SqlAlchemyNormaBORepository,
+    SqlAlchemyNormaBOTextoRepository,
+)
 from praxis.infrastructure.persistence.repositories.orden_del_dia import (
     SqlAlchemyOrdenDelDiaRepository,
+)
+from praxis.infrastructure.persistence.repositories.perfil_interes_despacho import (
+    SqlAlchemyPerfilInteresDespachoRepository,
 )
 from praxis.infrastructure.persistence.repositories.resumen_ejecutivo import (
     SqlAlchemyResumenEjecutivoRepository,
@@ -37,11 +46,16 @@ from praxis.infrastructure.persistence.repositories.votacion import (
 
 __all__ = [
     "SqlAlchemyBriefingRepository",
+    "SqlAlchemyClasificacionNormaBORepository",
     "SqlAlchemyDespachoRepository",
     "SqlAlchemyExpedienteAreaTematicaRepository",
     "SqlAlchemyExpedienteRepository",
     "SqlAlchemyMembresiaDespachoRepository",
+    "SqlAlchemyNormaBOAccionableRepository",
+    "SqlAlchemyNormaBORepository",
+    "SqlAlchemyNormaBOTextoRepository",
     "SqlAlchemyOrdenDelDiaRepository",
+    "SqlAlchemyPerfilInteresDespachoRepository",
     "SqlAlchemyResumenEjecutivoRepository",
     "SqlAlchemySeguimientoExpedienteRepository",
     "SqlAlchemyUsuarioRepository",

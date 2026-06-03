@@ -14,6 +14,7 @@ Regla hexagonal (ver `docs/adr/0001-stack-inicial.md`):
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import date
 from uuid import UUID
 
 from praxis.domain import (
@@ -21,15 +22,22 @@ from praxis.domain import (
     AuthClaims,
     Briefing,
     Camara,
+    ClasificacionNormaBO,
+    ClasificacionNormaBOResult,
     Comision,
     Expediente,
     ExpedienteAreaTematica,
     ExpedienteQuery,
     MembresiaDespacho,
+    NormaBO,
+    NormaBOAccionable,
+    NormaBOTexto,
     NumeroExpediente,
     OrdenDelDia,
+    PerfilInteresDespacho,
     ResultadoBusqueda,
     ResumenEjecutivo,
+    SeccionBO,
     SeguimientoExpediente,
     TipoExpediente,
     Usuario,
@@ -410,6 +418,28 @@ class LlmProvider(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    async def clasificar_norma_bo(
+        self,
+        norma: NormaBO,
+        *,
+        texto: str | None = None,
+    ) -> ClasificacionNormaBOResult:
+        """Clasifica una norma del BO devolviendo área temática +
+        palabras clave + flag de afectación a expedientes HCDN +
+        referencias legales (otras leyes/decretos que menciona).
+
+        Si `texto` está disponible (cuerpo del PDF parseado), el provider
+        lo puede usar para mejorar la clasificación. Sino se basa en
+        `norma.sumario`, `norma.tipo_norma` y `norma.organismo_emisor`.
+
+        El caller hidrata `ClasificacionNormaBO` con `norma_id`,
+        `modelo` (= `self.nombre_modelo`), `prompt_version` (= ver
+        `BO_PROMPT_VERSION` del dominio) y `generado_en` antes de
+        persistir. NO cachea solo.
+        """
+        raise NotImplementedError
+
 
 class ResumenEjecutivoRepository(ABC):
     """Puerto: persistencia de resúmenes ejecutivos (caché por expediente).
@@ -501,6 +531,192 @@ class BriefingRepository(ABC):
     async def eliminar(
         self, *, despacho_id: UUID, orden_del_dia_id: UUID,
     ) -> bool:
+        raise NotImplementedError
+
+
+class FuenteBO(ABC):
+    """Puerto: fuente de normas del Boletín Oficial.
+
+    Implementación esperada inicial:
+    `praxis.infrastructure.bo.BoletinOficialPdfClient` — baja los PDFs
+    públicos del día desde `s3.arsat.com.ar/cdn-bo-001/pdf-del-dia/<seccion>.pdf`
+    y los parsea con pdfplumber.
+
+    Decisión tras spike 39.1.5 (ver `docs/spikes/39-boletin-oficial.md`):
+    el portal `boletinoficial.gob.ar` es SPA React, scraping HTML no es
+    viable. Cambiamos a PDF S3.
+    """
+
+    @abstractmethod
+    async def listar_normas_del_dia(
+        self, fecha: date, seccion: SeccionBO,
+    ) -> list[NormaBO]:
+        """Devuelve metadata de las normas de la fecha + sección dadas.
+
+        v1: `fecha` debe ser el día corriente — la fuente PDF S3 sólo
+        sirve `pdf-del-dia`. Llamar con una fecha distinta devuelve
+        lista vacía y loguea warning.
+
+        Raises:
+            FuenteNoDisponible: si el endpoint S3 no responde.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def obtener_texto_completo(self, norma: NormaBO) -> str | None:
+        """Devuelve el texto completo de la norma o None si no aplica.
+
+        En la implementación PDF, el texto se extrae en el mismo pase
+        que `listar_normas_del_dia` y se cachea por `norma.hash_sumario`
+        en memoria del proceso. Llamar después devuelve el texto
+        cacheado, o None si la norma no fue procesada en esta corrida.
+        """
+        raise NotImplementedError
+
+
+class NormaBORepository(ABC):
+    """Puerto: persistencia de `NormaBO` (catálogo global).
+
+    No es tenant-scoped: las normas del BO son públicas y compartidas.
+    Lo tenant-scoped es `NormaBOAccionable`.
+    """
+
+    @abstractmethod
+    async def upsert_lote(self, normas: list[NormaBO]) -> list[NormaBO]:
+        """Upsert por `(fecha_publicacion, seccion, tipo_norma,
+        numero_norma)`. Devuelve la entidad hidratada (con id si era
+        nueva, sin tocar si ya existía).
+
+        Idempotente: re-correr la misma corrida no duplica filas.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_id(self, norma_id: UUID) -> NormaBO | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_por_fecha(
+        self, fecha: date, *, seccion: SeccionBO | None = None,
+    ) -> list[NormaBO]:
+        """Lista normas de una fecha, opcionalmente filtrando por
+        sección."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_hash(self, hash_sumario: str) -> NormaBO | None:
+        """Lookup por hash (útil para reclasificación incremental)."""
+        raise NotImplementedError
+
+
+class NormaBOTextoRepository(ABC):
+    """Puerto: persistencia del cuerpo del texto.
+
+    Tabla aparte de `NormaBO` (ADR 0006 §D2). El cuerpo no se expone
+    en endpoints públicos; este repo lo usa el clasificador y futuras
+    búsquedas full-text.
+    """
+
+    @abstractmethod
+    async def crear(self, texto: NormaBOTexto) -> NormaBOTexto:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_norma(self, norma_id: UUID) -> NormaBOTexto | None:
+        raise NotImplementedError
+
+
+class ClasificacionNormaBORepository(ABC):
+    """Puerto: cache de clasificación general de normas BO.
+
+    A lo sumo una clasificación por `(norma_id, modelo, prompt_version)`.
+    Reclasificar = delete + insert.
+    """
+
+    @abstractmethod
+    async def buscar_por_norma(
+        self, norma_id: UUID,
+    ) -> ClasificacionNormaBO | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def crear(
+        self, clasif: ClasificacionNormaBO,
+    ) -> ClasificacionNormaBO:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def eliminar(self, norma_id: UUID) -> bool:
+        """Devuelve True si había clasificación."""
+        raise NotImplementedError
+
+
+class NormaBOAccionableRepository(ABC):
+    """Puerto: vista por despacho del scoring de accionabilidad.
+
+    Tenant-scoped: PK es `(norma_id, despacho_id)`. Toda query filtra
+    explícito por `despacho_id`.
+
+    Las filas se RECALCULAN cuando cambia el perfil del despacho — el
+    repo expone un `borrar_por_despacho_y_fecha` para limpiar antes de
+    recalcular.
+    """
+
+    @abstractmethod
+    async def upsert(
+        self, accionable: NormaBOAccionable,
+    ) -> NormaBOAccionable:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_por_despacho_y_fecha(
+        self, *, despacho_id: UUID, fecha: date, top_n: int | None = None,
+    ) -> list[NormaBOAccionable]:
+        """Tenant-scoped por `despacho_id`. Ordenado por score DESC.
+
+        Si `top_n` está dado, recorta. v1 usa top_n=5 para el briefing.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def borrar_por_despacho_y_fecha(
+        self, *, despacho_id: UUID, fecha: date,
+    ) -> int:
+        """Borra todas las accionables del despacho para una fecha.
+        Devuelve cantidad borrada."""
+        raise NotImplementedError
+
+
+class PerfilInteresDespachoRepository(ABC):
+    """Puerto: persistencia del `PerfilInteresDespacho`.
+
+    Una fila por despacho (PK = `despacho_id`). El upsert reemplaza la
+    fila entera — no hay diff incremental. La distinción entre
+    "sembrado automático" y "edición manual" se mantiene en los timestamps
+    `sembrado_at` y `editado_at` que viajan en la entidad.
+
+    Tenant-scoped por design: cualquier operación filtra por `despacho_id`.
+    """
+
+    @abstractmethod
+    async def buscar_por_despacho(
+        self, despacho_id: UUID,
+    ) -> PerfilInteresDespacho | None:
+        """Devuelve el perfil del despacho o None si no se sembró nunca."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def upsert(
+        self, perfil: PerfilInteresDespacho,
+    ) -> PerfilInteresDespacho:
+        """UPSERT por `despacho_id`.
+
+        Reemplaza la fila entera. El caller setea `sembrado_at` cuando
+        viene de re-sembrado automático, y `editado_at` cuando viene de
+        edición manual desde la UI.
+
+        Devuelve la entidad con `actualizado_en` poblado por el server.
+        """
         raise NotImplementedError
 
 

@@ -56,3 +56,5 @@ desktop.ini
 *.bak
 tmp/
 .tmp/
+# DBs locales de smoke tests (feat-39.8 y similares).
+backend/tmp_*.db

@@ -44,3 +44,7 @@ Qué cambia en el código, en el equipo, en la operación. Riesgos y trade-offs 
 - [`0001-stack-inicial.md`](0001-stack-inicial.md) — Stack inicial de Praxis Asesor (aceptada, 2026-05-27).
 - [`0002-modelo-expediente.md`](0002-modelo-expediente.md) — Modelo de Expediente, Trámite y Firmante (aceptada, 2026-05-27, con Amendment 1 del mismo día).
 - [`0003-persistencia.md`](0003-persistencia.md) — Persistencia con SQLAlchemy 2.0 async + multi-tenancy (aceptada, 2026-05-28).
+- [`0006-modelo-bo-noticias-menciones-whatsapp.md`](0006-modelo-bo-noticias-menciones-whatsapp.md) — Modelo de datos BO, Noticias, Menciones y WhatsApp (propuesta, 2026-06-02).
+- [`0007-politica-scraping-respetuoso.md`](0007-politica-scraping-respetuoso.md) — Política de scraping respetuoso para BO y medios (propuesta, 2026-06-02).
+- [`0008-integracion-whatsapp-cloud-api.md`](0008-integracion-whatsapp-cloud-api.md) — Integración WhatsApp Cloud API directo (sin BSP) (propuesta, 2026-06-02).
+- [`0009-anti-flood-alertas-menciones.md`](0009-anti-flood-alertas-menciones.md) — Anti-flood y agrupamiento de alertas de menciones (propuesta, 2026-06-02).

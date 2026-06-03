@@ -350,3 +350,55 @@ export interface BriefingDTO {
   secciones_proyectos: SeccionProyectoDTO[];
   secciones_areas: SeccionAreaDTO[];
 }
+
+// ---------------------------------------------------------------------------
+// Boletín Oficial (spec 15, feat-39)
+// ---------------------------------------------------------------------------
+
+export type SeccionBO = "legislacion" | "designaciones" | "avisos_oficiales";
+
+export type PrioridadAccionabilidad = "alta" | "media" | "baja";
+
+export interface NormaBODTO {
+  id: string;
+  fecha_publicacion: string; // YYYY-MM-DD
+  seccion: SeccionBO;
+  tipo_norma: string;
+  numero_norma: string;
+  organismo_emisor: string;
+  sumario: string;
+  url_oficial: string;
+  capturado_en: string;
+}
+
+export interface ClasificacionNormaBODTO {
+  area_tematica: AreaTematica;
+  palabras_clave: string[];
+  afecta_expedientes_hcdn: boolean;
+  referencias_legales: string[];
+}
+
+export interface NormaBODetalleDTO {
+  norma: NormaBODTO;
+  clasificacion: ClasificacionNormaBODTO | null;
+}
+
+export interface NormaBOAccionableDTO {
+  norma_id: string;
+  despacho_id: string;
+  score: number;
+  prioridad: PrioridadAccionabilidad;
+  razon: string;
+  expedientes_tocados: string[];
+  generado_en: string | null;
+}
+
+export interface NormaBOAccionableConNormaDTO {
+  accionable: NormaBOAccionableDTO;
+  norma: NormaBODTO;
+}
+
+export interface ReclasificarPerfilResponse {
+  fecha: string;
+  accionables_recalculadas: number;
+}

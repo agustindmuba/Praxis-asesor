@@ -23,13 +23,19 @@ a `FuenteNoDisponible` o similar.
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
 from anthropic import AsyncAnthropic
 
 from praxis.application.ports import LlmProvider
-from praxis.domain import AreaTematica, Expediente
+from praxis.domain import (
+    AreaTematica,
+    ClasificacionNormaBOResult,
+    Expediente,
+    NormaBO,
+)
 
 # Las 12 áreas, cada una en una sola línea para que el modelo no se
 # confunda con guiones inconsistentes.
@@ -193,6 +199,52 @@ CONTEXTO DEL PROYECTO:
         return bullets
 
     # ------------------------------------------------------------------
+    # Clasificación de norma BO (JSON estructurado)
+    # ------------------------------------------------------------------
+
+    async def clasificar_norma_bo(
+        self,
+        norma: NormaBO,
+        *,
+        texto: str | None = None,
+    ) -> ClasificacionNormaBOResult:
+        # Capamos el texto para no inflar tokens. 3000 chars cubren la
+        # mayoría de los decretos típicos del BO sin exceder el cap.
+        cuerpo = (texto or "")[:3000]
+        prompt = f"""\
+Clasificá la siguiente norma del Boletín Oficial argentino.
+
+Tu salida debe ser EXCLUSIVAMENTE un JSON válido con este esquema:
+{{
+  "area_tematica": "una de: {', '.join(_AREAS_VALIDAS)}",
+  "palabras_clave": ["3 a 7 tokens en castellano, en minúscula, sin puntuación"],
+  "afecta_expedientes_hcdn": true|false,
+  "referencias_legales": ["Ley NNN", "Decreto NNN/AAAA", ...]
+}}
+
+REGLAS:
+- "area_tematica" debe ser EXACTAMENTE una de las 12 áreas listadas.
+  Si la norma no encaja claro, devolvé "otros".
+- "afecta_expedientes_hcdn" = true si la norma menciona explícitamente
+  una ley vigente, un expediente parlamentario o un proyecto en HCDN/HSN
+  que un despacho podría estar siguiendo. Por defecto false.
+- "referencias_legales" enumera leyes/decretos/resoluciones que la norma
+  cita explícitamente (no inventes; si no hay, devolvé []).
+- NO incluyas texto adicional fuera del JSON. Sin ```json``` fences,
+  sin explicación previa ni posterior.
+
+DATOS DE LA NORMA:
+- Tipo: {norma.tipo_norma}
+- Número: {norma.numero_norma}
+- Organismo emisor: {norma.organismo_emisor}
+- Sumario: {norma.sumario}
+- Texto del cuerpo (recortado a 3000 chars):
+{cuerpo or '(sin texto disponible)'}
+"""
+        respuesta = await self._call_text(prompt, max_tokens=400)
+        return _parsear_clasificacion_norma_bo(respuesta)
+
+    # ------------------------------------------------------------------
     # Helper común: llamada a la API con prompt caching
     # ------------------------------------------------------------------
 
@@ -220,6 +272,58 @@ CONTEXTO DEL PROYECTO:
 # ---------------------------------------------------------------------------
 # Helpers locales
 # ---------------------------------------------------------------------------
+
+
+def _parsear_clasificacion_norma_bo(
+    respuesta: str,
+) -> ClasificacionNormaBOResult:
+    """Parsea la respuesta JSON del modelo, con fallback defensivo.
+
+    Si el modelo devuelve texto envuelto en fences ```json``` los saca.
+    Si falla el parseo o el JSON está incompleto, devuelve un default
+    conservador (area=OTROS, listas vacías, sin afectación) en lugar de
+    levantar — el clasificador no es bloqueante para el resto del flujo.
+    """
+    texto = respuesta.strip()
+    # Sacar fences ```json ... ``` si el modelo los pone igual.
+    texto = re.sub(r"^```(?:json)?\s*", "", texto)
+    texto = re.sub(r"\s*```$", "", texto)
+
+    try:
+        data = json.loads(texto)
+    except (json.JSONDecodeError, ValueError):
+        return ClasificacionNormaBOResult(
+            area_tematica=AreaTematica.OTROS,
+            palabras_clave=[],
+            afecta_expedientes_hcdn=False,
+            referencias_legales=[],
+        )
+
+    # Area: normalizar y validar contra el enum.
+    area_raw = str(data.get("area_tematica", "otros")).strip().lower()
+    try:
+        area = AreaTematica(area_raw)
+    except ValueError:
+        area = AreaTematica.OTROS
+
+    palabras = data.get("palabras_clave", [])
+    if not isinstance(palabras, list):
+        palabras = []
+    palabras = [str(p).strip() for p in palabras if str(p).strip()]
+
+    referencias = data.get("referencias_legales", [])
+    if not isinstance(referencias, list):
+        referencias = []
+    referencias = [str(r).strip() for r in referencias if str(r).strip()]
+
+    afecta = bool(data.get("afecta_expedientes_hcdn", False))
+
+    return ClasificacionNormaBOResult(
+        area_tematica=area,
+        palabras_clave=palabras,
+        afecta_expedientes_hcdn=afecta,
+        referencias_legales=referencias,
+    )
 
 
 def _parsear_bullets(texto: str, *, max_bullets: int) -> list[str]:

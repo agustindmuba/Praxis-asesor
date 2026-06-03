@@ -196,6 +196,68 @@ Spike validado contra: `239/24/S/PL`, `1/24/CD/PL`, `1497/20/S/PC`.
 
 Sin relevamiento aún. Se agregan cuando aparezca la primera feature que los necesite (probablemente enriquecimiento de fichas, post-MVP base).
 
+Update 2026-06-02: el spike 39.1.5 (BO) tocó `argentina.gob.ar/normativa` (SAIJ) brevemente. Responde 200 OK, contenido SPA. Pendiente para v2 si necesitamos histórico estructurado del BO.
+
+---
+
+## Boletín Oficial (BO)
+
+Spike: `docs/spikes/39-boletin-oficial.md` (2026-06-02). Especificación: `docs/specs/15-resumen-bo-accionable.md`.
+
+### Resumen de acceso
+
+| Camino | Estado | Uso v1 |
+|---|---|---|
+| HTML del portal (`boletinoficial.gob.ar`) | SPA React, contenido por JS | ❌ NO viable sin Playwright |
+| PDF del día por sección en S3 (`s3.arsat.com.ar/cdn-bo-001/pdf-del-dia/<seccion>.pdf`) | Público, sin auth | ✅ camino primario |
+| PDFs históricos en S3 | Patrón no encontrado | ❌ |
+| API SOAP del SPA (`/seccion/actualizar/N`) | JSON pero requiere sesión | ❌ frágil v1 |
+
+### robots.txt al 2026-06-02
+
+```
+User-agent: *
+Disallow: /detalleAviso/segunda/*
+Disallow: /seccion/segunda/*
+Disallow: /seccion/segunda
+```
+
+**Implicación:** Sección Segunda (Avisos Oficiales) queda **fuera del MVP**, aunque sea técnicamente accesible por S3. Respetamos el espíritu del robots.
+
+### PDFs del día disponibles
+
+| Sección | URL | Tamaño aprox |
+|---|---|---|
+| Primera (Legislación) | `https://s3.arsat.com.ar/cdn-bo-001/pdf-del-dia/primera.pdf` | ~2 MB |
+| Cuarta (Designaciones) | `https://s3.arsat.com.ar/cdn-bo-001/pdf-del-dia/cuarta.pdf` | ~0.7 MB |
+
+Las dos secciones del MVP. El PDF se refresca al inicio del día (a confirmar la hora exacta — el spike midió "del día corriente" a las 12:28 ART).
+
+### Plan de scraping (decidido en feat-39.3)
+
+- Endpoint: `s3.arsat.com.ar` (no `boletinoficial.gob.ar`). Sin sesión.
+- UA: `PraxisAsesor/0.1 (+contacto@dominio.com; monitoreo legislativo)`.
+- Rate limit: 1 req/s (es solo 2 PDFs por noche, trivial).
+- Parser: `pdfplumber` (ya en stack).
+- Caso de uso: `BoletinOficialPdfClient` (no Scraper) que baja los 2 PDFs del día y los parsea.
+
+### Pendiente (no cubierto por el spike)
+
+- **Histórico**: no encontramos el patrón de URLs de PDFs de fechas pasadas. v2 vía SAIJ o reverse-engineer.
+- **Estructura interna del PDF**: las heurísticas de parsing (cómo encontrar inicio/fin de cada norma, separadores, organismo emisor) se trabajan en feat-39.3.
+- **Hora exacta de refresh** del PDF en S3.
+
+### Snippet de prueba
+
+```bash
+cd backend
+curl -A "PraxisAsesor/0.1 (+contacto@dominio.com)" \
+     -o /tmp/bo_primera.pdf \
+     https://s3.arsat.com.ar/cdn-bo-001/pdf-del-dia/primera.pdf
+# Inspeccionar con pdfplumber:
+.venv/Scripts/python -c "import pdfplumber; pdf = pdfplumber.open('/tmp/bo_primera.pdf'); print(pdf.metadata); print(pdf.pages[0].extract_text()[:500])"
+```
+
 ---
 
 ## Tabla comparativa HCDN vs HSN

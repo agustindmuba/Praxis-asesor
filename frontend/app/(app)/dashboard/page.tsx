@@ -10,14 +10,25 @@
  * en una feature futura.
  */
 import Link from "next/link";
-import { FileText, Inbox } from "lucide-react";
+import { FileText, Inbox, Newspaper } from "lucide-react";
 
 import { EstadoBadge } from "@/components/features/expedientes/estado-badge";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ApiError404 } from "@/lib/api/client";
 import { getApiContextServer } from "@/lib/api/context-server";
-import { getExpediente, listarSeguimientos } from "@/lib/api/endpoints";
-import type { ExpedienteFicha, Prioridad, SeguimientoDTO } from "@/lib/api/types";
+import {
+  getExpediente,
+  listarAccionablesBO,
+  listarSeguimientos,
+} from "@/lib/api/endpoints";
+import type {
+  ExpedienteFicha,
+  NormaBOAccionableConNormaDTO,
+  Prioridad,
+  PrioridadAccionabilidad,
+  SeguimientoDTO,
+} from "@/lib/api/types";
 import {
   formatFechaCorta,
   formatNumeroExpediente,
@@ -33,9 +44,19 @@ interface ItemEnriquecido {
 
 const PRIORIDADES: readonly Prioridad[] = ["alta", "media", "baja"];
 
+function hoyISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default async function DashboardPage() {
   const ctx = await getApiContextServer();
-  const seguimientos = await listarSeguimientos(ctx);
+  const hoy = hoyISO();
+
+  // Fetch en paralelo: seguimientos + accionables BO del día.
+  const [seguimientos, accionablesBO] = await Promise.all([
+    listarSeguimientos(ctx),
+    listarAccionablesBO(ctx, hoy, 5).catch(() => []),
+  ]);
 
   // Fetch en paralelo de los expedientes. Si alguno tira 404 (rare race),
   // lo ignoramos y dejamos `expediente: null`.
@@ -78,6 +99,8 @@ export default async function DashboardPage() {
         </p>
       </div>
 
+      <BOSection accionables={accionablesBO} />
+
       {enriquecidos.length === 0 ? (
         <Card className="flex flex-col items-center justify-center gap-3 border-border bg-card py-20 text-center shadow-none">
           <Inbox className="size-10 text-[var(--color-praxis-salmon)]" />
@@ -104,6 +127,85 @@ export default async function DashboardPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Card "Boletín Oficial" — feat-39
+// ---------------------------------------------------------------------------
+
+const BO_PRIORIDAD_COLOR: Record<PrioridadAccionabilidad, string> = {
+  alta: "var(--color-praxis-azul)",
+  media: "var(--color-praxis-salmon)",
+  baja: "var(--color-praxis-verde)",
+};
+
+function BOSection({
+  accionables,
+}: {
+  accionables: NormaBOAccionableConNormaDTO[];
+}) {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <div className="flex items-baseline gap-2.5">
+          <Newspaper className="size-4 text-[var(--color-praxis-salmon)]" />
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-[var(--color-praxis-azul)]">
+            Boletín Oficial del día
+          </h3>
+        </div>
+        <Link
+          href="/bo"
+          className="text-xs font-medium text-[var(--color-praxis-azul)] underline-offset-2 hover:underline"
+        >
+          Ver todo →
+        </Link>
+      </div>
+      {accionables.length === 0 ? (
+        <Card className="border-border bg-card p-5 text-sm text-muted-foreground shadow-none">
+          Sin accionables del BO para hoy. Si recién cargaste tu perfil,
+          entrá a <Link href="/bo" className="text-[var(--color-praxis-azul)] underline-offset-2 hover:underline">Boletín Oficial</Link>{" "}
+          y refrescá.
+        </Card>
+      ) : (
+        <Card className="overflow-hidden border-border bg-card p-0 shadow-none">
+          <ul className="divide-y divide-border">
+            {accionables.map((a) => (
+              <li key={a.norma.id}>
+                <Link
+                  href={`/bo/${a.norma.id}`}
+                  className="flex items-start justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-[var(--color-praxis-crema)]/60"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        className="text-[10px] font-semibold"
+                        style={{
+                          backgroundColor:
+                            BO_PRIORIDAD_COLOR[a.accionable.prioridad],
+                          color: "white",
+                        }}
+                      >
+                        {a.accionable.prioridad.toUpperCase()}
+                      </Badge>
+                      <span className="font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
+                        {a.norma.tipo_norma} {a.norma.numero_norma}
+                      </span>
+                    </div>
+                    <p className="mt-1 line-clamp-1 text-[13px] text-foreground">
+                      {a.norma.sumario}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {a.accionable.razon}
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+    </section>
   );
 }
 
