@@ -14,21 +14,26 @@ Regla hexagonal (ver `docs/adr/0001-stack-inicial.md`):
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 
 from praxis.domain import (
     AreaTematica,
+    Articulo,
+    ArticuloRelevante,
     AuthClaims,
     Briefing,
     Camara,
+    ClasificacionArticulo,
     ClasificacionNormaBO,
     ClasificacionNormaBOResult,
     Comision,
     Expediente,
     ExpedienteAreaTematica,
     ExpedienteQuery,
+    FuenteNoticia,
     MembresiaDespacho,
+    Mencion,
     NormaBO,
     NormaBOAccionable,
     NormaBOTexto,
@@ -684,6 +689,233 @@ class NormaBOAccionableRepository(ABC):
     ) -> int:
         """Borra todas las accionables del despacho para una fecha.
         Devuelve cantidad borrada."""
+        raise NotImplementedError
+
+
+# ---------------------------------------------------------------------------
+# Noticias + Menciones (spec 16, feat-40)
+# ---------------------------------------------------------------------------
+
+
+class FuenteNoticias(ABC):
+    """Puerto: una fuente desde la que se pueden obtener artículos.
+
+    Implementaciones esperadas (feat-40.2):
+    - `RssFeedAdapter`: lee RSS/Atom.
+    - `SitemapAdapter`: parsea sitemap.xml.
+    - `MedioScraper`: scraping respetuoso para fuentes sin feed.
+
+    **Importante (ADR 0006 §"Reglas de diseño 1"):** el cuerpo del
+    artículo (devuelto por `obtener_texto_articulo`) **NO se persiste
+    en DB**. El caller (use case) lo recibe en memoria para detección
+    de menciones / clasificación, y lo descarta tras procesar.
+
+    Política de scraping (ADR 0007):
+    - UA identificado, rate limit 1 req/seg por dominio.
+    - Lectura de robots.txt al onboarding.
+    - Circuit breaker con backoff exponencial.
+    """
+
+    @abstractmethod
+    async def listar_articulos_nuevos(
+        self, fuente: FuenteNoticia, *, desde: datetime,
+    ) -> list[Articulo]:
+        """Devuelve artículos publicados ≥ `desde`. `Articulo.id = None`
+        (los asigna el repo al persistir).
+
+        Idempotente: si la fuente devuelve un artículo ya visto
+        (por hash_dedup), el caller lo deduplica al upsert.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def obtener_texto_articulo(self, articulo: Articulo) -> str:
+        """Devuelve el cuerpo del artículo. El caller **NO debe
+        persistirlo** — sólo usarlo para detección/clasificación."""
+        raise NotImplementedError
+
+
+class FuenteNoticiaRepository(ABC):
+    """Puerto: catálogo de FuenteNoticia.
+
+    Global (las nacionales/políticas son compartidas). Las distritales
+    se asocian a un despacho via tabla puente (`fuente_noticia_despacho`
+    en ADR 0006).
+    """
+
+    @abstractmethod
+    async def crear(self, fuente: FuenteNoticia) -> FuenteNoticia:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_id(self, fuente_id: UUID) -> FuenteNoticia | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_dominio(
+        self, dominio: str,
+    ) -> FuenteNoticia | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_activas(self) -> list[FuenteNoticia]:
+        """Sólo `activa=True`. El job de polling usa esto."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_para_despacho(
+        self, despacho_id: UUID,
+    ) -> list[FuenteNoticia]:
+        """Listado completo aplicable a un despacho: globales (NACIONAL +
+        POLITICO) + DISTRITAL agregadas por ese despacho."""
+        raise NotImplementedError
+
+
+class ArticuloRepository(ABC):
+    """Puerto: persistencia de `Articulo` (sin cuerpo).
+
+    No tenant-scoped: los artículos son compartidos entre despachos.
+    Lo tenant-scoped es `ArticuloRelevante` y `Mencion`.
+    """
+
+    @abstractmethod
+    async def upsert_lote(self, articulos: list[Articulo]) -> list[Articulo]:
+        """Idempotente por `hash_dedup` UNIQUE."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_id(self, articulo_id: UUID) -> Articulo | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_hash(
+        self, hash_dedup: str,
+    ) -> Articulo | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_por_fuente(
+        self, fuente_id: UUID, *, desde: datetime,
+    ) -> list[Articulo]:
+        raise NotImplementedError
+
+
+class ArticuloHashRepository(ABC):
+    """Puerto: dedup forever de URLs ya vistas (ADR 0006 §"Reglas 4").
+
+    Cuando el artículo se purga por retención (12 meses, D10), su hash
+    queda acá para evitar reprocesar la URL si la vemos otra vez.
+    """
+
+    @abstractmethod
+    async def registrar(self, hash_dedup: str) -> bool:
+        """True si era hash nuevo; False si ya estaba."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def existe(self, hash_dedup: str) -> bool:
+        raise NotImplementedError
+
+
+class ClasificacionArticuloRepository(ABC):
+    """Puerto: cache de clasificación por artículo.
+
+    UNIQUE en `articulo_id`. Reclasificar = delete + insert.
+    """
+
+    @abstractmethod
+    async def buscar_por_articulo(
+        self, articulo_id: UUID,
+    ) -> ClasificacionArticulo | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def crear(
+        self, clasif: ClasificacionArticulo,
+    ) -> ClasificacionArticulo:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def eliminar(self, articulo_id: UUID) -> bool:
+        raise NotImplementedError
+
+
+class ArticuloRelevanteRepository(ABC):
+    """Puerto: vista por despacho del scoring de relevancia.
+
+    Análogo a `NormaBOAccionableRepository`. PK compuesta tenant-scoped.
+    Se recalcula cuando cambia el perfil del despacho.
+    """
+
+    @abstractmethod
+    async def upsert(
+        self, relevante: ArticuloRelevante,
+    ) -> ArticuloRelevante:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_por_despacho_24h(
+        self,
+        *,
+        despacho_id: UUID,
+        hasta: datetime,
+        top_n: int | None = None,
+    ) -> list[ArticuloRelevante]:
+        """Top-N artículos relevantes de las últimas 24hs (D9 del
+        briefing matinal). Ordenado por score DESC."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def borrar_por_despacho_y_ventana(
+        self,
+        *,
+        despacho_id: UUID,
+        desde: datetime,
+        hasta: datetime,
+    ) -> int:
+        """Borra todos los relevantes del despacho en una ventana
+        temporal. Para recálculo atómico."""
+        raise NotImplementedError
+
+
+class MencionRepository(ABC):
+    """Puerto: persistencia de menciones del legislador en artículos.
+
+    Tenant-scoped por `despacho_id`. Todas las queries filtran
+    explícito.
+    """
+
+    @abstractmethod
+    async def crear(self, mencion: Mencion) -> Mencion:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_historico(
+        self,
+        *,
+        despacho_id: UUID,
+        desde: datetime,
+        hasta: datetime,
+        tono: str | None = None,
+        fuente_id: UUID | None = None,
+    ) -> list[Mencion]:
+        """Vista `/menciones` del frontend. Filtros opcionales por tono
+        y fuente."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_id(
+        self, *, despacho_id: UUID, mencion_id: UUID,
+    ) -> Mencion | None:
+        """Lookup tenant-scoped por id."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def marcar_notificada(
+        self, *, despacho_id: UUID, mencion_id: UUID,
+    ) -> bool:
+        """Marca `notificada=True` tras envío exitoso de alerta. True
+        si afectó una fila."""
         raise NotImplementedError
 
 
