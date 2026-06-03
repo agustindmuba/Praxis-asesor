@@ -25,6 +25,7 @@ celery_app = Celery(
         "praxis.infrastructure.queue.tasks",
         "praxis.infrastructure.queue.tasks_bo",
         "praxis.infrastructure.queue.tasks_noticias",
+        "praxis.infrastructure.queue.tasks_whatsapp",
     ],
 )
 
@@ -82,6 +83,14 @@ celery_app.conf.update(
             # Cada 10 min. Anti-flood interno garantiza ≤ 1 alerta
             # agrupada por despacho por hora (ADR 0009).
             "schedule": crontab(minute="*/10"),
+        },
+        # WhatsApp briefing diario (spec 17, feat-41.4).
+        # Default 07:00 ART = 10:00 UTC. Si el polling de noticias
+        # corre a las 15 min de la hora y BO se evalúa a 09:00 UTC,
+        # cuando esta task corre ya está todo listo para resumir.
+        "whatsapp-enviar-briefings-diarios": {
+            "task": "praxis.whatsapp.enviar_briefings_diarios",
+            "schedule": crontab(hour="10", minute="0"),
         },
     },
 )

@@ -24,6 +24,10 @@ from praxis.application.use_cases.enviar_alerta_mencion import (
     EnviarAlertaMencion,
     IntencionDeAlerta,
 )
+from praxis.application.use_cases.enviar_briefing_diario import (
+    EnviarBriefingDiario,
+    ResultadoBriefingDiario,
+)
 from praxis.application.use_cases.generar_briefing import GenerarBriefing
 from praxis.application.use_cases.generar_resumen_ejecutivo import (
     GenerarResumenEjecutivo,
@@ -53,6 +57,7 @@ __all__ = [
     "DetectarMencionesEnArticulo",
     "EnriquecerExpediente",
     "EnviarAlertaMencion",
+    "EnviarBriefingDiario",
     "GenerarBriefing",
     "GenerarResumenEjecutivo",
     "IntencionDeAlerta",
@@ -60,6 +65,7 @@ __all__ = [
     "ProcesarArticulosDeFuente",
     "ProcesarWebhookWhatsApp",
     "ResolverContextoRequest",
+    "ResultadoBriefingDiario",
     "ResultadoProcesamiento",
     "ResultadoWebhook",
     "SincronizarUsuarioDesdeClerk",
