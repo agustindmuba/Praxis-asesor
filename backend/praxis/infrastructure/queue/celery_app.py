@@ -24,6 +24,7 @@ celery_app = Celery(
     include=[
         "praxis.infrastructure.queue.tasks",
         "praxis.infrastructure.queue.tasks_bo",
+        "praxis.infrastructure.queue.tasks_noticias",
     ],
 )
 
@@ -66,6 +67,21 @@ celery_app.conf.update(
             "task": "praxis.bo.evaluar_accionables_por_despacho",
             # 09:00 UTC = 06:00 ART
             "schedule": crontab(hour="9", minute="0"),
+        },
+        # Noticias (spec 16, feat-40.5.D). Polling continuo
+        # durante el día — los medios actualizan a lo largo del día.
+        "noticias-procesar-fuentes": {
+            "task": "praxis.noticias.procesar_fuentes",
+            # Cada 15 min. Si se necesita más fino para alertas
+            # urgentes, bajar a 5 min con cuidado del rate limit
+            # del scraping (ADR 0007).
+            "schedule": crontab(minute="*/15"),
+        },
+        "noticias-enviar-alertas-pendientes": {
+            "task": "praxis.noticias.enviar_alertas_pendientes",
+            # Cada 10 min. Anti-flood interno garantiza ≤ 1 alerta
+            # agrupada por despacho por hora (ADR 0009).
+            "schedule": crontab(minute="*/10"),
         },
     },
 )
