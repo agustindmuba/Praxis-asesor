@@ -1,16 +1,21 @@
 "use client";
 
 /**
- * Botones de acción del briefing: imprimir, descargar HTML, descargar PDF.
+ * Botones de acción del briefing: imprimir, recargar.
  *
- * Es client component porque "imprimir" abre window.print() sobre el iframe.
+ * Es client component porque "imprimir" llama window.print() sobre el
+ * iframe del briefing (que tiene un srcDoc same-origin, así que la
+ * cross-frame call está permitida).
+ *
+ * El botón "Descargar PDF" se sirve desde la propia app vía un route
+ * handler interno que proxya al backend con auth — el browser no podría
+ * agregar el header Authorization a un click en `<a href>`.
  */
-import { Download, Printer, RefreshCw } from "lucide-react";
+import { FileDown, Printer, RefreshCw } from "lucide-react";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { briefingHtmlUrl, briefingPdfUrl } from "@/lib/api/endpoints";
 
 interface Props {
   briefingId: string;
@@ -20,22 +25,25 @@ interface Props {
 export function BriefingActions({ briefingId, odId }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const htmlUrl = briefingHtmlUrl(briefingId);
-  const pdfUrl = briefingPdfUrl(briefingId);
 
   function handleImprimir() {
-    // Abre el HTML en una pestaña nueva y dispara print desde ahí.
-    // Más confiable que window.print() del iframe (cross-origin issues).
-    const w = window.open(htmlUrl, "_blank");
-    if (w) {
-      w.addEventListener("load", () => w.print());
+    // Buscar el iframe del briefing en la página y disparar print sobre él.
+    // El srcDoc es same-origin para JS access (lo carga el browser desde un
+    // string en memoria, no via red).
+    const iframe = document.querySelector<HTMLIFrameElement>(
+      'iframe[title^="Briefing"]',
+    );
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } else {
+      // Fallback: print de la página entera.
+      window.print();
     }
   }
 
   function handleRegenerar() {
     startTransition(() => {
-      // El backend regenera al pasar regenerar=true, pero como Next cachea
-      // la página, hacemos refresh para que vuelva a fetchear.
       router.refresh();
     });
   }
@@ -47,15 +55,13 @@ export function BriefingActions({ briefingId, odId }: Props) {
         Imprimir / guardar como PDF
       </Button>
       <Button asChild variant="outline">
-        <a href={htmlUrl} target="_blank" rel="noopener">
-          <Download className="mr-2 size-4" />
-          Abrir HTML en pestaña
-        </a>
-      </Button>
-      <Button asChild variant="outline">
-        <a href={pdfUrl} target="_blank" rel="noopener">
-          <Download className="mr-2 size-4" />
-          Descargar PDF (si está disponible)
+        <a
+          href={`/briefings/${briefingId}/pdf`}
+          target="_blank"
+          rel="noopener"
+        >
+          <FileDown className="mr-2 size-4" />
+          Descargar PDF
         </a>
       </Button>
       <Button

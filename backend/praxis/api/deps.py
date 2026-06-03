@@ -23,6 +23,7 @@ from praxis.application import (
     LlmProvider,
     ResolverContextoRequest,
 )
+from praxis.application.ports import WhatsAppSender
 from praxis.config import Settings, get_settings
 from praxis.domain import AuthClaims, AuthError, AuthErrorCode, RequestContext
 from praxis.infrastructure.auth import ClerkAuthProvider, DevAuthProvider
@@ -33,6 +34,10 @@ from praxis.infrastructure.persistence.repositories import (
     SqlAlchemyDespachoRepository,
     SqlAlchemyMembresiaDespachoRepository,
     SqlAlchemyUsuarioRepository,
+)
+from praxis.infrastructure.whatsapp import (
+    FakeWhatsAppSender,
+    WhatsAppCloudApiSender,
 )
 
 # ----------------------------------------------------------------------
@@ -240,13 +245,60 @@ def get_llm_provider(
 LlmProviderDep = Annotated[LlmProvider, Depends(get_llm_provider)]
 
 
+# ---------------------------------------------------------------------------
+# WhatsAppSender (spec 17, feat-41.2)
+# ---------------------------------------------------------------------------
+
+
+_whatsapp_sender: WhatsAppSender | None = None
+
+
+def get_whatsapp_sender(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> WhatsAppSender:
+    """Devuelve un singleton del WhatsAppSender.
+
+    Selección:
+    - Si `meta_whatsapp_token` + `meta_whatsapp_phone_number_id` están
+      ambos seteados → `WhatsAppCloudApiSender` (HTTP real a Meta).
+    - Sino → `FakeWhatsAppSender` (default en dev, sin red ni gasto).
+
+    Recordatorio operativo: Meta cobra por conversación iniciada
+    (~$0.005-0.05 USD según país). Configurar límite de gasto en App
+    Manager → Limits. Ver `docs/runbooks/meta-whatsapp.md` (a redactar
+    en feat-41.6).
+    """
+    global _whatsapp_sender
+    if _whatsapp_sender is not None:
+        return _whatsapp_sender
+
+    if (
+        settings.meta_whatsapp_token
+        and settings.meta_whatsapp_phone_number_id
+    ):
+        _whatsapp_sender = WhatsAppCloudApiSender(
+            access_token=settings.meta_whatsapp_token,
+            phone_number_id=settings.meta_whatsapp_phone_number_id,
+        )
+    else:
+        _whatsapp_sender = FakeWhatsAppSender()
+    return _whatsapp_sender
+
+
+WhatsAppSenderDep = Annotated[
+    WhatsAppSender, Depends(get_whatsapp_sender),
+]
+
+
 __all__ = [
     "CurrentContext",
     "LlmProviderDep",
     "SessionDep",
+    "WhatsAppSenderDep",
     "current_context",
     "get_auth_provider",
     "get_llm_provider",
     "get_resolver",
     "get_session",
+    "get_whatsapp_sender",
 ]

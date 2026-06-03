@@ -288,3 +288,76 @@ export function listarFuentesNoticias(ctx: ApiContext) {
     next: { revalidate: 3600 },
   });
 }
+
+// ---------------------------------------------------------------------------
+// /destinatarios + /envios-whatsapp + /plantillas (feat-41.5)
+// ---------------------------------------------------------------------------
+
+import type {
+  ActualizarDestinatarioBody,
+  CrearDestinatarioBody,
+  DestinatarioDTO,
+  EnvioWhatsAppDTO,
+  PlantillaWhatsAppDTO,
+  TipoEnvioWhatsApp,
+} from "./types";
+
+export function listarDestinatarios(
+  ctx: ApiContext,
+  opts?: { soloActivos?: boolean },
+) {
+  return apiGet<DestinatarioDTO[]>("/api/v1/destinatarios", {
+    ctx,
+    params: { solo_activos: opts?.soloActivos },
+    next: { revalidate: 30 },
+  });
+}
+
+export function crearDestinatario(
+  ctx: ApiContext,
+  body: CrearDestinatarioBody,
+) {
+  return apiPost<DestinatarioDTO>("/api/v1/destinatarios", body, { ctx });
+}
+
+export function actualizarDestinatario(
+  ctx: ApiContext,
+  id: string,
+  body: ActualizarDestinatarioBody,
+) {
+  return apiPatch<DestinatarioDTO>(`/api/v1/destinatarios/${id}`, body, {
+    ctx,
+  });
+}
+
+export function eliminarDestinatario(ctx: ApiContext, id: string) {
+  return apiDelete<void>(`/api/v1/destinatarios/${id}`, { ctx });
+}
+
+export interface FiltrosEnviosWhatsApp {
+  desde?: string;
+  hasta?: string;
+  tipo?: TipoEnvioWhatsApp;
+}
+
+export function listarEnviosWhatsApp(
+  ctx: ApiContext,
+  filtros?: FiltrosEnviosWhatsApp,
+) {
+  return apiGet<EnvioWhatsAppDTO[]>("/api/v1/envios-whatsapp", {
+    ctx,
+    params: { ...filtros },
+    next: { revalidate: 30 },
+  });
+}
+
+export function listarPlantillasWhatsApp(
+  ctx: ApiContext,
+  opts?: { soloAprobadas?: boolean },
+) {
+  return apiGet<PlantillaWhatsAppDTO[]>("/api/v1/plantillas", {
+    ctx,
+    params: { solo_aprobadas: opts?.soloAprobadas },
+    next: { revalidate: 3600 },
+  });
+}

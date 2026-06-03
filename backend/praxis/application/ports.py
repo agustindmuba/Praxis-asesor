@@ -29,7 +29,9 @@ from praxis.domain import (
     ClasificacionNormaBO,
     ClasificacionNormaBOResult,
     Comision,
+    Destinatario,
     DisambiguacionMencion,
+    EnvioWhatsApp,
     Expediente,
     ExpedienteAreaTematica,
     ExpedienteQuery,
@@ -43,6 +45,7 @@ from praxis.domain import (
     NumeroExpediente,
     OrdenDelDia,
     PerfilInteresDespacho,
+    PlantillaWhatsApp,
     ResultadoBusqueda,
     ResumenEjecutivo,
     SeccionBO,
@@ -1090,5 +1093,206 @@ class AuthProvider(ABC):
 
         Raises:
             AuthError: con `code` ∈ {INVALID_TOKEN, TOKEN_EXPIRED, WRONG_ISSUER}.
+        """
+        raise NotImplementedError
+
+
+# ---------------------------------------------------------------------------
+# WhatsApp — Destinatario / Plantilla / Envio (spec 17, feat-41)
+# ---------------------------------------------------------------------------
+
+
+class DestinatarioRepository(ABC):
+    """Puerto: catálogo tenant-scoped de destinatarios.
+
+    UNIQUE en `(despacho_id, telefono_e164)` — el mismo número solo
+    aparece una vez por despacho. Cambios de flags / opt-in / opt-out
+    se aplican vía `actualizar`.
+    """
+
+    @abstractmethod
+    async def crear(self, dest: Destinatario) -> Destinatario:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def actualizar(self, dest: Destinatario) -> Destinatario:
+        """Update por id. Devuelve la entidad actualizada.
+        Lanza ValueError si el id no existe."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_id(
+        self, *, despacho_id: UUID, destinatario_id: UUID,
+    ) -> Destinatario | None:
+        """Tenant-scoped: si el destinatario existe pero NO es del
+        despacho, devuelve None."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_telefono(
+        self, *, despacho_id: UUID, telefono_e164: str,
+    ) -> Destinatario | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_por_despacho(
+        self,
+        despacho_id: UUID,
+        *,
+        solo_activos: bool = False,
+    ) -> list[Destinatario]:
+        """Listado completo del despacho, opcionalmente filtrando por
+        `activo=True`. Ordenado por nombre."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def eliminar(
+        self, *, despacho_id: UUID, destinatario_id: UUID,
+    ) -> bool:
+        """Hard-delete tenant-scoped. True si afectó una fila.
+
+        Para opt-out conservando histórico, usar `actualizar` con
+        `opt_out_en` seteado en vez de eliminar.
+        """
+        raise NotImplementedError
+
+
+class PlantillaWhatsAppRepository(ABC):
+    """Puerto: catálogo global de plantillas Meta-aprobadas.
+
+    PK = `name` (las plantillas son únicas por nombre). El estado se
+    refleja del API de Meta vía el sync que corre en feat-41.2.
+    """
+
+    @abstractmethod
+    async def upsert(self, plantilla: PlantillaWhatsApp) -> PlantillaWhatsApp:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_name(self, name: str) -> PlantillaWhatsApp | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar(
+        self, *, solo_aprobadas: bool = False,
+    ) -> list[PlantillaWhatsApp]:
+        raise NotImplementedError
+
+
+class EnvioWhatsAppRepository(ABC):
+    """Puerto: registro auditable tenant-scoped de envíos.
+
+    `despacho_id` desnormalizado para que las queries del histórico
+    no requieran JOIN al destinatario (ADR 0006). El sender (provider
+    de feat-41.2) crea el registro con estado=PENDIENTE, hace el HTTP
+    a Meta, y actualiza con `marcar_enviado` / `marcar_fallido`.
+
+    Los webhooks de status (feat-41.3) usan `actualizar_por_message_id`
+    para correlacionar el callback con el envío original.
+    """
+
+    @abstractmethod
+    async def crear(self, envio: EnvioWhatsApp) -> EnvioWhatsApp:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def marcar_enviado(
+        self, *, envio_id: UUID, message_id_meta: str, enviado_en: datetime,
+    ) -> EnvioWhatsApp:
+        """Setea estado=ENVIADO + message_id + enviado_en. Lanza
+        ValueError si el envío no existe."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def marcar_fallido(
+        self, *, envio_id: UUID, error: str, rechazado: bool = False,
+    ) -> EnvioWhatsApp:
+        """Setea estado=FALLIDO (o RECHAZADO si `rechazado=True`) + error."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def actualizar_por_message_id(
+        self,
+        *,
+        message_id_meta: str,
+        nuevo_estado: str,
+        error: str | None = None,
+    ) -> EnvioWhatsApp | None:
+        """Lookup por `message_id_meta` UNIQUE y actualiza estado.
+        Usado por los webhooks de Meta (status: delivered/read/failed).
+        Devuelve None si el message_id no se reconoce."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_por_despacho(
+        self,
+        despacho_id: UUID,
+        *,
+        desde: datetime,
+        hasta: datetime,
+        tipo: str | None = None,
+    ) -> list[EnvioWhatsApp]:
+        """Histórico tenant-scoped del despacho con filtro temporal
+        + filtro opcional por tipo."""
+        raise NotImplementedError
+
+
+# ---------------------------------------------------------------------------
+# WhatsApp Sender (HTTP a Meta) — spec 17, feat-41.2
+# ---------------------------------------------------------------------------
+
+
+from dataclasses import dataclass  # noqa: E402
+
+
+@dataclass(frozen=True, slots=True)
+class ResultadoEnvioWhatsApp:
+    """Resultado de un POST a Meta WhatsApp Cloud API.
+
+    El caller (caso de uso `EnviarBriefingDiario` en feat-41.4) usa
+    esto para actualizar el `EnvioWhatsApp` correspondiente:
+    `marcar_enviado` si `exitoso`, `marcar_fallido` con `rechazado`
+    si Meta nos rebotó por opt-out / plantilla no aprobada / número
+    inválido.
+
+    `error_meta_code` ayuda a clasificar el error a nivel de Meta
+    (ver https://developers.facebook.com/docs/whatsapp/cloud-api/
+    support/error-codes). v1 lo loguea; iteraciones futuras pueden
+    rutear automáticamente (ej. 131056 = template paused → reintentar
+    en N horas).
+    """
+
+    exitoso: bool
+    message_id_meta: str | None = None
+    error: str | None = None
+    rechazado: bool = False
+    error_meta_code: int | None = None
+
+
+class WhatsAppSender(ABC):
+    """Puerto: cliente HTTP para Meta WhatsApp Cloud API.
+
+    Implementaciones esperadas:
+    - `praxis.infrastructure.whatsapp.fake.FakeWhatsAppSender` (dev/test,
+      sin red).
+    - `praxis.infrastructure.whatsapp.cloud_api.WhatsAppCloudApiSender`
+      (real, contra graph.facebook.com).
+    """
+
+    @abstractmethod
+    async def enviar(
+        self,
+        *,
+        telefono_e164: str,
+        plantilla_name: str,
+        idioma: str,
+        body_params_ordered: list[str],
+    ) -> ResultadoEnvioWhatsApp:
+        """Manda una plantilla pre-aprobada a un número E.164.
+
+        Returns: `ResultadoEnvioWhatsApp`. exitoso=True + message_id
+        si Meta aceptó (HTTP 200). Errores de red/5xx → exitoso=False
+        sin rechazado. Errores de negocio (opt-out, plantilla no
+        aprobada, número inválido) → exitoso=False + rechazado=True.
         """
         raise NotImplementedError

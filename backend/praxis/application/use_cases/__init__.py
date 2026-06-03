@@ -24,6 +24,10 @@ from praxis.application.use_cases.enviar_alerta_mencion import (
     EnviarAlertaMencion,
     IntencionDeAlerta,
 )
+from praxis.application.use_cases.enviar_briefing_diario import (
+    EnviarBriefingDiario,
+    ResultadoBriefingDiario,
+)
 from praxis.application.use_cases.generar_briefing import GenerarBriefing
 from praxis.application.use_cases.generar_resumen_ejecutivo import (
     GenerarResumenEjecutivo,
@@ -33,6 +37,10 @@ from praxis.application.use_cases.procesar_articulos_de_fuente import (
     ProcesarArticulosDeFuente,
     ResultadoProcesamiento,
     calcular_score_relevancia,
+)
+from praxis.application.use_cases.procesar_webhook_whatsapp import (
+    ProcesarWebhookWhatsApp,
+    ResultadoWebhook,
 )
 from praxis.application.use_cases.resolver_contexto import ResolverContextoRequest
 from praxis.application.use_cases.sincronizar_usuario_clerk import (
@@ -49,13 +57,17 @@ __all__ = [
     "DetectarMencionesEnArticulo",
     "EnriquecerExpediente",
     "EnviarAlertaMencion",
+    "EnviarBriefingDiario",
     "GenerarBriefing",
     "GenerarResumenEjecutivo",
     "IntencionDeAlerta",
     "LegisladorAMonitorear",
     "ProcesarArticulosDeFuente",
+    "ProcesarWebhookWhatsApp",
     "ResolverContextoRequest",
+    "ResultadoBriefingDiario",
     "ResultadoProcesamiento",
+    "ResultadoWebhook",
     "SincronizarUsuarioDesdeClerk",
     "SugerirCofirmantes",
     "calcular_score_relevancia",

@@ -11,6 +11,7 @@
  * superior, placa blanca con borde fino, tipografía display Space
  * Grotesk en el titular.
  */
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { devLoginAction } from "@/app/actions/despacho";
@@ -43,12 +44,16 @@ async function DevLoginForm({
   return (
     <main className="flex min-h-screen items-center justify-center bg-background p-6">
       <div className="w-full max-w-md space-y-7">
-        {/* Brand strip */}
-        <div className="space-y-1 text-center">
-          <p className="font-display text-3xl font-bold tracking-tight text-[var(--color-praxis-azul)]">
-            Praxis
-            <span className="text-[var(--color-praxis-salmon)]">.</span>
-          </p>
+        {/* Brand strip — logo Praxis Asesor */}
+        <div className="space-y-3 text-center">
+          <Image
+            src="/logo-praxis-asesor.png"
+            alt="Praxis Asesor"
+            width={800}
+            height={208}
+            priority
+            className="mx-auto h-24 w-auto"
+          />
           <p className="text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground">
             Decisiones estratégicas basadas en datos
           </p>

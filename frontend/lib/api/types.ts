@@ -480,3 +480,91 @@ export interface ArticuloDetalleDTO {
   relevante: ArticuloRelevanteDTO | null;
   menciones: MencionDTO[];
 }
+
+// ---------------------------------------------------------------------------
+// WhatsApp / Configuración (feat-41)
+// ---------------------------------------------------------------------------
+
+export type RolDestinatario =
+  | "legislador"
+  | "jefe_asesores"
+  | "asesor"
+  | "otro";
+
+export type EstadoEnvioWhatsApp =
+  | "pendiente"
+  | "enviado"
+  | "entregado"
+  | "leido"
+  | "fallido"
+  | "rechazado";
+
+export type EstadoMetaPlantilla =
+  | "pendiente_aprobacion"
+  | "aprobada"
+  | "rechazada"
+  | "pausada"
+  | "desconocida";
+
+export type TipoEnvioWhatsApp =
+  | "briefing_diario"
+  | "alerta_mencion"
+  | "alerta_bo"
+  | "otro";
+
+export interface DestinatarioDTO {
+  id: string;
+  despacho_id: string;
+  usuario_id: string | null;
+  nombre: string;
+  rol_interno: RolDestinatario;
+  telefono_e164: string;
+  recibe_briefing_diario: boolean;
+  recibe_alertas_menciones: boolean;
+  recibe_alertas_otras: boolean;
+  opt_in_en: string | null;
+  opt_out_en: string | null;
+  activo: boolean;
+}
+
+export interface CrearDestinatarioBody {
+  nombre: string;
+  rol_interno: RolDestinatario;
+  telefono_e164: string;
+  recibe_briefing_diario?: boolean;
+  recibe_alertas_menciones?: boolean;
+  recibe_alertas_otras?: boolean;
+}
+
+export interface ActualizarDestinatarioBody {
+  nombre?: string;
+  rol_interno?: RolDestinatario;
+  telefono_e164?: string;
+  recibe_briefing_diario?: boolean;
+  recibe_alertas_menciones?: boolean;
+  recibe_alertas_otras?: boolean;
+}
+
+export interface EnvioWhatsAppDTO {
+  id: string;
+  destinatario_id: string;
+  despacho_id: string;
+  plantilla_name: string;
+  tipo: TipoEnvioWhatsApp;
+  payload_params: Record<string, unknown>;
+  correlativo_id: string | null;
+  enviado_en: string | null;
+  estado: EstadoEnvioWhatsApp;
+  message_id_meta: string | null;
+  error: string | null;
+}
+
+export interface PlantillaWhatsAppDTO {
+  name: string;
+  idioma: string;
+  categoria: string;
+  body_params: string[];
+  estado_meta: EstadoMetaPlantilla;
+  aprobada_en: string | null;
+  contenido_referencia: string;
+}

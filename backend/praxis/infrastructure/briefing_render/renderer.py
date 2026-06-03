@@ -12,11 +12,28 @@ fallback de v1.
 
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from praxis.domain import AREA_LABELS, Briefing
+
+# Logo Praxis Asesor — leído una sola vez al import y embebido como
+# `data:image/png;base64,...` en el HTML del briefing. Esto evita que
+# weasyprint o el iframe srcDoc tengan que resolver una URL externa.
+_LOGO_PATH = Path(__file__).parent / "static" / "logo-praxis-asesor.png"
+
+
+def _load_logo_data_uri() -> str:
+    if not _LOGO_PATH.exists():
+        return ""
+    raw = _LOGO_PATH.read_bytes()
+    b64 = base64.b64encode(raw).decode("ascii")
+    return f"data:image/png;base64,{b64}"
+
+
+_LOGO_DATA_URI = _load_logo_data_uri()
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 _env = Environment(
@@ -68,6 +85,7 @@ def render_briefing_html(briefing: Briefing) -> str:
         prioridad_badge=_PRIORIDAD_BADGE,
         recomendacion_label=_REC_LABEL,
         rol_label=_ROL_LABEL,
+        logo_data_uri=_LOGO_DATA_URI,
     )
 
 

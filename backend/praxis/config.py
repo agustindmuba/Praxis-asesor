@@ -66,6 +66,39 @@ class Settings(BaseSettings):
         ),
     )
 
+    # --- WhatsApp Cloud API (Meta) — feat-41 ---
+    meta_whatsapp_token: str | None = Field(
+        default=None,
+        description=(
+            "Access token de Meta WhatsApp Cloud API (System User). Si está "
+            "seteado, se inyecta `WhatsAppCloudApiSender`; sino, fallback "
+            "a `FakeWhatsAppSender` (sin red)."
+        ),
+    )
+    meta_whatsapp_phone_number_id: str | None = Field(
+        default=None,
+        description=(
+            "ID del número de teléfono de Meta WhatsApp Business "
+            "registrado en el App Manager. Requerido junto con el token."
+        ),
+    )
+    meta_whatsapp_webhook_verify_token: str | None = Field(
+        default=None,
+        description=(
+            "Token compartido con Meta para validar el handshake del "
+            "webhook (GET /webhooks/whatsapp). Generado por nosotros y "
+            "configurado en el App Manager. Ver feat-41.3."
+        ),
+    )
+    meta_whatsapp_webhook_app_secret: str | None = Field(
+        default=None,
+        description=(
+            "App Secret de la app de Meta. Lo usamos para verificar la "
+            "firma HMAC SHA-256 del header `X-Hub-Signature-256` en los "
+            "POST de webhooks (feat-41.3)."
+        ),
+    )
+
     # --- Auth (Clerk) ---
     # Ver docs/specs/09-auth-multitenancy.md. Si está vacío, la app arranca pero
     # los endpoints protegidos van a fallar; útil para tests o flows internos.

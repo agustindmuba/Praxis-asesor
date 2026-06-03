@@ -18,8 +18,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ApiError404 } from "@/lib/api/client";
 import { getApiContextServer } from "@/lib/api/context-server";
 import {
-  briefingHtmlUrl,
   generarBriefing,
+  getBriefingHtml,
   getOrdenDelDia,
 } from "@/lib/api/endpoints";
 
@@ -48,7 +48,11 @@ export default async function BriefingDetallePage({ params }: PageProps) {
 
   // Generar/recuperar el briefing (cache hit la 2da vez).
   const briefing = await generarBriefing(ctx, { orden_del_dia_id: id });
-  const htmlUrl = briefingHtmlUrl(briefing.id);
+
+  // Fetch del HTML server-side y embebido via srcDoc.
+  // No usamos iframe.src = url porque el browser no incluye el header
+  // Authorization en sub-requests del iframe.
+  const html = await getBriefingHtml(ctx, briefing.id);
 
   return (
     <div className="space-y-6">
@@ -56,14 +60,14 @@ export default async function BriefingDetallePage({ params }: PageProps) {
 
       <BriefingActions briefingId={briefing.id} odId={od.id} />
 
-      <Card>
+      <Card className="border-border bg-card shadow-none">
         <CardContent className="p-0">
-          {/* Embebemos el HTML del briefing en un iframe — es el mismo HTML
-              que generará el PDF (CSS print-friendly). */}
+          {/* HTML del briefing embebido via srcDoc — el iframe lo aísla
+              del CSS de la app sin requerir headers de auth. */}
           <iframe
-            src={htmlUrl}
+            srcDoc={html}
             title={`Briefing ${briefing.id}`}
-            className="h-[900px] w-full rounded-lg border-0"
+            className="h-[1000px] w-full rounded-lg border-0"
           />
         </CardContent>
       </Card>
