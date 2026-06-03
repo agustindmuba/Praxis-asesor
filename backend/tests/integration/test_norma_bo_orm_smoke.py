@@ -93,8 +93,10 @@ async def test_norma_bo_tiene_indices_unicos_clave(
 
     assert "uq_norma_bo_identidad_natural" in ixs
     assert ixs["uq_norma_bo_identidad_natural"]["unique"]
+    # hash_sumario es índice de búsqueda, NO único: 2 normas distintas
+    # pueden tener el mismo sumario corto.
     assert "ix_norma_bo_hash_sumario" in ixs
-    assert ixs["ix_norma_bo_hash_sumario"]["unique"]
+    assert not ixs["ix_norma_bo_hash_sumario"]["unique"]
 
 
 async def test_norma_bo_accionable_tiene_pk_compuesta(

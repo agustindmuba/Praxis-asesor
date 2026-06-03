@@ -99,11 +99,12 @@ def upgrade() -> None:
         "norma_bo",
         ["fecha_publicacion", "seccion"],
     )
+    # NO unique: 2 normas distintas con el mismo sumario son válidas
+    # (ej. "Recházase recurso" repetido en decretos del mismo día).
     op.create_index(
         "ix_norma_bo_hash_sumario",
         "norma_bo",
         ["hash_sumario"],
-        unique=True,
     )
 
     op.create_table(

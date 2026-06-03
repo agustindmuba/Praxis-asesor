@@ -662,7 +662,11 @@ class NormaBOOrm(Base, kw_only=True):
             unique=True,
         ),
         Index("ix_norma_bo_fecha_seccion", "fecha_publicacion", "seccion"),
-        Index("ix_norma_bo_hash_sumario", "hash_sumario", unique=True),
+        # NO unique: 2 normas distintas (números distintos) pueden tener
+        # el mismo sumario corto (ej. "Recházase recurso" en 5 decretos
+        # de un mismo día). El hash sigue siendo útil como índice de
+        # búsqueda y cache de clasificación.
+        Index("ix_norma_bo_hash_sumario", "hash_sumario"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
