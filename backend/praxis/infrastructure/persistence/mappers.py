@@ -93,6 +93,7 @@ from praxis.infrastructure.persistence.models import (
     NormaBOTextoOrm,
     OrdenDelDiaOrm,
     PerfilInteresDespachoOrm,
+    PerfilOpositorDespachoOrm,
     PlantillaWhatsAppOrm,
     ResumenEjecutivoOrm,
     SeguimientoExpedienteOrm,
@@ -766,6 +767,73 @@ def from_perfil_interes(
         aliases_legislador=list(domain.aliases_legislador),
         sembrado_at=domain.sembrado_at,
         editado_at=domain.editado_at,
+    )
+
+
+# ---------------------------------------------------------------------------
+# PerfilOpositorDespacho (feat-42.1)
+# ---------------------------------------------------------------------------
+
+
+def _figura_to_dict(f) -> dict[str, str]:  # type: ignore[no-untyped-def]
+    return {"nombre": f.nombre, "razon": f.razon}
+
+
+def _dict_to_figura(d: dict[str, str]):  # type: ignore[no-untyped-def]
+    from praxis.domain import FiguraReferida
+    return FiguraReferida(nombre=d.get("nombre", ""), razon=d.get("razon", ""))
+
+
+def to_perfil_opositor(orm: PerfilOpositorDespachoOrm):  # type: ignore[no-untyped-def]
+    from praxis.domain import (
+        ConfianzaGlobal,
+        PerfilOpositorDespacho,
+        TonoComunicacional,
+    )
+    try:
+        tono = TonoComunicacional(orm.tono_comunicacional)
+    except ValueError:
+        tono = TonoComunicacional.MIXTO
+    try:
+        confianza = ConfianzaGlobal(orm.confianza_global)
+    except ValueError:
+        confianza = ConfianzaGlobal.MEDIA
+    return PerfilOpositorDespacho(
+        despacho_id=orm.despacho_id,
+        bandera_principal=orm.bandera_principal,
+        banderas_secundarias=list(orm.banderas_secundarias),
+        temas_de_cuidado=list(orm.temas_de_cuidado),
+        tono_comunicacional=tono,
+        adversarios=[_dict_to_figura(d) for d in orm.adversarios],
+        aliados=[_dict_to_figura(d) for d in orm.aliados],
+        linea_de_bloque=orm.linea_de_bloque,
+        justificacion_evidencia=orm.justificacion_evidencia,
+        advertencias=list(orm.advertencias),
+        confianza_global=confianza,
+        inferido_en=orm.inferido_en,
+        editado_en=orm.editado_en,
+        modelo_inferencia=orm.modelo_inferencia,
+        prompt_version=orm.prompt_version,
+    )
+
+
+def from_perfil_opositor(domain) -> PerfilOpositorDespachoOrm:  # type: ignore[no-untyped-def]
+    return PerfilOpositorDespachoOrm(
+        despacho_id=domain.despacho_id,
+        bandera_principal=domain.bandera_principal,
+        banderas_secundarias=list(domain.banderas_secundarias),
+        temas_de_cuidado=list(domain.temas_de_cuidado),
+        tono_comunicacional=domain.tono_comunicacional.value,
+        adversarios=[_figura_to_dict(f) for f in domain.adversarios],
+        aliados=[_figura_to_dict(f) for f in domain.aliados],
+        linea_de_bloque=domain.linea_de_bloque,
+        justificacion_evidencia=domain.justificacion_evidencia,
+        advertencias=list(domain.advertencias),
+        confianza_global=domain.confianza_global.value,
+        inferido_en=domain.inferido_en,
+        editado_en=domain.editado_en,
+        modelo_inferencia=domain.modelo_inferencia,
+        prompt_version=domain.prompt_version,
     )
 
 

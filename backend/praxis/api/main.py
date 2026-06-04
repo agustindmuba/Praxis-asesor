@@ -144,6 +144,7 @@ from praxis.api.routers import seguimientos as seguimientos_router  # noqa: E402
 from praxis.api.routers import webhooks as webhooks_router  # noqa: E402
 from praxis.api.routers import webhooks_whatsapp as webhooks_whatsapp_router  # noqa: E402
 from praxis.api.routers import whatsapp as whatsapp_router  # noqa: E402
+from praxis.api.routers import perfil_opositor as perfil_opositor_router  # noqa: E402
 
 API_V1 = "/api/v1"
 app.include_router(auth_router.router, prefix=API_V1)
@@ -160,6 +161,7 @@ app.include_router(webhooks_whatsapp_router.router, prefix=API_V1)
 app.include_router(whatsapp_router.router_destinatarios, prefix=API_V1)
 app.include_router(whatsapp_router.router_envios, prefix=API_V1)
 app.include_router(whatsapp_router.router_plantillas, prefix=API_V1)
+app.include_router(perfil_opositor_router.router, prefix=API_V1)
 
 
 # -----------------------------------------------------------------------------

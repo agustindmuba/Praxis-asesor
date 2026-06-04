@@ -6,7 +6,14 @@
  * recientes. El form de creación/edición es un Client Component
  * separado.
  */
-import { ExternalLink, MessageCircle, Send, UserPlus } from "lucide-react";
+import Link from "next/link";
+import {
+  ExternalLink,
+  MessageCircle,
+  Send,
+  Sparkles,
+  UserPlus,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -88,10 +95,44 @@ export default async function ConfiguracionPage() {
         </p>
       </header>
 
+      <PerfilOpositorLink />
+
       <DestinatariosSection destinatarios={destinatarios} />
 
       <EnviosSection envios={envios} />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Perfil opositor (link a /configuracion/perfil-opositor)
+// ---------------------------------------------------------------------------
+
+function PerfilOpositorLink() {
+  return (
+    <Link
+      href="/configuracion/perfil-opositor"
+      className="block"
+    >
+      <Card className="group border-border bg-card p-5 shadow-none transition-colors hover:border-[var(--color-praxis-salmon)]">
+        <div className="flex items-start gap-3">
+          <div className="rounded-md bg-[var(--color-praxis-salmon)]/10 p-2.5">
+            <Sparkles className="size-5 text-[var(--color-praxis-salmon)]" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-[var(--color-praxis-azul)] group-hover:underline">
+              Perfil opositor
+            </h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Línea política del despacho — bandera principal, tono,
+              adversarios, aliados, temas de cuidado. Se infiere desde
+              proyectos + votaciones; lo editás vos.
+            </p>
+          </div>
+          <ExternalLink className="size-3.5 text-muted-foreground" />
+        </div>
+      </Card>
+    </Link>
   );
 }
 

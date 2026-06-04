@@ -45,6 +45,7 @@ from praxis.domain import (
     NumeroExpediente,
     OrdenDelDia,
     PerfilInteresDespacho,
+    PerfilOpositorDespacho,
     PlantillaWhatsApp,
     ResultadoBusqueda,
     ResumenEjecutivo,
@@ -383,6 +384,25 @@ class LlmProvider(ABC):
     @abstractmethod
     def nombre_modelo(self) -> str:
         """Identificador del modelo, ej. 'fake' o 'claude-sonnet-4-5-...'."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def razonar_libre(
+        self,
+        *,
+        system: str,
+        user: str,
+        max_tokens: int = 2000,
+    ) -> tuple[str, str]:
+        """Escape hatch para casos de uso que necesitan razonamiento
+        libre (no parsing estructurado del provider).
+
+        Devuelve (texto_crudo, nombre_modelo_real). El caller parsea
+        el JSON/markdown que venga. Útil para perfilamiento, análisis
+        accionable, generación de tweets, etc. (feat-42).
+
+        FakeLlmProvider devuelve un payload mínimo válido para tests;
+        AnthropicLlmProvider llama al modelo real."""
         raise NotImplementedError
 
     @abstractmethod
@@ -1037,6 +1057,26 @@ class MencionRepository(ABC):
         Devuelve cuántas filas se actualizaron. Llamado por
         `EnviarAlertaMencion` en la misma transacción que la creación
         de `AlertaMencionEnviada` (atomicidad anti-flood)."""
+        raise NotImplementedError
+
+
+class PerfilOpositorRepository(ABC):
+    """Puerto: persistencia del `PerfilOpositorDespacho` (feat-42.1).
+
+    1 fila por despacho. Upsert reemplaza entera. Caller decide si
+    setear `inferido_en` (bot) o `editado_en` (manual).
+    """
+
+    @abstractmethod
+    async def buscar_por_despacho(
+        self, despacho_id: UUID,
+    ) -> PerfilOpositorDespacho | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def upsert(
+        self, perfil: PerfilOpositorDespacho,
+    ) -> PerfilOpositorDespacho:
         raise NotImplementedError
 
 

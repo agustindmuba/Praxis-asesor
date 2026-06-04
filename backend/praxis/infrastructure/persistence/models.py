@@ -647,6 +647,68 @@ class PerfilInteresDespachoOrm(Base, TimestampsMixin, kw_only=True):
 
 
 # ---------------------------------------------------------------------------
+# Perfil OPOSITOR del despacho (feat-42.1 — distinto del de interés).
+# ---------------------------------------------------------------------------
+
+
+class PerfilOpositorDespachoOrm(Base, TimestampsMixin, kw_only=True):
+    """Perfil narrativo del despacho — qué milita, contra qué, con qué tono.
+
+    Generado por bot (Sonnet sobre huella parlamentaria) y editado por
+    asesor. 1 fila por despacho. Listas + figuras como JSON.
+    """
+
+    __tablename__ = "perfil_opositor_despacho"
+
+    despacho_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    bandera_principal: Mapped[str] = mapped_column(Text, nullable=False)
+    banderas_secundarias: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    temas_de_cuidado: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    tono_comunicacional: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="mixto",
+    )
+    adversarios: Mapped[list[dict[str, str]]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    aliados: Mapped[list[dict[str, str]]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    linea_de_bloque: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    justificacion_evidencia: Mapped[str] = mapped_column(
+        Text, nullable=False, default="",
+    )
+    advertencias: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    confianza_global: Mapped[str] = mapped_column(
+        String(10), nullable=False, default="media",
+    )
+    inferido_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
+    editado_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
+    modelo_inferencia: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, default=None,
+    )
+    prompt_version: Mapped[str] = mapped_column(
+        String(10), nullable=False, default="v1",
+    )
+
+    def __repr__(self) -> str:
+        return f"PerfilOpositorDespachoOrm(despacho_id={self.despacho_id!r})"
+
+
+# ---------------------------------------------------------------------------
 # Boletín Oficial (spec 15)
 # ---------------------------------------------------------------------------
 

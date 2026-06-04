@@ -42,6 +42,30 @@ class FakeLlmProvider(LlmProvider):
     def nombre_modelo(self) -> str:
         return FAKE_MODEL_NAME
 
+    async def razonar_libre(
+        self,
+        *,
+        system: str,
+        user: str,
+        max_tokens: int = 2000,
+    ) -> tuple[str, str]:
+        # Devuelve un JSON mínimo válido para que los tests del use case
+        # de perfilamiento pasen sin gastar API.
+        import json as _json
+        payload = {
+            "bandera_principal": "Defensa de la institucionalidad y control parlamentario",
+            "banderas_secundarias": ["Transparencia", "Salud pública", "Federalismo"],
+            "temas_de_cuidado": ["Política exterior", "Seguridad"],
+            "tono_comunicacional": "tecnico-juridico",
+            "adversarios_inferidos": [],
+            "aliados_inferidos": [],
+            "linea_de_bloque": "oposición dialogal",
+            "justificacion_evidencia": "(fake llm — sin razonamiento real)",
+            "confianza_global": "baja",
+            "advertencias": ["Generado por FakeLlmProvider — no usar en producción."],
+        }
+        return _json.dumps(payload, ensure_ascii=False), FAKE_MODEL_NAME
+
     async def generar_resumen_ejecutivo(self, expediente: Expediente) -> str:
         que_propone = _qué_propone(expediente)
         quien = _quien_lo_impulsa(expediente)

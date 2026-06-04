@@ -87,6 +87,25 @@ class AnthropicLlmProvider(LlmProvider):
         return self._model
 
     # ------------------------------------------------------------------
+    # Razonamiento libre (escape hatch para feat-42)
+    # ------------------------------------------------------------------
+
+    async def razonar_libre(
+        self,
+        *,
+        system: str,
+        user: str,
+        max_tokens: int = 2000,
+    ) -> tuple[str, str]:
+        resp = await self._client.messages.create(
+            model=self._model,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        return resp.content[0].text, self._model
+
+    # ------------------------------------------------------------------
     # Resumen ejecutivo (3 bullets markdown)
     # ------------------------------------------------------------------
 

@@ -361,3 +361,37 @@ export function listarPlantillasWhatsApp(
     next: { revalidate: 3600 },
   });
 }
+
+// ---------------------------------------------------------------------------
+// /perfil-opositor (feat-42.1)
+// ---------------------------------------------------------------------------
+
+import type {
+  ActualizarPerfilBody,
+  InferirPerfilBody,
+  PerfilOpositorDTO,
+} from "./types";
+
+export function getPerfilOpositor(ctx: ApiContext) {
+  return apiGet<PerfilOpositorDTO | null>("/api/v1/perfil-opositor", { ctx });
+}
+
+export function inferirPerfilOpositor(
+  ctx: ApiContext,
+  body: InferirPerfilBody,
+) {
+  return apiPost<PerfilOpositorDTO>(
+    "/api/v1/perfil-opositor/inferir",
+    body,
+    { ctx },
+  );
+}
+
+export function actualizarPerfilOpositor(
+  ctx: ApiContext,
+  body: ActualizarPerfilBody,
+) {
+  return apiPatch<PerfilOpositorDTO>("/api/v1/perfil-opositor", body, {
+    ctx,
+  });
+}
