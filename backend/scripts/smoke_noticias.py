@@ -143,6 +143,34 @@ FUENTES_SEED: list[FuenteNoticia] = [
         modo_acceso=ModoAccesoFuente.RSS,
         feed_url="https://www.parlamentario.com/feed/",
     ),
+    FuenteNoticia(
+        id=None,
+        nombre="TN",
+        dominio="tn.com.ar",
+        tipo=TipoFuenteNoticia.NACIONAL,
+        alcance=AlcanceMedio.NACIONAL,
+        modo_acceso=ModoAccesoFuente.RSS,
+        feed_url="https://tn.com.ar/feed/",
+    ),
+    FuenteNoticia(
+        id=None,
+        nombre="elDiarioAR",
+        dominio="eldiarioar.com",
+        tipo=TipoFuenteNoticia.NACIONAL,
+        alcance=AlcanceMedio.NACIONAL,
+        modo_acceso=ModoAccesoFuente.RSS,
+        feed_url="https://eldiarioar.com/rss/",
+    ),
+    FuenteNoticia(
+        id=None,
+        nombre="La Voz del Interior (Política)",
+        dominio="lavoz.com.ar",
+        tipo=TipoFuenteNoticia.DISTRITAL,
+        alcance=AlcanceMedio.PROVINCIAL,
+        modo_acceso=ModoAccesoFuente.RSS,
+        feed_url="https://www.lavoz.com.ar/rss/politica.xml",
+        distrito="Córdoba",
+    ),
 ]
 
 
@@ -396,7 +424,95 @@ async def main(args: argparse.Namespace) -> int:
                 for e in errores:
                     print(f"    - {e}")
 
+    # Detalle de relevantes encontrados (validación semántica).
+    await _imprimir_relevantes(sessionmaker, despacho.id)
+    await _imprimir_menciones(sessionmaker, despacho.id)
+
     return 0
+
+
+async def _imprimir_relevantes(sessionmaker, despacho_id) -> None:  # type: ignore[no-untyped-def]
+    """Imprime el detalle de ArticuloRelevante encontrados, ordenados
+    por score desc. Para validar manualmente que el LLM clasificó
+    razonablemente y que el scoring matcheó."""
+    from praxis.infrastructure.persistence.models import (
+        ArticuloOrm,
+        ArticuloRelevanteOrm,
+        FuenteNoticiaOrm,
+    )
+    from sqlalchemy import select
+
+    async with sessionmaker() as session:
+        stmt = (
+            select(
+                ArticuloRelevanteOrm,
+                ArticuloOrm,
+                FuenteNoticiaOrm,
+            )
+            .join(ArticuloOrm, ArticuloRelevanteOrm.articulo_id == ArticuloOrm.id)
+            .join(FuenteNoticiaOrm, ArticuloOrm.fuente_id == FuenteNoticiaOrm.id)
+            .where(ArticuloRelevanteOrm.despacho_id == despacho_id)
+            .order_by(ArticuloRelevanteOrm.score.desc())
+        )
+        result = await session.execute(stmt)
+        filas = list(result.all())
+
+    if not filas:
+        print()
+        print("Sin ArticuloRelevante. El perfil quizá es muy específico para")
+        print("la muestra random — probá subiendo --max-articulos-por-fuente.")
+        return
+
+    print()
+    print("=" * 78)
+    print(f"ARTÍCULOS RELEVANTES ({len(filas)}):")
+    print("-" * 78)
+    for rel, art, fuente in filas:
+        titulo = art.titulo[:75]
+        razon = rel.razon[:60]
+        print(f"  [{rel.score:>3}] {fuente.dominio:<22} {titulo}")
+        print(f"        razón: {razon}")
+        print(f"        url:   {art.url[:75]}")
+    print("=" * 78)
+
+
+async def _imprimir_menciones(sessionmaker, despacho_id) -> None:  # type: ignore[no-untyped-def]
+    """Imprime las menciones detectadas (regex + LLM disambig confirmado)."""
+    from praxis.infrastructure.persistence.models import (
+        ArticuloOrm,
+        FuenteNoticiaOrm,
+        MencionOrm,
+    )
+    from sqlalchemy import select
+
+    async with sessionmaker() as session:
+        stmt = (
+            select(MencionOrm, ArticuloOrm, FuenteNoticiaOrm)
+            .join(ArticuloOrm, MencionOrm.articulo_id == ArticuloOrm.id)
+            .join(FuenteNoticiaOrm, ArticuloOrm.fuente_id == FuenteNoticiaOrm.id)
+            .where(MencionOrm.despacho_id == despacho_id)
+            .order_by(MencionOrm.detectado_en.desc())
+        )
+        result = await session.execute(stmt)
+        filas = list(result.all())
+
+    if not filas:
+        print()
+        print("Sin MENCIONES explícitas del legislador en esta muestra. "
+              "Esperable")
+        print("en N=25-50 artículos random; para validar el detector con datos")
+        print("reales, hay que esperar a que algún medio mencione a Juliano.")
+        return
+
+    print()
+    print("=" * 78)
+    print(f"MENCIONES DETECTADAS ({len(filas)}):")
+    print("-" * 78)
+    for men, art, fuente in filas:
+        print(f"  [{men.tono.value:<8} conf={men.confianza_tono:.2f}] "
+              f"{fuente.dominio} — {art.titulo[:55]}")
+        print(f"        snippet: \"{men.snippet_contexto[:120]}\"")
+    print("=" * 78)
 
 
 def parse_args() -> argparse.Namespace:
@@ -409,8 +525,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--max-articulos-por-fuente",
         type=int,
-        default=5,
-        help="Cap de candidatos a procesar por fuente (default 5).",
+        default=10,
+        help="Cap de candidatos a procesar por fuente (default 10).",
     )
     p.add_argument(
         "--ventana-dias",
