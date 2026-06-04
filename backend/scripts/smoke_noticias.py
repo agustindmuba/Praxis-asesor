@@ -298,10 +298,20 @@ async def _seed_despacho_y_fuentes(
 
 
 async def main(args: argparse.Namespace) -> int:
-    db_url = f"sqlite+aiosqlite:///{DB_FILE.as_posix()}"
-    log.info("DB de smoke: %s", DB_FILE)
-    engine = create_async_engine(db_url, echo=False)
-    event.listen(engine.sync_engine, "connect", _enable_fk)
+    # Default: SQLite local idempotente. Con --usar-db-real usa la
+    # DATABASE_URL del .env (Postgres en compose). Útil para poblar
+    # la DB de develop con datos navegables en la UI.
+    if args.usar_db_real:
+        settings = get_settings()
+        db_url = str(settings.database_url)
+        log.info("DB real (Postgres): %s",
+                 db_url.split("@")[-1] if "@" in db_url else db_url)
+        engine = create_async_engine(db_url, echo=False)
+    else:
+        db_url = f"sqlite+aiosqlite:///{DB_FILE.as_posix()}"
+        log.info("DB de smoke (SQLite): %s", DB_FILE)
+        engine = create_async_engine(db_url, echo=False)
+        event.listen(engine.sync_engine, "connect", _enable_fk)
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -533,6 +543,14 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=7,
         help="Ventana temporal hacia atrás en días (default 7).",
+    )
+    p.add_argument(
+        "--usar-db-real",
+        action="store_true",
+        help=(
+            "Usar la DATABASE_URL del .env (Postgres) en vez de SQLite "
+            "local. Útil para poblar la DB de develop con datos navegables."
+        ),
     )
     return p.parse_args()
 
