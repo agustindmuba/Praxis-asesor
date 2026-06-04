@@ -568,3 +568,55 @@ export interface PlantillaWhatsAppDTO {
   aprobada_en: string | null;
   contenido_referencia: string;
 }
+
+// ---------------------------------------------------------------------------
+// Perfil opositor (feat-42.1)
+// ---------------------------------------------------------------------------
+
+export type TonoComunicacional =
+  | "tecnico-juridico"
+  | "militante-bloque"
+  | "dialogal-conciliador"
+  | "frontal-confrontativo"
+  | "ironico"
+  | "mixto";
+
+export type ConfianzaGlobal = "alta" | "media" | "baja";
+
+export interface FiguraReferidaDTO {
+  nombre: string;
+  razon: string;
+}
+
+export interface PerfilOpositorDTO {
+  despacho_id: string;
+  bandera_principal: string;
+  banderas_secundarias: string[];
+  temas_de_cuidado: string[];
+  tono_comunicacional: TonoComunicacional;
+  adversarios: FiguraReferidaDTO[];
+  aliados: FiguraReferidaDTO[];
+  linea_de_bloque: string;
+  justificacion_evidencia: string;
+  advertencias: string[];
+  confianza_global: ConfianzaGlobal;
+  inferido_en: string | null;
+  editado_en: string | null;
+  modelo_inferencia: string | null;
+  prompt_version: string;
+}
+
+export interface InferirPerfilBody {
+  nombre_legislador: string;
+  max_votaciones?: number;
+}
+
+export interface ActualizarPerfilBody {
+  bandera_principal?: string;
+  banderas_secundarias?: string[];
+  temas_de_cuidado?: string[];
+  tono_comunicacional?: TonoComunicacional;
+  adversarios?: FiguraReferidaDTO[];
+  aliados?: FiguraReferidaDTO[];
+  linea_de_bloque?: string;
+}

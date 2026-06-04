@@ -107,6 +107,13 @@ from praxis.domain.noticia import (
 )
 from praxis.domain.orden_del_dia import FuenteOd, OrdenDelDia
 from praxis.domain.perfil_interes_despacho import PerfilInteresDespacho
+from praxis.domain.perfil_opositor import (
+    PERFIL_OPOSITOR_PROMPT_VERSION,
+    ConfianzaGlobal,
+    FiguraReferida,
+    PerfilOpositorDespacho,
+    TonoComunicacional,
+)
 from praxis.domain.resumen_ejecutivo import PROMPT_VERSION, ResumenEjecutivo
 from praxis.domain.seguimiento import Prioridad, SeguimientoExpediente
 from praxis.domain.tramite_historico import (
@@ -212,6 +219,11 @@ __all__ = [
     "OrdenDelDia",
     "OrigenExpediente",
     "PerfilInteresDespacho",
+    "PERFIL_OPOSITOR_PROMPT_VERSION",
+    "ConfianzaGlobal",
+    "FiguraReferida",
+    "PerfilOpositorDespacho",
+    "TonoComunicacional",
     "PlantillaWhatsApp",
     "Prioridad",
     "PrioridadAccionabilidad",
