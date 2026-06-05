@@ -10,11 +10,18 @@
 import Link from "next/link";
 import { ExternalLink, Newspaper, Radio } from "lucide-react";
 
+import { AccionablePanel } from "@/components/features/accionable/accionable-panel";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { getApiContextServer } from "@/lib/api/context-server";
-import { listarNoticiasRelevantes } from "@/lib/api/endpoints";
-import type { ArticuloRelevanteConArticuloDTO } from "@/lib/api/types";
+import {
+  getAccionableArticulo,
+  listarNoticiasRelevantes,
+} from "@/lib/api/endpoints";
+import type {
+  AccionableDTO,
+  ArticuloRelevanteConArticuloDTO,
+} from "@/lib/api/types";
 
 export const metadata = { title: "Noticias" };
 
@@ -43,6 +50,11 @@ function formatPublicado(iso: string | null): string {
 export default async function NoticiasPage() {
   const ctx = await getApiContextServer();
   const noticias = await listarNoticiasRelevantes(ctx, 20).catch(() => []);
+  const accionables = await Promise.all(
+    noticias.map((n) =>
+      getAccionableArticulo(ctx, n.articulo.id).catch(() => null),
+    ),
+  );
 
   return (
     <div className="space-y-8">
@@ -72,8 +84,12 @@ export default async function NoticiasPage() {
         </Card>
       ) : (
         <ul className="space-y-2.5">
-          {noticias.map((n) => (
-            <NoticiaItem key={n.articulo.id} item={n} />
+          {noticias.map((n, i) => (
+            <NoticiaItem
+              key={n.articulo.id}
+              item={n}
+              accionable={accionables[i] ?? null}
+            />
           ))}
         </ul>
       )}
@@ -81,7 +97,13 @@ export default async function NoticiasPage() {
   );
 }
 
-function NoticiaItem({ item }: { item: ArticuloRelevanteConArticuloDTO }) {
+function NoticiaItem({
+  item,
+  accionable,
+}: {
+  item: ArticuloRelevanteConArticuloDTO;
+  accionable: AccionableDTO | null;
+}) {
   const { relevante, articulo, fuente, clasificacion } = item;
   const color = scoreColor(relevante.score);
 
@@ -145,6 +167,11 @@ function NoticiaItem({ item }: { item: ArticuloRelevanteConArticuloDTO }) {
           </a>
         </div>
       </div>
+      <AccionablePanel
+        tipo="articulo"
+        eventoId={articulo.id}
+        inicial={accionable}
+      />
     </Card>
   );
 }

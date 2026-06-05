@@ -36,6 +36,9 @@ from praxis.infrastructure.persistence.repositories.noticia import (
 from praxis.infrastructure.persistence.repositories.orden_del_dia import (
     SqlAlchemyOrdenDelDiaRepository,
 )
+from praxis.infrastructure.persistence.repositories.accionable import (
+    SqlAlchemyAccionableEventoRepository,
+)
 from praxis.infrastructure.persistence.repositories.perfil_interes_despacho import (
     SqlAlchemyPerfilInteresDespachoRepository,
 )
@@ -79,6 +82,7 @@ __all__ = [
     "SqlAlchemyNormaBORepository",
     "SqlAlchemyNormaBOTextoRepository",
     "SqlAlchemyOrdenDelDiaRepository",
+    "SqlAlchemyAccionableEventoRepository",
     "SqlAlchemyPerfilInteresDespachoRepository",
     "SqlAlchemyPerfilOpositorRepository",
     "SqlAlchemyPlantillaWhatsAppRepository",

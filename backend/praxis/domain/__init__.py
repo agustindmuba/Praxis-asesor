@@ -106,6 +106,15 @@ from praxis.domain.noticia import (
     hash_url,
 )
 from praxis.domain.orden_del_dia import FuenteOd, OrdenDelDia
+from praxis.domain.accionable import (
+    ACCION_LABELS,
+    ACCIONABLE_PROMPT_VERSION,
+    AccionableEvento,
+    AccionSugerida,
+    ConfianzaAccionable,
+    TipoEvento,
+    TweetSugerido,
+)
 from praxis.domain.perfil_interes_despacho import PerfilInteresDespacho
 from praxis.domain.perfil_opositor import (
     PERFIL_OPOSITOR_PROMPT_VERSION,
@@ -219,6 +228,13 @@ __all__ = [
     "OrdenDelDia",
     "OrigenExpediente",
     "PerfilInteresDespacho",
+    "ACCION_LABELS",
+    "ACCIONABLE_PROMPT_VERSION",
+    "AccionableEvento",
+    "AccionSugerida",
+    "ConfianzaAccionable",
+    "TipoEvento",
+    "TweetSugerido",
     "PERFIL_OPOSITOR_PROMPT_VERSION",
     "ConfianzaGlobal",
     "FiguraReferida",

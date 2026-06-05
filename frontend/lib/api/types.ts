@@ -620,3 +620,44 @@ export interface ActualizarPerfilBody {
   aliados?: FiguraReferidaDTO[];
   linea_de_bloque?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Accionables (feat-42.2)
+// ---------------------------------------------------------------------------
+
+export type TipoEvento = "norma_bo" | "articulo";
+
+export type AccionSugerida =
+  | "pedido_informes"
+  | "proyecto_contraposicion"
+  | "declaracion_camara"
+  | "silencio_estrategico"
+  | "retweet_critico"
+  | "retweet_apoyo"
+  | "articulo_opinion"
+  | "interpelacion"
+  | "otro";
+
+export type ConfianzaAccionable = "alta" | "media" | "baja";
+
+export interface TweetSugeridoDTO {
+  tono: string;
+  texto: string;
+  caracteres: number;
+}
+
+export interface AccionableDTO {
+  id: string | null;
+  despacho_id: string;
+  tipo_evento: TipoEvento;
+  evento_id: string;
+  razon_para_despacho: string;
+  accion_sugerida: AccionSugerida;
+  explicacion_accion: string;
+  tweets_sugeridos: TweetSugeridoDTO[];
+  confianza: ConfianzaAccionable;
+  generado_en: string | null;
+  editado_en: string | null;
+  modelo: string | null;
+  prompt_version: string;
+}
