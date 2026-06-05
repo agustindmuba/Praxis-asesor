@@ -92,6 +92,7 @@ from praxis.infrastructure.persistence.models import (
     NormaBOOrm,
     NormaBOTextoOrm,
     OrdenDelDiaOrm,
+    AccionableEventoOrm,
     PerfilInteresDespachoOrm,
     PerfilOpositorDespachoOrm,
     PlantillaWhatsAppOrm,
@@ -767,6 +768,78 @@ def from_perfil_interes(
         aliases_legislador=list(domain.aliases_legislador),
         sembrado_at=domain.sembrado_at,
         editado_at=domain.editado_at,
+    )
+
+
+# ---------------------------------------------------------------------------
+# AccionableEvento (feat-42.2)
+# ---------------------------------------------------------------------------
+
+
+def to_accionable(orm: AccionableEventoOrm):  # type: ignore[no-untyped-def]
+    from praxis.domain import (
+        AccionableEvento,
+        AccionSugerida,
+        ConfianzaAccionable,
+        TipoEvento,
+        TweetSugerido,
+    )
+    try:
+        tipo = TipoEvento(orm.tipo_evento)
+    except ValueError:
+        tipo = TipoEvento.NORMA_BO
+    try:
+        accion = AccionSugerida(orm.accion_sugerida)
+    except ValueError:
+        accion = AccionSugerida.OTRO
+    try:
+        confianza = ConfianzaAccionable(orm.confianza)
+    except ValueError:
+        confianza = ConfianzaAccionable.MEDIA
+    tweets = [
+        TweetSugerido(
+            tono=t.get("tono", "neutro"),
+            texto=t.get("texto", ""),
+            caracteres=int(t.get("caracteres", 0)),
+        )
+        for t in (orm.tweets_sugeridos or [])
+        if t.get("texto")
+    ]
+    return AccionableEvento(
+        id=orm.id,
+        despacho_id=orm.despacho_id,
+        tipo_evento=tipo,
+        evento_id=orm.evento_id,
+        razon_para_despacho=orm.razon_para_despacho,
+        accion_sugerida=accion,
+        explicacion_accion=orm.explicacion_accion,
+        tweets_sugeridos=tweets,
+        confianza=confianza,
+        generado_en=orm.generado_en,
+        editado_en=orm.editado_en,
+        modelo=orm.modelo,
+        prompt_version=orm.prompt_version,
+    )
+
+
+def from_accionable(domain) -> AccionableEventoOrm:  # type: ignore[no-untyped-def]
+    return AccionableEventoOrm(
+        id=domain.id,
+        despacho_id=domain.despacho_id,
+        tipo_evento=domain.tipo_evento.value,
+        evento_id=domain.evento_id,
+        razon_para_despacho=domain.razon_para_despacho,
+        accion_sugerida=domain.accion_sugerida.value,
+        explicacion_accion=domain.explicacion_accion,
+        tweets_sugeridos=[
+            {"tono": t.tono, "texto": t.texto, "caracteres": t.caracteres}
+            for t in domain.tweets_sugeridos
+        ],
+        confianza=domain.confianza.value,
+        generado_en=domain.generado_en,
+        editado_en=domain.editado_en,
+        modelo=domain.modelo,
+        prompt_version=domain.prompt_version,
     )
 
 

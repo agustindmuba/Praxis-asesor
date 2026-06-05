@@ -395,3 +395,46 @@ export function actualizarPerfilOpositor(
     ctx,
   });
 }
+
+// ---------------------------------------------------------------------------
+// /accionables (feat-42.2)
+// ---------------------------------------------------------------------------
+
+import type { AccionableDTO } from "./types";
+
+export function getAccionableBo(ctx: ApiContext, normaId: string) {
+  return apiGet<AccionableDTO | null>(`/api/v1/accionables/bo/${normaId}`, {
+    ctx,
+  });
+}
+
+export function generarAccionableBo(
+  ctx: ApiContext,
+  normaId: string,
+  opts?: { regenerar?: boolean },
+) {
+  return apiPost<AccionableDTO>(
+    `/api/v1/accionables/bo/${normaId}/generar?regenerar=${opts?.regenerar ?? false}`,
+    {},
+    { ctx },
+  );
+}
+
+export function getAccionableArticulo(ctx: ApiContext, articuloId: string) {
+  return apiGet<AccionableDTO | null>(
+    `/api/v1/accionables/articulo/${articuloId}`,
+    { ctx },
+  );
+}
+
+export function generarAccionableArticulo(
+  ctx: ApiContext,
+  articuloId: string,
+  opts?: { regenerar?: boolean },
+) {
+  return apiPost<AccionableDTO>(
+    `/api/v1/accionables/articulo/${articuloId}/generar?regenerar=${opts?.regenerar ?? false}`,
+    {},
+    { ctx },
+  );
+}

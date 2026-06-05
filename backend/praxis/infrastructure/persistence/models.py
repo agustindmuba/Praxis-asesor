@@ -709,6 +709,72 @@ class PerfilOpositorDespachoOrm(Base, TimestampsMixin, kw_only=True):
 
 
 # ---------------------------------------------------------------------------
+# Accionable enriquecido con perfil opositor (feat-42.2 — A+B+F).
+# ---------------------------------------------------------------------------
+
+
+class AccionableEventoOrm(Base, kw_only=True):
+    """Accionable generado por LLM sobre un evento (norma BO o artículo).
+
+    Polimórfico por `(tipo_evento, evento_id)`. UNIQUE en
+    `(despacho_id, tipo_evento, evento_id)` → 1 por evento por despacho.
+    Regeneración = upsert.
+    """
+
+    __tablename__ = "accionable_evento"
+    __table_args__ = (
+        UniqueConstraint(
+            "despacho_id", "tipo_evento", "evento_id",
+            name="uq_accionable_evento_despacho_evento",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    despacho_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    tipo_evento: Mapped[str] = mapped_column(String(20), nullable=False)
+    evento_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
+
+    razon_para_despacho: Mapped[str] = mapped_column(Text, nullable=False)
+    accion_sugerida: Mapped[str] = mapped_column(String(40), nullable=False)
+    explicacion_accion: Mapped[str] = mapped_column(Text, nullable=False)
+    tweets_sugeridos: Mapped[list[dict]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    confianza: Mapped[str] = mapped_column(
+        String(10), nullable=False, default="media",
+    )
+
+    generado_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
+    editado_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
+    modelo: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, default=None,
+    )
+    prompt_version: Mapped[str] = mapped_column(
+        String(10), nullable=False, default="v1",
+    )
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=sa_func_now(),
+        init=False,
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"AccionableEventoOrm(id={self.id!r}, despacho_id={self.despacho_id!r}, "
+            f"tipo={self.tipo_evento!r}, evento={self.evento_id!r})"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Boletín Oficial (spec 15)
 # ---------------------------------------------------------------------------
 

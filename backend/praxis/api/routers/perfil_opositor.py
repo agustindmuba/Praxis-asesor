@@ -53,7 +53,6 @@ from praxis.infrastructure.persistence.repositories import (
 )
 
 router = APIRouter(prefix="/perfil-opositor", tags=["perfil-opositor"])
-# reload-bump
 
 
 @router.get(
@@ -141,6 +140,3 @@ async def actualizar_perfil(
     nuevo = await repo.upsert(actual)
     await session.commit()
     return _to_dto(nuevo)
-
-
-# bump-3

@@ -44,8 +44,10 @@ from praxis.domain import (
     NormaBOTexto,
     NumeroExpediente,
     OrdenDelDia,
+    AccionableEvento,
     PerfilInteresDespacho,
     PerfilOpositorDespacho,
+    TipoEvento,
     PlantillaWhatsApp,
     ResultadoBusqueda,
     ResumenEjecutivo,
@@ -1057,6 +1059,39 @@ class MencionRepository(ABC):
         Devuelve cuántas filas se actualizaron. Llamado por
         `EnviarAlertaMencion` en la misma transacción que la creación
         de `AlertaMencionEnviada` (atomicidad anti-flood)."""
+        raise NotImplementedError
+
+
+class AccionableEventoRepository(ABC):
+    """Puerto: persistencia de `AccionableEvento` (feat-42.2).
+
+    Polimórfico por (tipo_evento, evento_id). UNIQUE por
+    (despacho_id, tipo_evento, evento_id) → upsert reemplaza.
+    """
+
+    @abstractmethod
+    async def buscar_por_evento(
+        self,
+        *,
+        despacho_id: UUID,
+        tipo_evento: "TipoEvento",
+        evento_id: UUID,
+    ) -> "AccionableEvento | None":
+        raise NotImplementedError
+
+    @abstractmethod
+    async def upsert(
+        self, accionable: "AccionableEvento",
+    ) -> "AccionableEvento":
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_por_despacho_y_tipo(
+        self,
+        *,
+        despacho_id: UUID,
+        tipo_evento: "TipoEvento",
+    ) -> "list[AccionableEvento]":
         raise NotImplementedError
 
 

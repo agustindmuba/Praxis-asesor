@@ -14,10 +14,12 @@
 import Link from "next/link";
 import { ExternalLink, FileText, Newspaper, RefreshCw } from "lucide-react";
 
+import { AccionablePanel } from "@/components/features/accionable/accionable-panel";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { getApiContextServer } from "@/lib/api/context-server";
 import {
+  getAccionableBo,
   listarAccionablesBO,
   listarNormasBO,
 } from "@/lib/api/endpoints";
@@ -70,6 +72,15 @@ export default async function BOPage({ searchParams }: PageProps) {
     listarAccionablesBO(ctx, fecha, 20).catch(() => []),
   ]);
 
+  // Fetch en paralelo de los accionables enriquecidos por cada norma.
+  // Cacheados → respuesta rápida. Los no cacheados quedan en null;
+  // el AccionablePanel ofrece CTA "Generar acción".
+  const accionablesEnriquecidos = await Promise.all(
+    accionables.map((a) =>
+      getAccionableBo(ctx, a.norma.id).catch(() => null),
+    ),
+  );
+
   return (
     <div className="space-y-8">
       <header>
@@ -84,7 +95,11 @@ export default async function BOPage({ searchParams }: PageProps) {
         </p>
       </header>
 
-      <AccionablesSection accionables={accionables} fecha={fecha} />
+      <AccionablesSection
+        accionables={accionables}
+        accionablesEnriquecidos={accionablesEnriquecidos}
+        fecha={fecha}
+      />
 
       <NormasSection normas={normas} />
     </div>
@@ -97,9 +112,11 @@ export default async function BOPage({ searchParams }: PageProps) {
 
 function AccionablesSection({
   accionables,
+  accionablesEnriquecidos,
   fecha,
 }: {
   accionables: NormaBOAccionableConNormaDTO[];
+  accionablesEnriquecidos: (import("@/lib/api/types").AccionableDTO | null)[];
   fecha: string;
 }) {
   return (
@@ -137,8 +154,12 @@ function AccionablesSection({
         </Card>
       ) : (
         <ul className="space-y-2.5">
-          {accionables.map((a) => (
-            <AccionableItem key={a.norma.id} item={a} />
+          {accionables.map((a, i) => (
+            <AccionableItem
+              key={a.norma.id}
+              item={a}
+              accionablePerfil={accionablesEnriquecidos[i] ?? null}
+            />
           ))}
         </ul>
       )}
@@ -148,8 +169,10 @@ function AccionablesSection({
 
 function AccionableItem({
   item,
+  accionablePerfil,
 }: {
   item: NormaBOAccionableConNormaDTO;
+  accionablePerfil: import("@/lib/api/types").AccionableDTO | null;
 }) {
   const { accionable: a, norma } = item;
   const color = PRIORIDAD_COLOR[a.prioridad];
@@ -200,6 +223,11 @@ function AccionableItem({
           </a>
         </div>
       </div>
+      <AccionablePanel
+        tipo="norma_bo"
+        eventoId={norma.id}
+        inicial={accionablePerfil}
+      />
     </Card>
   );
 }
