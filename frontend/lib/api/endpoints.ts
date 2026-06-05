@@ -467,3 +467,65 @@ export function getHubDiario(ctx: ApiContext) {
     next: { revalidate: 30 },
   });
 }
+
+// ---------------------------------------------------------------------------
+// /proyectos-redaccion (feat-42.3)
+// ---------------------------------------------------------------------------
+
+import type {
+  ActualizarProyectoBody,
+  CrearProyectoBody,
+  ProyectoRedaccionDTO,
+  RefinarTextoBody,
+  TextoRefinadoDTO,
+} from "./types";
+
+export function listarProyectosRedaccion(ctx: ApiContext) {
+  return apiGet<ProyectoRedaccionDTO[]>("/api/v1/proyectos-redaccion", { ctx });
+}
+
+export function crearProyectoRedaccion(
+  ctx: ApiContext, body: CrearProyectoBody,
+) {
+  return apiPost<ProyectoRedaccionDTO>(
+    "/api/v1/proyectos-redaccion", body, { ctx },
+  );
+}
+
+export function getProyectoRedaccion(ctx: ApiContext, id: string) {
+  return apiGet<ProyectoRedaccionDTO>(
+    `/api/v1/proyectos-redaccion/${id}`, { ctx },
+  );
+}
+
+export function actualizarProyectoRedaccion(
+  ctx: ApiContext, id: string, body: ActualizarProyectoBody,
+) {
+  return apiPatch<ProyectoRedaccionDTO>(
+    `/api/v1/proyectos-redaccion/${id}`, body, { ctx },
+  );
+}
+
+export function asistirArticulado(
+  ctx: ApiContext, id: string, opts?: { temaOverride?: string },
+) {
+  return apiPost<ProyectoRedaccionDTO>(
+    `/api/v1/proyectos-redaccion/${id}/asistir/articulado`,
+    { tema_override: opts?.temaOverride },
+    { ctx },
+  );
+}
+
+export function asistirFundamentos(ctx: ApiContext, id: string) {
+  return apiPost<ProyectoRedaccionDTO>(
+    `/api/v1/proyectos-redaccion/${id}/asistir/fundamentos`,
+    {},
+    { ctx },
+  );
+}
+
+export function refinarTexto(ctx: ApiContext, body: RefinarTextoBody) {
+  return apiPost<TextoRefinadoDTO>(
+    "/api/v1/proyectos-redaccion/asistir/refinar", body, { ctx },
+  );
+}

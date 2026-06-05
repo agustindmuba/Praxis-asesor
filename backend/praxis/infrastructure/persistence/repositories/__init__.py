@@ -45,6 +45,9 @@ from praxis.infrastructure.persistence.repositories.perfil_interes_despacho impo
 from praxis.infrastructure.persistence.repositories.perfil_opositor import (
     SqlAlchemyPerfilOpositorRepository,
 )
+from praxis.infrastructure.persistence.repositories.proyecto_redaccion import (
+    SqlAlchemyProyectoRedaccionRepository,
+)
 from praxis.infrastructure.persistence.repositories.resumen_ejecutivo import (
     SqlAlchemyResumenEjecutivoRepository,
 )
@@ -85,6 +88,7 @@ __all__ = [
     "SqlAlchemyAccionableEventoRepository",
     "SqlAlchemyPerfilInteresDespachoRepository",
     "SqlAlchemyPerfilOpositorRepository",
+    "SqlAlchemyProyectoRedaccionRepository",
     "SqlAlchemyPlantillaWhatsAppRepository",
     "SqlAlchemyResumenEjecutivoRepository",
     "SqlAlchemySeguimientoExpedienteRepository",

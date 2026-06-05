@@ -115,6 +115,13 @@ from praxis.domain.accionable import (
     TipoEvento,
     TweetSugerido,
 )
+from praxis.domain.proyecto_redaccion import (
+    REDACCION_PROMPT_VERSION,
+    TIPO_LABELS,
+    EstadoProyecto,
+    ProyectoEnRedaccion,
+    TipoProyecto,
+)
 from praxis.domain.perfil_interes_despacho import PerfilInteresDespacho
 from praxis.domain.perfil_opositor import (
     PERFIL_OPOSITOR_PROMPT_VERSION,
@@ -235,6 +242,11 @@ __all__ = [
     "ConfianzaAccionable",
     "TipoEvento",
     "TweetSugerido",
+    "REDACCION_PROMPT_VERSION",
+    "TIPO_LABELS",
+    "EstadoProyecto",
+    "ProyectoEnRedaccion",
+    "TipoProyecto",
     "PERFIL_OPOSITOR_PROMPT_VERSION",
     "ConfianzaGlobal",
     "FiguraReferida",

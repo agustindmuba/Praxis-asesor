@@ -17,6 +17,7 @@ import {
   Newspaper,
   Radio,
   Settings,
+  Wand2,
 } from "lucide-react";
 
 import { UserAvatar } from "@/components/user-avatar";
@@ -37,6 +38,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/expedientes", label: "Expedientes", icon: FileText },
+  { href: "/proyectos", label: "Redactor de proyectos", icon: Wand2 },
   { href: "/briefings", label: "Briefings", icon: Newspaper },
   { href: "/bo", label: "Boletín Oficial", icon: BookOpen },
   { href: "/noticias", label: "Noticias", icon: Radio },
