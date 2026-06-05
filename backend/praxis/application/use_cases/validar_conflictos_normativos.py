@@ -32,7 +32,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from praxis.application.ports import LlmProvider
-from praxis.infrastructure.rag.embedder import embeber_textos
+from praxis.infrastructure.rag.embedder_async import embeber_textos_async
 
 log = logging.getLogger(__name__)
 
@@ -93,7 +93,9 @@ class BuscarNormativaSimilar:
     ) -> list[ChunkSimilar]:
         if not query.strip():
             return []
-        emb = embeber_textos([query])[0]
+        # Despacha al worker Celery `rag` — el API NO carga PyTorch
+        # (ver feat-42.8 y la nota técnica en embedder_async.py).
+        emb = (await embeber_textos_async([query]))[0]
         # pgvector usa <=> para cosine distance cuando el índice es
         # vector_cosine_ops. El operador <=> devuelve 0 = idéntico.
         result = await self._session.execute(

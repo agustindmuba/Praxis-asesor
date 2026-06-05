@@ -26,6 +26,7 @@ celery_app = Celery(
         "praxis.infrastructure.queue.tasks_bo",
         "praxis.infrastructure.queue.tasks_noticias",
         "praxis.infrastructure.queue.tasks_whatsapp",
+        "praxis.infrastructure.queue.tasks_rag",
     ],
 )
 
