@@ -29,6 +29,7 @@ import type {
   TipoEnvioWhatsApp,
 } from "@/lib/api/types";
 
+import { BriefingPreviewSection } from "./briefing-preview";
 import { DestinatarioFormulario } from "./destinatario-formulario";
 
 export const metadata = { title: "Configuración" };
@@ -96,6 +97,8 @@ export default async function ConfiguracionPage() {
       </header>
 
       <PerfilOpositorLink />
+
+      <BriefingPreviewSection />
 
       <DestinatariosSection destinatarios={destinatarios} />
 

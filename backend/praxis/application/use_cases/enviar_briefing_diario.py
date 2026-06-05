@@ -1,35 +1,33 @@
-"""Caso de uso: enviar el briefing diario por WhatsApp (feat-41.4).
+"""Caso de uso: enviar el briefing diario por WhatsApp
+(feat-41.4 + feat-42.4 — enriquecido con accionables del perfil).
 
 Consolida en un solo mensaje las novedades del día para el despacho
 y lo manda a cada destinatario activo que tenga el flag
 `recibe_briefing_diario`.
 
-Pipeline (spec 17 §"Briefing diario"):
+**feat-42.4**: si para los BO + Noticias del día hay
+`AccionableEvento` enriquecidos (generados con perfil opositor),
+se priorizan e incluyen con título + acción sugerida en el texto.
+Si no hay accionables enriquecidos, fallback al briefing plano
+(número + tipo).
 
-1. Cargar el despacho + sus destinatarios activos.
-2. Filtrar destinatarios que tengan `recibe_briefing_diario=True` y
-   `puede_recibir(TipoEnvio.BRIEFING_DIARIO)` → respeta opt-in/flags.
-3. Resolver el contenido del briefing del día:
-   - Top N accionables del BO (vía `NormaBOAccionableRepository`).
+Pipeline:
+
+1. Cargar despacho + destinatarios activos elegibles
+   (`recibe_briefing_diario=True` + `puede_recibir(BRIEFING_DIARIO)`).
+2. Resolver contenido del día:
+   - Top N normas BO accionables (vía `NormaBOAccionableRepository`).
    - Top M artículos relevantes 24h (vía `ArticuloRelevanteRepository`).
-4. Componer `resumen_corto` ≤180 chars (cap conservador para no
-   romper el límite de Meta — los params de plantilla tienen tope
-   técnico de 1024 chars cada uno pero Meta puede rechazar
-   contenido > 200 con código 131056).
-5. Por cada destinatario:
-   - Crear `EnvioWhatsApp(estado=PENDIENTE)` en DB.
-   - Llamar `WhatsAppSender.enviar(plantilla="briefing_diario",
-     body_params=[nombre, fecha, resumen_corto])`.
-   - Si éxito → `marcar_enviado(message_id, enviado_en)`.
-   - Si rechazo → `marcar_fallido(error, rechazado=True)` Y si el
-     code corresponde a opt-out (131026), también marcar el
-     destinatario como `opt_out_en=ahora, activo=False` para no
-     reintentarlo mañana.
-   - Si fallido transitorio → `marcar_fallido(error)` sin tocar el
-     destinatario; mañana se vuelve a intentar.
+   - Para cada uno: buscar `AccionableEvento` enriquecido si existe.
+3. Componer 2 textos:
+   - `resumen_corto` ≤180 chars — para la plantilla aprobada actual.
+   - `body_rich` ≤1000 chars — para futuro modo text-free
+     (cuando el destinatario respondió en las últimas 24h o cuando
+     se aprueba plantilla v2).
+4. Por cada destinatario: persist `EnvioWhatsApp` + llamar al sender.
 
-El caso de uso NO commitea; el caller (Celery task de 41.5) maneja
-la sesión y commitea al final por despacho.
+El caso de uso NO commitea; el caller (Celery task) maneja la
+sesión y commitea al final por despacho.
 """
 
 from __future__ import annotations
@@ -40,16 +38,22 @@ from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
 
 from praxis.application.ports import (
+    AccionableEventoRepository,
     ArticuloRelevanteRepository,
+    ArticuloRepository,
     DestinatarioRepository,
     EnvioWhatsAppRepository,
     NormaBOAccionableRepository,
+    NormaBORepository,
     WhatsAppSender,
 )
 from praxis.domain import (
+    AccionableEvento,
+    AccionSugerida,
     Destinatario,
     EnvioWhatsApp,
     TipoEnvio,
+    TipoEvento,
 )
 
 log = logging.getLogger(__name__)
@@ -58,9 +62,33 @@ PLANTILLA_BRIEFING_DIARIO = "briefing_diario"
 TOP_BO_DEFAULT = 3
 TOP_NOTICIAS_DEFAULT = 3
 MAX_RESUMEN_CORTO_CHARS = 180
+MAX_BODY_RICH_CHARS = 1000
 
 # Código Meta para "recipient opted out" — marcamos al destinatario.
 META_CODE_OPT_OUT = 131026
+
+# Etiquetas cortas de acción para el body rich del WhatsApp (no usar
+# las del UI que son más largas).
+ACCION_SHORT: dict[AccionSugerida, str] = {
+    AccionSugerida.PEDIDO_INFORMES: "📋 Informes",
+    AccionSugerida.PROYECTO_CONTRAPOSICION: "📜 Contraproyecto",
+    AccionSugerida.DECLARACION_CAMARA: "📢 Declaración",
+    AccionSugerida.SILENCIO_ESTRATEGICO: "🤐 Silencio",
+    AccionSugerida.RETWEET_CRITICO: "🔁 RT crítico",
+    AccionSugerida.RETWEET_APOYO: "👍 RT apoyo",
+    AccionSugerida.ARTICULO_OPINION: "✍️ Opinión",
+    AccionSugerida.INTERPELACION: "⚖️ Interpelación",
+    AccionSugerida.OTRO: "🔎 Revisar",
+}
+
+
+@dataclass(frozen=True, slots=True)
+class ItemBriefing:
+    """Renderable de una línea del briefing."""
+
+    titulo_corto: str
+    accion: AccionSugerida | None
+    razon_breve: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,8 +98,12 @@ class ResultadoBriefingDiario:
     enviados_ok: int
     fallidos_transitorios: int
     rechazados: int
-    sin_contenido: bool  # True si el día no tuvo BO ni noticias
+    sin_contenido: bool
     correlativo_id: UUID
+    resumen_corto: str = ""                 # debug / observabilidad
+    body_rich: str = ""                     # debug / observabilidad
+    items_bo: list[ItemBriefing] = field(default_factory=list)
+    items_noticias: list[ItemBriefing] = field(default_factory=list)
     errores: list[str] = field(default_factory=list)
 
 
@@ -86,12 +118,20 @@ class EnviarBriefingDiario:
         accionables_bo: NormaBOAccionableRepository,
         relevantes_noticias: ArticuloRelevanteRepository,
         sender: WhatsAppSender,
+        normas_bo: NormaBORepository | None = None,
+        articulos: ArticuloRepository | None = None,
+        accionables_enriquecidos: AccionableEventoRepository | None = None,
     ) -> None:
         self._destinatarios = destinatarios
         self._envios = envios
         self._accionables = accionables_bo
         self._relevantes = relevantes_noticias
         self._sender = sender
+        # Opcionales para enriquecimiento — si no se pasan, fallback al
+        # briefing plano original (compatibilidad con tests viejos).
+        self._normas_bo = normas_bo
+        self._articulos = articulos
+        self._accionables_enriquecidos = accionables_enriquecidos
 
     async def ejecutar(
         self,
@@ -112,29 +152,16 @@ class EnviarBriefingDiario:
             d for d in destinatarios
             if d.puede_recibir(TipoEnvio.BRIEFING_DIARIO)
         ]
-        if not elegibles:
-            return ResultadoBriefingDiario(
-                despacho_id=despacho_id,
-                destinatarios_objetivo=0,
-                enviados_ok=0,
-                fallidos_transitorios=0,
-                rechazados=0,
-                sin_contenido=False,
-                correlativo_id=correlativo_id,
-            )
 
-        # Resolver contenido del día. Si NO hay nada para contar,
-        # devolvemos sin_contenido=True y no mandamos mensaje
-        # (evita mandar plantilla con "0 normas, 0 noticias" todos los
-        # findes y feriados).
-        n_bo, n_noticias = await self._contar_contenido(
+        items_bo, items_noticias = await self._resolver_items(
             despacho_id=despacho_id,
             fecha=fecha,
             ahora=ts,
             top_bo=top_bo,
             top_noticias=top_noticias,
         )
-        if n_bo == 0 and n_noticias == 0:
+
+        if not items_bo and not items_noticias:
             return ResultadoBriefingDiario(
                 despacho_id=despacho_id,
                 destinatarios_objetivo=len(elegibles),
@@ -145,7 +172,28 @@ class EnviarBriefingDiario:
                 correlativo_id=correlativo_id,
             )
 
-        resumen = _componer_resumen(n_bo=n_bo, n_noticias=n_noticias)
+        resumen_corto = _componer_resumen_corto(
+            n_bo=len(items_bo), n_noticias=len(items_noticias),
+        )
+        body_rich = _componer_body_rich(items_bo, items_noticias)
+
+        if not elegibles:
+            # Sin destinatarios pero hay contenido — devolvemos preview
+            # igual (útil para UI preview / smoke).
+            return ResultadoBriefingDiario(
+                despacho_id=despacho_id,
+                destinatarios_objetivo=0,
+                enviados_ok=0,
+                fallidos_transitorios=0,
+                rechazados=0,
+                sin_contenido=False,
+                correlativo_id=correlativo_id,
+                resumen_corto=resumen_corto,
+                body_rich=body_rich,
+                items_bo=items_bo,
+                items_noticias=items_noticias,
+            )
+
         enviados = 0
         fallidos_t = 0
         rechazados = 0
@@ -156,7 +204,7 @@ class EnviarBriefingDiario:
                 ok, transitorio = await self._enviar_a(
                     dest=dest,
                     fecha=fecha,
-                    resumen_corto=resumen,
+                    resumen_corto=resumen_corto,
                     correlativo_id=correlativo_id,
                     ahora=ts,
                 )
@@ -181,6 +229,10 @@ class EnviarBriefingDiario:
             rechazados=rechazados,
             sin_contenido=False,
             correlativo_id=correlativo_id,
+            resumen_corto=resumen_corto,
+            body_rich=body_rich,
+            items_bo=items_bo,
+            items_noticias=items_noticias,
             errores=errores,
         )
 
@@ -188,7 +240,7 @@ class EnviarBriefingDiario:
     # Helpers
     # ------------------------------------------------------------------
 
-    async def _contar_contenido(
+    async def _resolver_items(
         self,
         *,
         despacho_id: UUID,
@@ -196,17 +248,80 @@ class EnviarBriefingDiario:
         ahora: datetime,
         top_bo: int,
         top_noticias: int,
-    ) -> tuple[int, int]:
-        """Devuelve (n_bo_accionables, n_noticias_relevantes_24h)."""
-        bo = await self._accionables.listar_por_despacho_y_fecha(
+    ) -> tuple[list[ItemBriefing], list[ItemBriefing]]:
+        """Carga accionables BO + Noticias y los enriquece con
+        AccionableEvento si está disponible."""
+        bo_raw = await self._accionables.listar_por_despacho_y_fecha(
             despacho_id=despacho_id, fecha=fecha, top_n=top_bo,
         )
-        # Noticias relevantes en ventana 24h hasta `ahora`. Esto cubre
-        # el ciclo de polling (cada 15 min, 96 corridas por día).
-        noticias = await self._relevantes.listar_por_despacho_24h(
+        noticias_raw = await self._relevantes.listar_por_despacho_24h(
             despacho_id=despacho_id, hasta=ahora, top_n=top_noticias,
         )
-        return len(bo), len(noticias)
+
+        items_bo: list[ItemBriefing] = []
+        for accionable in bo_raw:
+            enr = await self._buscar_enriquecido(
+                despacho_id=despacho_id,
+                tipo=TipoEvento.NORMA_BO,
+                evento_id=accionable.norma_id,
+            )
+            titulo = await self._titulo_norma(accionable.norma_id) or "norma BO"
+            items_bo.append(
+                ItemBriefing(
+                    titulo_corto=titulo[:80],
+                    accion=enr.accion_sugerida if enr else None,
+                    razon_breve=enr.razon_para_despacho[:100] if enr else None,
+                ),
+            )
+
+        items_noticias: list[ItemBriefing] = []
+        for relevante in noticias_raw:
+            enr = await self._buscar_enriquecido(
+                despacho_id=despacho_id,
+                tipo=TipoEvento.ARTICULO,
+                evento_id=relevante.articulo_id,
+            )
+            titulo = await self._titulo_articulo(
+                relevante.articulo_id,
+            ) or "noticia"
+            items_noticias.append(
+                ItemBriefing(
+                    titulo_corto=titulo[:80],
+                    accion=enr.accion_sugerida if enr else None,
+                    razon_breve=enr.razon_para_despacho[:100] if enr else None,
+                ),
+            )
+
+        return items_bo, items_noticias
+
+    async def _buscar_enriquecido(
+        self, *, despacho_id: UUID, tipo: TipoEvento, evento_id: UUID,
+    ) -> AccionableEvento | None:
+        if self._accionables_enriquecidos is None:
+            return None
+        try:
+            return await self._accionables_enriquecidos.buscar_por_evento(
+                despacho_id=despacho_id,
+                tipo_evento=tipo,
+                evento_id=evento_id,
+            )
+        except Exception as exc:
+            log.warning("buscar_por_evento falló (%s): %s", evento_id, exc)
+            return None
+
+    async def _titulo_norma(self, norma_id: UUID) -> str | None:
+        if self._normas_bo is None:
+            return None
+        n = await self._normas_bo.buscar_por_id(norma_id)
+        if n is None:
+            return None
+        return f"{n.tipo_norma} {n.numero_norma}"
+
+    async def _titulo_articulo(self, articulo_id: UUID) -> str | None:
+        if self._articulos is None:
+            return None
+        a = await self._articulos.buscar_por_id(articulo_id)
+        return a.titulo if a is not None else None
 
     async def _enviar_a(
         self,
@@ -217,8 +332,6 @@ class EnviarBriefingDiario:
         correlativo_id: UUID,
         ahora: datetime,
     ) -> tuple[bool, bool]:
-        """Manda al destinatario individual. Devuelve (ok, transitorio)
-        donde transitorio solo aplica si !ok."""
         assert dest.id is not None
         envio = await self._envios.crear(
             EnvioWhatsApp(
@@ -259,8 +372,6 @@ class EnviarBriefingDiario:
             error=resultado.error or "sin_detalle",
             rechazado=resultado.rechazado,
         )
-        # Si fue opt-out de Meta, marcar al destinatario para no
-        # reintentar mañana.
         if (
             resultado.rechazado
             and resultado.error_meta_code == META_CODE_OPT_OUT
@@ -296,19 +407,13 @@ class EnviarBriefingDiario:
 
 
 def _primer_nombre(nombre_completo: str) -> str:
-    """Para la plantilla mostramos solo el primer nombre — más
-    natural y respeta cualquier límite de chars."""
     primer = nombre_completo.strip().split(" ", 1)[0]
     return primer[:40] or "Despacho"
 
 
-def _componer_resumen(*, n_bo: int, n_noticias: int) -> str:
-    """Compone el resumen corto que va como {{3}} en la plantilla.
-
-    Cap conservador 180 chars (la plantilla está aprobada con texto
-    de tamaño X; Meta rechaza con código 131056 si el contenido
-    excede mucho ese tamaño).
-    """
+def _componer_resumen_corto(*, n_bo: int, n_noticias: int) -> str:
+    """Resumen corto para el slot {{3}} de la plantilla aprobada
+    (≤180 chars, conservador para no chocar con 131056)."""
     partes: list[str] = []
     if n_bo > 0:
         partes.append(
@@ -322,3 +427,43 @@ def _componer_resumen(*, n_bo: int, n_noticias: int) -> str:
         )
     texto = " y ".join(partes) if partes else "sin novedades"
     return texto[:MAX_RESUMEN_CORTO_CHARS]
+
+
+def _componer_body_rich(
+    items_bo: list[ItemBriefing], items_noticias: list[ItemBriefing],
+) -> str:
+    """Body rico para modo text-free (≤1000 chars). Render:
+
+    📜 *Boletín Oficial*
+    • [acción] Título corto — razón breve.
+    • ...
+
+    📰 *Noticias*
+    • [acción] Título — razón.
+    • ...
+
+    Cuando no hay acción enriquecida, omite el prefijo.
+    """
+    partes: list[str] = []
+    if items_bo:
+        partes.append("📜 *Boletín Oficial*")
+        for it in items_bo:
+            partes.append("• " + _render_item(it))
+    if items_noticias:
+        if partes:
+            partes.append("")
+        partes.append("📰 *Noticias*")
+        for it in items_noticias:
+            partes.append("• " + _render_item(it))
+    texto = "\n".join(partes)
+    return texto[:MAX_BODY_RICH_CHARS]
+
+
+def _render_item(it: ItemBriefing) -> str:
+    prefijo = ""
+    if it.accion is not None:
+        prefijo = f"{ACCION_SHORT.get(it.accion, '🔎')} "
+    base = f"{prefijo}{it.titulo_corto}"
+    if it.razon_breve:
+        base += f" — {it.razon_breve}"
+    return base

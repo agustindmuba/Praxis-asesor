@@ -438,3 +438,19 @@ export function generarAccionableArticulo(
     { ctx },
   );
 }
+
+// ---------------------------------------------------------------------------
+// /briefing-diario/preview (feat-42.4)
+// ---------------------------------------------------------------------------
+
+import type { BriefingDiarioPreviewDTO } from "./types";
+
+export function previewBriefingDiario(
+  ctx: ApiContext,
+  opts?: { fecha?: string },
+) {
+  return apiGet<BriefingDiarioPreviewDTO>(
+    "/api/v1/briefing-diario/preview",
+    { ctx, params: { fecha: opts?.fecha } },
+  );
+}

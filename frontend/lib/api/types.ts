@@ -661,3 +661,23 @@ export interface AccionableDTO {
   modelo: string | null;
   prompt_version: string;
 }
+
+// ---------------------------------------------------------------------------
+// Briefing diario preview (feat-42.4)
+// ---------------------------------------------------------------------------
+
+export interface BriefingDiarioItemDTO {
+  titulo_corto: string;
+  accion: AccionSugerida | null;
+  razon_breve: string | null;
+}
+
+export interface BriefingDiarioPreviewDTO {
+  fecha: string;
+  despacho_id: string;
+  sin_contenido: boolean;
+  resumen_corto: string;
+  body_rich: string;
+  items_bo: BriefingDiarioItemDTO[];
+  items_noticias: BriefingDiarioItemDTO[];
+}
