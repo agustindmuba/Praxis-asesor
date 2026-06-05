@@ -454,3 +454,16 @@ export function previewBriefingDiario(
     { ctx, params: { fecha: opts?.fecha } },
   );
 }
+
+// ---------------------------------------------------------------------------
+// /hub-diario (feat-42.5)
+// ---------------------------------------------------------------------------
+
+import type { HubDiarioDTO } from "./types";
+
+export function getHubDiario(ctx: ApiContext) {
+  return apiGet<HubDiarioDTO>("/api/v1/hub-diario", {
+    ctx,
+    next: { revalidate: 30 },
+  });
+}

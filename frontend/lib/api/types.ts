@@ -681,3 +681,50 @@ export interface BriefingDiarioPreviewDTO {
   items_bo: BriefingDiarioItemDTO[];
   items_noticias: BriefingDiarioItemDTO[];
 }
+
+// ---------------------------------------------------------------------------
+// Hub diario (feat-42.5)
+// ---------------------------------------------------------------------------
+
+export interface TweetSugeridoBreveDTO {
+  tono: string;
+  texto: string;
+  caracteres: number;
+}
+
+export interface HubItemDTO {
+  tipo_evento: TipoEvento;
+  evento_id: string;
+  titulo: string;
+  url_detalle: string;
+  fuente_o_organismo: string;
+  accion: AccionSugerida;
+  confianza: ConfianzaAccionable;
+  razon_breve: string;
+  tweets: TweetSugeridoBreveDTO[];
+}
+
+export interface ProximaSesionDTO {
+  id: string;
+  titulo: string | null;
+  camara: "HCDN" | "HSN";
+  fecha_sesion: string;
+  expedientes_count: number;
+  briefing_id: string | null;
+}
+
+export interface HubStatsDTO {
+  bo_total_hoy: number;
+  bo_accionables: number;
+  noticias_relevantes_24h: number;
+  menciones_24h: number;
+}
+
+export interface HubDiarioDTO {
+  fecha: string;
+  perfil_opositor_cargado: boolean;
+  accion_requerida: HubItemDTO[];
+  silenciar: HubItemDTO[];
+  proxima_sesion: ProximaSesionDTO | null;
+  stats: HubStatsDTO;
+}
