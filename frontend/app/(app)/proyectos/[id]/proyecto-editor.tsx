@@ -27,6 +27,8 @@ import {
   asistirFundamentos,
   refinarTexto,
 } from "@/lib/api/endpoints";
+
+import { ConflictosPanel } from "./conflictos-panel";
 import type {
   EstadoProyecto,
   ProyectoRedaccionDTO,
@@ -270,6 +272,14 @@ export function ProyectoEditor({ inicial }: Props) {
           </ul>
         )}
       </Card>
+
+      {/* Validación de conflictos normativos */}
+      {proyecto.articulado.length > 0 && (
+        <ConflictosPanel
+          proyectoId={proyecto.id}
+          articulosCount={proyecto.articulado.length}
+        />
+      )}
 
       {/* Fundamentos */}
       {proyecto.articulado.length > 0 && (

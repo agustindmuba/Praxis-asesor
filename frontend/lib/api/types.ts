@@ -785,3 +785,29 @@ export interface TextoRefinadoDTO {
   texto_refinado: string;
   modelo: string;
 }
+
+// ---------------------------------------------------------------------------
+// Normativa + Validación de conflictos (feat-42.6)
+// ---------------------------------------------------------------------------
+
+export type SeveridadConflicto =
+  | "conflicto"
+  | "modificacion"
+  | "complementa"
+  | "ninguno";
+
+export interface ConflictoDetectadoDTO {
+  indice_articulo_proyecto: number;
+  fuente: string;
+  articulo_label: string;
+  severidad: SeveridadConflicto;
+  explicacion: string;
+  texto_norma_referida: string;
+}
+
+export interface ResultadoValidacionDTO {
+  proyecto_id: string;
+  n_articulos_evaluados: number;
+  conflictos: ConflictoDetectadoDTO[];
+  sin_conflictos: boolean;
+}
