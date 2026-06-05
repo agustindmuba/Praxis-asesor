@@ -59,6 +59,12 @@ dependencies = [
     # Parser RSS/Atom para feat/40 spec 16 (Noticias). RssFeedAdapter
     # consume feeds de medios nacionales y políticos.
     "feedparser>=6.0",
+
+    # RAG normativo (feat/42.6). pgvector para queries de similaridad
+    # sobre la tabla norma_juridica_chunk. sentence-transformers para
+    # generar embeddings locales (sin dependencia de API externa).
+    "pgvector>=0.3",
+    "sentence-transformers>=3.0",
 ]
 
 # Dependencias de desarrollo (PEP 735 — soportado por uv).

@@ -529,3 +529,13 @@ export function refinarTexto(ctx: ApiContext, body: RefinarTextoBody) {
     "/api/v1/proyectos-redaccion/asistir/refinar", body, { ctx },
   );
 }
+
+import type { ResultadoValidacionDTO } from "./types";
+
+export function validarConflictosNormativos(ctx: ApiContext, id: string) {
+  return apiPost<ResultadoValidacionDTO>(
+    `/api/v1/proyectos-redaccion/${id}/validar-conflictos`,
+    {},
+    { ctx },
+  );
+}
