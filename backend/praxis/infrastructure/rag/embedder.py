@@ -14,11 +14,19 @@ los greenlets de asyncpg/SQLAlchemy en el mismo proceso. Después
 de la primera llamada a `embeber_textos` o `cargar_modelo`, otros
 endpoints async pueden romperse con `MissingGreenlet`.
 
-Workaround v1: limitamos threads de OpenMP/MKL/torch a 1 ANTES
-de importar PyTorch. Reduce paralelismo pero mantiene compatibilidad.
+**Resolución (feat-42.8)**: el código async del API NUNCA llama a
+`embeber_textos` directamente. Usa el wrapper
+`praxis.infrastructure.rag.embedder_async.embeber_textos_async`, que
+despacha al worker Celery `tasks_rag.embeber_textos_task`. Sólo el
+worker carga PyTorch.
 
-Fix definitivo (v2): mover la indexación e inferencia a un worker
-Celery aislado o subprocess, o usar OpenAI embeddings vía API.
+Este módulo (`embedder.py`) sigue existiendo para:
+- Scripts CLI sin async loop (ej. `scripts/cargar_corpus_normativo.py`).
+- El proceso worker Celery, que lo importa de forma aislada.
+
+Workaround heredado: limitamos threads de OpenMP/MKL/torch a 1 ANTES
+de importar PyTorch (defense-in-depth, por si alguien lo importa en
+un contexto no esperado).
 """
 
 from __future__ import annotations
