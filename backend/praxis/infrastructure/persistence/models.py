@@ -775,6 +775,68 @@ class AccionableEventoOrm(Base, kw_only=True):
 
 
 # ---------------------------------------------------------------------------
+# Proyecto en redacción (feat-42.3 — asistente de redacción).
+# ---------------------------------------------------------------------------
+
+
+class ProyectoRedaccionOrm(Base, kw_only=True):
+    """Borrador interno de un proyecto parlamentario en redacción.
+
+    Articulado y cofirmantes_sugeridos van como JSON arrays.
+    """
+
+    __tablename__ = "proyecto_redaccion"
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    despacho_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("despacho.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    tipo: Mapped[str] = mapped_column(String(20), nullable=False)
+    titulo: Mapped[str] = mapped_column(Text, nullable=False)
+    sumario: Mapped[str] = mapped_column(Text, nullable=False)
+    articulado: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    fundamentos: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    cofirmantes_sugeridos: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    estado: Mapped[str] = mapped_column(
+        String(15), nullable=False, default="borrador",
+    )
+    autor_legislador: Mapped[str] = mapped_column(
+        String(120), nullable=False, default="",
+    )
+    modelo_asistente: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, default=None,
+    )
+    prompt_version: Mapped[str] = mapped_column(
+        String(10), nullable=False, default="v1",
+    )
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=sa_func_now(),
+        init=False,
+    )
+    actualizado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=sa_func_now(),
+        onupdate=sa_func_now(),
+        init=False,
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"ProyectoRedaccionOrm(id={self.id!r}, tipo={self.tipo!r}, "
+            f"titulo={self.titulo[:30]!r})"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Boletín Oficial (spec 15)
 # ---------------------------------------------------------------------------
 

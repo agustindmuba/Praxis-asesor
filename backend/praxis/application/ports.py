@@ -47,6 +47,7 @@ from praxis.domain import (
     AccionableEvento,
     PerfilInteresDespacho,
     PerfilOpositorDespacho,
+    ProyectoEnRedaccion,
     TipoEvento,
     PlantillaWhatsApp,
     ResultadoBusqueda,
@@ -1059,6 +1060,32 @@ class MencionRepository(ABC):
         Devuelve cuántas filas se actualizaron. Llamado por
         `EnviarAlertaMencion` en la misma transacción que la creación
         de `AlertaMencionEnviada` (atomicidad anti-flood)."""
+        raise NotImplementedError
+
+
+class ProyectoRedaccionRepository(ABC):
+    """Puerto: persistencia de `ProyectoEnRedaccion` (feat-42.3)."""
+
+    @abstractmethod
+    async def crear(self, proyecto: "ProyectoEnRedaccion") -> "ProyectoEnRedaccion":
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_id(self, proyecto_id: UUID) -> "ProyectoEnRedaccion | None":
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_por_despacho(
+        self, despacho_id: UUID, *, limit: int = 50,
+    ) -> "list[ProyectoEnRedaccion]":
+        raise NotImplementedError
+
+    @abstractmethod
+    async def actualizar(self, proyecto: "ProyectoEnRedaccion") -> "ProyectoEnRedaccion":
+        raise NotImplementedError
+
+    @abstractmethod
+    async def eliminar(self, proyecto_id: UUID) -> bool:
         raise NotImplementedError
 
 

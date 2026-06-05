@@ -95,6 +95,7 @@ from praxis.infrastructure.persistence.models import (
     AccionableEventoOrm,
     PerfilInteresDespachoOrm,
     PerfilOpositorDespachoOrm,
+    ProyectoRedaccionOrm,
     PlantillaWhatsAppOrm,
     ResumenEjecutivoOrm,
     SeguimientoExpedienteOrm,
@@ -839,6 +840,56 @@ def from_accionable(domain) -> AccionableEventoOrm:  # type: ignore[no-untyped-d
         generado_en=domain.generado_en,
         editado_en=domain.editado_en,
         modelo=domain.modelo,
+        prompt_version=domain.prompt_version,
+    )
+
+
+# ---------------------------------------------------------------------------
+# ProyectoEnRedaccion (feat-42.3)
+# ---------------------------------------------------------------------------
+
+
+def to_proyecto(orm: ProyectoRedaccionOrm):  # type: ignore[no-untyped-def]
+    from praxis.domain import EstadoProyecto, ProyectoEnRedaccion, TipoProyecto
+    try:
+        tipo = TipoProyecto(orm.tipo)
+    except ValueError:
+        tipo = TipoProyecto.LEY
+    try:
+        estado = EstadoProyecto(orm.estado)
+    except ValueError:
+        estado = EstadoProyecto.BORRADOR
+    return ProyectoEnRedaccion(
+        id=orm.id,
+        despacho_id=orm.despacho_id,
+        tipo=tipo,
+        titulo=orm.titulo,
+        sumario=orm.sumario,
+        articulado=list(orm.articulado),
+        fundamentos=orm.fundamentos,
+        cofirmantes_sugeridos=list(orm.cofirmantes_sugeridos),
+        estado=estado,
+        autor_legislador=orm.autor_legislador,
+        creado_en=orm.creado_en,
+        actualizado_en=orm.actualizado_en,
+        modelo_asistente=orm.modelo_asistente,
+        prompt_version=orm.prompt_version,
+    )
+
+
+def from_proyecto(domain) -> ProyectoRedaccionOrm:  # type: ignore[no-untyped-def]
+    return ProyectoRedaccionOrm(
+        id=domain.id,
+        despacho_id=domain.despacho_id,
+        tipo=domain.tipo.value,
+        titulo=domain.titulo,
+        sumario=domain.sumario,
+        articulado=list(domain.articulado),
+        fundamentos=domain.fundamentos,
+        cofirmantes_sugeridos=list(domain.cofirmantes_sugeridos),
+        estado=domain.estado.value,
+        autor_legislador=domain.autor_legislador,
+        modelo_asistente=domain.modelo_asistente,
         prompt_version=domain.prompt_version,
     )
 

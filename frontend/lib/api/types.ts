@@ -728,3 +728,60 @@ export interface HubDiarioDTO {
   proxima_sesion: ProximaSesionDTO | null;
   stats: HubStatsDTO;
 }
+
+// ---------------------------------------------------------------------------
+// Proyectos en redacción (feat-42.3)
+// ---------------------------------------------------------------------------
+
+export type TipoProyecto =
+  | "ley"
+  | "resolucion"
+  | "comunicacion"
+  | "declaracion";
+
+export type EstadoProyecto = "borrador" | "listo" | "presentado";
+
+export interface ProyectoRedaccionDTO {
+  id: string;
+  despacho_id: string;
+  tipo: TipoProyecto;
+  titulo: string;
+  sumario: string;
+  articulado: string[];
+  fundamentos: string;
+  cofirmantes_sugeridos: string[];
+  estado: EstadoProyecto;
+  autor_legislador: string;
+  creado_en: string | null;
+  actualizado_en: string | null;
+  modelo_asistente: string | null;
+  prompt_version: string;
+}
+
+export interface CrearProyectoBody {
+  tipo: TipoProyecto;
+  titulo: string;
+  sumario: string;
+  autor_legislador?: string;
+}
+
+export interface ActualizarProyectoBody {
+  tipo?: TipoProyecto;
+  titulo?: string;
+  sumario?: string;
+  articulado?: string[];
+  fundamentos?: string;
+  cofirmantes_sugeridos?: string[];
+  estado?: EstadoProyecto;
+  autor_legislador?: string;
+}
+
+export interface RefinarTextoBody {
+  texto: string;
+  instruccion: string;
+}
+
+export interface TextoRefinadoDTO {
+  texto_refinado: string;
+  modelo: string;
+}
