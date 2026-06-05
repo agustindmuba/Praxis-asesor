@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Newspaper,
   Radio,
+  Settings,
 } from "lucide-react";
 
 import { UserAvatar } from "@/components/user-avatar";
@@ -26,14 +27,27 @@ interface Props {
   children: React.ReactNode;
 }
 
-const NAV = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  comingSoon?: boolean;
+}
+
+const NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/expedientes", label: "Expedientes", icon: FileText },
-  { href: "/seguimientos", label: "Seguimientos", icon: ListChecks },
   { href: "/briefings", label: "Briefings", icon: Newspaper },
   { href: "/bo", label: "Boletín Oficial", icon: BookOpen },
   { href: "/noticias", label: "Noticias", icon: Radio },
   { href: "/menciones", label: "Menciones", icon: MessageSquare },
+  { href: "/configuracion", label: "Configuración", icon: Settings },
+  {
+    href: "/seguimientos",
+    label: "Seguimientos",
+    icon: ListChecks,
+    comingSoon: true,
+  },
 ];
 
 export function AppShell({ me, children }: Props) {
@@ -70,16 +84,30 @@ export function AppShell({ me, children }: Props) {
         </div>
 
         <nav className="flex-1 space-y-0.5 p-3">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <item.icon className="size-4 text-white/55 group-hover:text-[var(--color-praxis-salmon)]" />
-              {item.label}
-            </Link>
-          ))}
+          {NAV.map((item) =>
+            item.comingSoon ? (
+              <div
+                key={item.href}
+                className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/40"
+                title="Próximamente"
+              >
+                <item.icon className="size-4 text-white/30" />
+                <span className="flex-1">{item.label}</span>
+                <span className="rounded-sm bg-white/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/55">
+                  Soon
+                </span>
+              </div>
+            ) : (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <item.icon className="size-4 text-white/55 group-hover:text-[var(--color-praxis-salmon)]" />
+                {item.label}
+              </Link>
+            ),
+          )}
         </nav>
 
         <div className="px-5 py-4 text-[10.5px] uppercase tracking-[0.14em] text-white/35">

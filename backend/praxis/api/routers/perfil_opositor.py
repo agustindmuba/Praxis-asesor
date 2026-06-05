@@ -14,9 +14,36 @@ from fastapi import APIRouter, HTTPException, status
 from praxis.api.deps import CurrentContext, LlmProviderDep, SessionDep
 from praxis.api.schemas.perfil_opositor import (
     ActualizarPerfilBody,
+    FiguraReferidaDTO,
     InferirPerfilBody,
     PerfilOpositorDTO,
 )
+from praxis.domain import PerfilOpositorDespacho
+
+
+def _to_dto(p: PerfilOpositorDespacho) -> PerfilOpositorDTO:
+    """Construye el DTO Pydantic desde la entidad de dominio.
+
+    No usamos model_validate(from_attributes=True) porque las listas
+    de FiguraReferida (dataclass) no se auto-convierten a
+    FiguraReferidaDTO (BaseModel) — error de schema_type."""
+    return PerfilOpositorDTO(
+        despacho_id=p.despacho_id,
+        bandera_principal=p.bandera_principal,
+        banderas_secundarias=list(p.banderas_secundarias),
+        temas_de_cuidado=list(p.temas_de_cuidado),
+        tono_comunicacional=p.tono_comunicacional,
+        adversarios=[FiguraReferidaDTO(nombre=a.nombre, razon=a.razon) for a in p.adversarios],
+        aliados=[FiguraReferidaDTO(nombre=a.nombre, razon=a.razon) for a in p.aliados],
+        linea_de_bloque=p.linea_de_bloque,
+        justificacion_evidencia=p.justificacion_evidencia,
+        advertencias=list(p.advertencias),
+        confianza_global=p.confianza_global,
+        inferido_en=p.inferido_en,
+        editado_en=p.editado_en,
+        modelo_inferencia=p.modelo_inferencia,
+        prompt_version=p.prompt_version,
+    )
 from praxis.application.use_cases.inferir_perfil_opositor import (
     InferirPerfilOpositor,
 )
@@ -26,6 +53,7 @@ from praxis.infrastructure.persistence.repositories import (
 )
 
 router = APIRouter(prefix="/perfil-opositor", tags=["perfil-opositor"])
+# reload-bump
 
 
 @router.get(
@@ -37,10 +65,10 @@ async def get_perfil_opositor(
     ctx: CurrentContext, session: SessionDep,
 ) -> PerfilOpositorDTO | None:
     repo = SqlAlchemyPerfilOpositorRepository(session)
-    perfil = await repo.buscar_por_despacho(ctx.despacho_id)
+    perfil = await repo.buscar_por_despacho(ctx.despacho.id)
     if perfil is None:
         return None
-    return PerfilOpositorDTO.model_validate(perfil)
+    return _to_dto(perfil)
 
 
 @router.post(
@@ -59,7 +87,7 @@ async def inferir_perfil(
     uc = InferirPerfilOpositor(session=session, perfiles=repo, llm=llm)
     try:
         perfil = await uc.ejecutar(
-            despacho_id=ctx.despacho_id,
+            despacho_id=ctx.despacho.id,
             nombre_legislador=body.nombre_legislador,
             max_votaciones=body.max_votaciones,
         )
@@ -68,7 +96,7 @@ async def inferir_perfil(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(e),
         ) from e
     await session.commit()
-    return PerfilOpositorDTO.model_validate(perfil)
+    return _to_dto(perfil)
 
 
 @router.patch(
@@ -82,7 +110,7 @@ async def actualizar_perfil(
     session: SessionDep,
 ) -> PerfilOpositorDTO:
     repo = SqlAlchemyPerfilOpositorRepository(session)
-    actual = await repo.buscar_por_despacho(ctx.despacho_id)
+    actual = await repo.buscar_por_despacho(ctx.despacho.id)
     if actual is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -112,4 +140,7 @@ async def actualizar_perfil(
     actual.editado_en = datetime.now(UTC)
     nuevo = await repo.upsert(actual)
     await session.commit()
-    return PerfilOpositorDTO.model_validate(nuevo)
+    return _to_dto(nuevo)
+
+
+# bump-3
