@@ -1,279 +1,363 @@
 /**
- * Dashboard — "Mis seguimientos" agrupados por prioridad.
+ * /dashboard — Hub diario (feat-42.5).
  *
- * Server Component que hace en paralelo:
- *   1. GET /seguimientos
- *   2. Para cada seguimiento: GET /expedientes/{id} (para tener título + estado)
+ * Pantalla principal del asesor al abrir Praxis cada mañana.
+ * Server Component que llama GET /api/v1/hub-diario y muestra:
  *
- * Esto es O(N) requests con N pequeño (un asesor típico sigue <100 expedientes).
- * Si N crece, agregamos un endpoint backend `GET /seguimientos?expand=expediente`
- * en una feature futura.
+ * 1. Saludo + stats rápidas (BO, noticias, menciones).
+ * 2. "Necesita acción hoy" — accionables BO + Noticias con tweets
+ *    listos para copiar (botón Copy con feedback visual).
+ * 3. "No tocar" — items con accion=silencio_estratégico.
+ * 4. Próxima sesión parlamentaria con CTA al briefing.
  */
 import Link from "next/link";
-import { FileText, Inbox, Newspaper, Radio } from "lucide-react";
+import {
+  AlertCircle,
+  CalendarDays,
+  FileText,
+  MessageCircle,
+  Newspaper,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 
-import { EstadoBadge } from "@/components/features/expedientes/estado-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { ApiError404 } from "@/lib/api/client";
 import { getApiContextServer } from "@/lib/api/context-server";
-import {
-  getExpediente,
-  listarAccionablesBO,
-  listarNoticiasRelevantes,
-  listarSeguimientos,
-} from "@/lib/api/endpoints";
+import { getHubDiario } from "@/lib/api/endpoints";
 import type {
-  ArticuloRelevanteConArticuloDTO,
-  ExpedienteFicha,
-  NormaBOAccionableConNormaDTO,
-  Prioridad,
-  PrioridadAccionabilidad,
-  SeguimientoDTO,
+  AccionSugerida,
+  ConfianzaAccionable,
+  HubItemDTO,
+  HubStatsDTO,
+  ProximaSesionDTO,
+  TweetSugeridoBreveDTO,
 } from "@/lib/api/types";
-import {
-  formatFechaCorta,
-  formatNumeroExpediente,
-  formatPrioridad,
-} from "@/lib/formato-expediente";
 
-export const metadata = { title: "Dashboard" };
+import { TweetCopyButton } from "./tweet-copy-button";
 
-interface ItemEnriquecido {
-  seguimiento: SeguimientoDTO;
-  expediente: ExpedienteFicha | null;
-}
+export const metadata = { title: "Hub diario" };
 
-const PRIORIDADES: readonly Prioridad[] = ["alta", "media", "baja"];
+const ACCION_LABEL: Record<AccionSugerida, string> = {
+  pedido_informes: "Pedido de informes",
+  proyecto_contraposicion: "Contraproyecto",
+  declaracion_camara: "Declaración",
+  silencio_estrategico: "Silencio",
+  retweet_critico: "RT crítico",
+  retweet_apoyo: "RT apoyo",
+  articulo_opinion: "Opinión",
+  interpelacion: "Interpelación",
+  otro: "Revisar",
+};
 
-function hoyISO(): string {
-  return new Date().toISOString().slice(0, 10);
+const ACCION_COLOR: Record<AccionSugerida, string> = {
+  pedido_informes: "var(--color-praxis-azul)",
+  proyecto_contraposicion: "var(--color-praxis-azul)",
+  declaracion_camara: "var(--color-praxis-azul)",
+  silencio_estrategico: "var(--color-praxis-salmon)",
+  retweet_critico: "var(--color-praxis-salmon)",
+  retweet_apoyo: "var(--color-praxis-verde)",
+  articulo_opinion: "var(--color-praxis-azul)",
+  interpelacion: "var(--color-praxis-salmon)",
+  otro: "rgb(100 116 139)",
+};
+
+const CONFIANZA_COLOR: Record<ConfianzaAccionable, string> = {
+  alta: "var(--color-praxis-verde)",
+  media: "var(--color-praxis-azul)",
+  baja: "var(--color-praxis-salmon)",
+};
+
+function formatFechaLarga(iso: string): string {
+  const f = new Date(iso + "T00:00:00").toLocaleDateString("es-AR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+  return f.charAt(0).toUpperCase() + f.slice(1);
 }
 
 export default async function DashboardPage() {
   const ctx = await getApiContextServer();
-  const hoy = hoyISO();
+  const hub = await getHubDiario(ctx).catch(() => null);
 
-  // Fetch en paralelo: seguimientos + accionables BO + noticias relevantes.
-  const [seguimientos, accionablesBO, noticias] = await Promise.all([
-    listarSeguimientos(ctx),
-    listarAccionablesBO(ctx, hoy, 5).catch(() => []),
-    listarNoticiasRelevantes(ctx, 5).catch(() => []),
-  ]);
-
-  // Fetch en paralelo de los expedientes. Si alguno tira 404 (rare race),
-  // lo ignoramos y dejamos `expediente: null`.
-  const enriquecidos = await Promise.all(
-    seguimientos.map(async (s): Promise<ItemEnriquecido> => {
-      try {
-        const expediente = await getExpediente(ctx, s.expediente_id);
-        return { seguimiento: s, expediente };
-      } catch (err) {
-        if (err instanceof ApiError404) {
-          return { seguimiento: s, expediente: null };
-        }
-        throw err;
-      }
-    }),
-  );
-
-  const porPrioridad: Record<Prioridad, ItemEnriquecido[]> = {
-    alta: [],
-    media: [],
-    baja: [],
-  };
-  for (const item of enriquecidos) {
-    porPrioridad[item.seguimiento.prioridad].push(item);
+  if (hub === null) {
+    return (
+      <Card className="border-border bg-card p-6 shadow-none">
+        <p className="text-sm text-muted-foreground">
+          No se pudo cargar el hub. Verificá la conexión al backend.
+        </p>
+      </Card>
+    );
   }
 
   return (
     <div className="space-y-8">
-      <div>
+      <header className="space-y-1">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Despacho · Dashboard
+          Hub diario
         </p>
-        <h2 className="mt-1 font-display text-3xl font-bold tracking-tight text-[var(--color-praxis-azul)]">
-          Mis seguimientos
+        <h2 className="font-display text-3xl font-bold tracking-tight text-[var(--color-praxis-azul)]">
+          {formatFechaLarga(hub.fecha)}
         </h2>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          {enriquecidos.length}{" "}
-          {enriquecidos.length === 1 ? "expediente activo" : "expedientes activos"}{" "}
-          marcados por el despacho.
-        </p>
-      </div>
+      </header>
 
-      <BOSection accionables={accionablesBO} />
-
-      <NoticiasSection noticias={noticias} />
-
-      {enriquecidos.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center gap-3 border-border bg-card py-20 text-center shadow-none">
-          <Inbox className="size-10 text-[var(--color-praxis-salmon)]" />
-          <p className="font-display text-lg font-semibold text-[var(--color-praxis-azul)]">
-            Todavía no marcaste ningún expediente
-          </p>
-          <p className="max-w-md text-sm text-muted-foreground">
-            Empezá por{" "}
-            <Link
-              href="/expedientes"
-              className="font-medium text-[var(--color-praxis-azul)] underline-offset-2 hover:underline"
-            >
-              Expedientes
-            </Link>{" "}
-            y marcá el primero con la estrella. Acá lo vas a ver agrupado por
-            prioridad.
-          </p>
+      {!hub.perfil_opositor_cargado && (
+        <Card className="border-[var(--color-praxis-salmon)]/40 bg-[var(--color-praxis-salmon)]/5 p-4 shadow-none">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="size-5 flex-shrink-0 text-[var(--color-praxis-salmon)]" />
+            <div className="flex-1 text-sm">
+              <p className="font-medium text-foreground">
+                Perfil opositor sin cargar
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Cargá el perfil del despacho para que el bot conecte
+                cada evento con tu línea política.{" "}
+                <Link
+                  href="/configuracion/perfil-opositor"
+                  className="font-medium text-[var(--color-praxis-azul)] underline-offset-2 hover:underline"
+                >
+                  Cargar perfil →
+                </Link>
+              </p>
+            </div>
+          </div>
         </Card>
-      ) : (
-        <div className="space-y-7">
-          {PRIORIDADES.map((p) => (
-            <PrioridadSection key={p} prioridad={p} items={porPrioridad[p]} />
-          ))}
-        </div>
       )}
+
+      <StatsRow stats={hub.stats} />
+
+      <AccionRequeridaSection items={hub.accion_requerida} />
+
+      {hub.silenciar.length > 0 && (
+        <SilenciarSection items={hub.silenciar} />
+      )}
+
+      {hub.proxima_sesion && <ProximaSesionCard sesion={hub.proxima_sesion} />}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Card "Boletín Oficial" — feat-39
+// Stats
 // ---------------------------------------------------------------------------
 
-const BO_PRIORIDAD_COLOR: Record<PrioridadAccionabilidad, string> = {
-  alta: "var(--color-praxis-azul)",
-  media: "var(--color-praxis-salmon)",
-  baja: "var(--color-praxis-verde)",
-};
+function StatsRow({ stats }: { stats: HubStatsDTO }) {
+  return (
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      <StatCard
+        icon={<FileText className="size-4" />}
+        label="BO de hoy"
+        valor={`${stats.bo_accionables} / ${stats.bo_total_hoy}`}
+        hint="accionables / total"
+      />
+      <StatCard
+        icon={<Newspaper className="size-4" />}
+        label="Noticias 24h"
+        valor={String(stats.noticias_relevantes_24h)}
+        hint="relevantes"
+      />
+      <StatCard
+        icon={<MessageCircle className="size-4" />}
+        label="Menciones 24h"
+        valor={String(stats.menciones_24h)}
+        hint="al legislador"
+      />
+      <StatCard
+        icon={<TrendingUp className="size-4" />}
+        label="Total accionable"
+        valor={String(stats.bo_accionables + stats.noticias_relevantes_24h)}
+        hint="entradas hoy"
+      />
+    </div>
+  );
+}
 
-function BOSection({
-  accionables,
+function StatCard({
+  icon,
+  label,
+  valor,
+  hint,
 }: {
-  accionables: NormaBOAccionableConNormaDTO[];
+  icon: React.ReactNode;
+  label: string;
+  valor: string;
+  hint: string;
 }) {
   return (
-    <section className="space-y-3">
-      <div className="flex items-baseline justify-between">
-        <div className="flex items-baseline gap-2.5">
-          <Newspaper className="size-4 text-[var(--color-praxis-salmon)]" />
-          <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-[var(--color-praxis-azul)]">
-            Boletín Oficial del día
-          </h3>
-        </div>
-        <Link
-          href="/bo"
-          className="text-xs font-medium text-[var(--color-praxis-azul)] underline-offset-2 hover:underline"
-        >
-          Ver todo →
-        </Link>
+    <Card className="border-border bg-card px-3 py-2.5 shadow-none">
+      <div className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+        <span className="text-[var(--color-praxis-salmon)]">{icon}</span>
+        {label}
       </div>
-      {accionables.length === 0 ? (
-        <Card className="border-border bg-card p-5 text-sm text-muted-foreground shadow-none">
-          Sin accionables del BO para hoy. Si recién cargaste tu perfil,
-          entrá a <Link href="/bo" className="text-[var(--color-praxis-azul)] underline-offset-2 hover:underline">Boletín Oficial</Link>{" "}
-          y refrescá.
+      <p className="mt-1 font-display text-xl font-bold text-foreground">
+        {valor}
+      </p>
+      <p className="text-[10.5px] text-muted-foreground">{hint}</p>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Acción requerida
+// ---------------------------------------------------------------------------
+
+function AccionRequeridaSection({ items }: { items: HubItemDTO[] }) {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Sparkles className="size-4 text-[var(--color-praxis-salmon)]" />
+        <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-[var(--color-praxis-azul)]">
+          Necesita acción hoy
+        </h3>
+        <Badge variant="outline" className="text-[10px]">
+          {items.length}
+        </Badge>
+      </div>
+      {items.length === 0 ? (
+        <Card className="border-border bg-card p-6 text-center shadow-none">
+          <p className="text-sm text-muted-foreground">
+            Sin acciones pendientes generadas todavía. Generá acciones
+            desde{" "}
+            <Link
+              href="/bo"
+              className="font-medium text-[var(--color-praxis-azul)] underline-offset-2 hover:underline"
+            >
+              /bo
+            </Link>{" "}
+            o{" "}
+            <Link
+              href="/noticias"
+              className="font-medium text-[var(--color-praxis-azul)] underline-offset-2 hover:underline"
+            >
+              /noticias
+            </Link>
+            .
+          </p>
         </Card>
       ) : (
-        <Card className="overflow-hidden border-border bg-card p-0 shadow-none">
-          <ul className="divide-y divide-border">
-            {accionables.map((a) => (
-              <li key={a.norma.id}>
-                <Link
-                  href={`/bo/${a.norma.id}`}
-                  className="flex items-start justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-[var(--color-praxis-crema)]/60"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        className="text-[10px] font-semibold"
-                        style={{
-                          backgroundColor:
-                            BO_PRIORIDAD_COLOR[a.accionable.prioridad],
-                          color: "white",
-                        }}
-                      >
-                        {a.accionable.prioridad.toUpperCase()}
-                      </Badge>
-                      <span className="font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
-                        {a.norma.tipo_norma} {a.norma.numero_norma}
-                      </span>
-                    </div>
-                    <p className="mt-1 line-clamp-1 text-[13px] text-foreground">
-                      {a.norma.sumario}
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {a.accionable.razon}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <div className="space-y-2.5">
+          {items.map((it) => (
+            <AccionRequeridaCard
+              key={`${it.tipo_evento}-${it.evento_id}`}
+              item={it}
+            />
+          ))}
+        </div>
       )}
     </section>
   );
 }
 
-const PRIORIDAD_DOT: Record<Prioridad, string> = {
-  alta: "var(--color-praxis-azul)",
-  media: "var(--color-praxis-salmon)",
-  baja: "var(--color-praxis-verde)",
-};
-
-function PrioridadSection({
-  prioridad,
-  items,
-}: {
-  prioridad: Prioridad;
-  items: ItemEnriquecido[];
-}) {
-  if (items.length === 0) return null;
+function AccionRequeridaCard({ item }: { item: HubItemDTO }) {
+  const color = ACCION_COLOR[item.accion];
   return (
-    <section className="space-y-3">
-      <div className="flex items-baseline gap-2.5">
-        <span
-          className="inline-block size-2 rounded-full"
-          style={{ backgroundColor: PRIORIDAD_DOT[prioridad] }}
-        />
-        <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-[var(--color-praxis-azul)]">
-          Prioridad {formatPrioridad(prioridad)}
-        </h3>
-        <span className="text-xs font-medium text-muted-foreground">
-          {items.length}
+    <Card
+      className="border-border bg-card p-4 shadow-none"
+      style={{ borderLeftColor: color, borderLeftWidth: 3 }}
+    >
+      <div className="flex flex-wrap items-start gap-2">
+        <Badge
+          className="text-[10px] font-semibold uppercase"
+          style={{ backgroundColor: color, color: "white" }}
+        >
+          {ACCION_LABEL[item.accion]}
+        </Badge>
+        <Badge
+          variant="outline"
+          className="border-current text-[10px] font-semibold"
+          style={{ color: CONFIANZA_COLOR[item.confianza] }}
+        >
+          {item.confianza}
+        </Badge>
+        <span className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
+          {item.tipo_evento === "norma_bo" ? "BO" : "Noticia"} ·{" "}
+          {item.fuente_o_organismo}
         </span>
       </div>
-      <Card className="overflow-hidden border-border bg-card p-0 shadow-none">
-        <ul className="divide-y divide-border">
-          {items.map(({ seguimiento, expediente }) => (
-            <li key={seguimiento.id}>
-              {expediente ? (
-                <Link
-                  href={`/expedientes/${expediente.id}`}
-                  className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-[var(--color-praxis-crema)]/60"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2.5">
-                      <span className="font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
-                        {formatNumeroExpediente(expediente.numero)}
-                      </span>
-                      <EstadoBadge estado={expediente.estado} />
-                    </div>
-                    <p className="mt-1 line-clamp-1 text-[13.5px] font-medium leading-snug text-foreground">
-                      {expediente.titulo}
-                    </p>
-                  </div>
-                  {expediente.fecha_caducidad && (
-                    <p className="flex-shrink-0 text-xs text-muted-foreground">
-                      Vence {formatFechaCorta(expediente.fecha_caducidad)}
-                    </p>
-                  )}
-                </Link>
-              ) : (
-                <div className="flex items-center gap-2 px-5 py-3.5 text-sm text-muted-foreground">
-                  <FileText className="size-4" />
-                  Expediente {seguimiento.expediente_id.slice(0, 8)}… no encontrado.
-                </div>
-              )}
+      <Link
+        href={item.url_detalle}
+        className="mt-2 block font-medium leading-snug text-foreground hover:underline"
+      >
+        {item.titulo}
+      </Link>
+      <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+        {item.razon_breve}
+      </p>
+      {item.tweets.length > 0 && <TweetsRow tweets={item.tweets} />}
+    </Card>
+  );
+}
+
+function TweetsRow({ tweets }: { tweets: TweetSugeridoBreveDTO[] }) {
+  return (
+    <div className="mt-3 space-y-1.5">
+      <p className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+        Tweets listos para usar
+      </p>
+      {tweets.map((t, i) => (
+        <div
+          key={i}
+          className="rounded-md border border-border bg-background px-2.5 py-2 text-xs"
+        >
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <Badge variant="outline" className="text-[9.5px] uppercase">
+              {t.tono}
+            </Badge>
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-[10px] tabular-nums ${t.caracteres > 280 ? "font-semibold text-[var(--color-praxis-salmon)]" : "text-muted-foreground"}`}
+              >
+                {t.caracteres}/280
+              </span>
+              <TweetCopyButton texto={t.texto} />
+            </div>
+          </div>
+          <p className="leading-relaxed text-foreground">{t.texto}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Silenciar
+// ---------------------------------------------------------------------------
+
+function SilenciarSection({ items }: { items: HubItemDTO[] }) {
+  return (
+    <section className="space-y-2.5">
+      <div className="flex items-center gap-2">
+        <AlertCircle className="size-4 text-[var(--color-praxis-salmon)]" />
+        <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-[var(--color-praxis-azul)]">
+          No tocar / silencio estratégico
+        </h3>
+        <Badge variant="outline" className="text-[10px]">
+          {items.length}
+        </Badge>
+      </div>
+      <Card className="border-border bg-muted/30 p-4 shadow-none">
+        <p className="mb-2 text-[11px] italic text-muted-foreground">
+          El bot detectó que estos temas no encajan con la línea del
+          despacho. Recomendación: no responder, no twittear, dejar
+          pasar.
+        </p>
+        <ul className="space-y-1.5">
+          {items.map((it) => (
+            <li
+              key={`${it.tipo_evento}-${it.evento_id}`}
+              className="text-xs leading-relaxed"
+            >
+              <Link
+                href={it.url_detalle}
+                className="font-medium text-foreground hover:underline"
+              >
+                {it.titulo}
+              </Link>{" "}
+              <span className="text-muted-foreground">
+                — {it.razon_breve}
+              </span>
             </li>
           ))}
         </ul>
@@ -283,62 +367,55 @@ function PrioridadSection({
 }
 
 // ---------------------------------------------------------------------------
-// Card "Noticias relevantes" — feat-40
+// Próxima sesión
 // ---------------------------------------------------------------------------
 
-function NoticiasSection({
-  noticias,
-}: {
-  noticias: ArticuloRelevanteConArticuloDTO[];
-}) {
+function ProximaSesionCard({ sesion }: { sesion: ProximaSesionDTO }) {
+  const fecha = new Date(
+    sesion.fecha_sesion + "T00:00:00",
+  ).toLocaleDateString("es-AR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
   return (
-    <section className="space-y-3">
-      <div className="flex items-baseline justify-between">
-        <h3 className="flex items-center gap-2 font-display text-sm font-semibold uppercase tracking-wider text-[var(--color-praxis-azul)]">
-          <Radio className="size-3.5" />
-          Noticias relevantes del día
+    <section className="space-y-2.5">
+      <div className="flex items-center gap-2">
+        <CalendarDays className="size-4 text-[var(--color-praxis-salmon)]" />
+        <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-[var(--color-praxis-azul)]">
+          Próxima sesión parlamentaria
         </h3>
-        <Link
-          href="/noticias"
-          className="text-xs font-medium text-[var(--color-praxis-azul)] underline-offset-2 hover:underline"
-        >
-          Ver todas
-        </Link>
       </div>
-      {noticias.length === 0 ? (
-        <p className="text-xs text-muted-foreground">
-          Sin artículos relevantes en las últimas 24 horas. El polling
-          corre cada 15 minutos.
-        </p>
-      ) : (
-        <Card className="overflow-hidden border-border bg-card p-0 shadow-none">
-          <ul className="divide-y divide-border">
-            {noticias.map((n) => (
-              <li key={n.articulo.id}>
-                <Link
-                  href={`/noticias/${n.articulo.id}`}
-                  className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-[var(--color-praxis-crema)]/60"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-1 text-[13.5px] font-medium text-foreground">
-                      {n.articulo.titulo}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {n.fuente.nombre}
-                      {n.clasificacion && (
-                        <span> · {n.clasificacion.area_tematica}</span>
-                      )}
-                    </p>
-                  </div>
-                  <span className="flex-shrink-0 text-xs font-semibold text-[var(--color-praxis-azul)]">
-                    {n.relevante.score}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+      <Card className="border-border bg-card p-4 shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
+              {sesion.camara} · {fecha}
+            </p>
+            <p className="mt-1 font-medium text-foreground">
+              {sesion.titulo ?? "Sesión sin título"}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {sesion.expedientes_count} expedientes en el orden del día
+            </p>
+          </div>
+          {sesion.briefing_id ? (
+            <Link
+              href={`/briefings/${sesion.briefing_id}`}
+              className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-praxis-azul)] px-3 py-1.5 text-xs font-semibold text-white"
+            >
+              Ver briefing pre-sesión
+            </Link>
+          ) : (
+            <Link
+              href="/briefings/nuevo"
+              className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-praxis-azul)] px-3 py-1.5 text-xs font-semibold text-[var(--color-praxis-azul)]"
+            >
+              Generar briefing
+            </Link>
+          )}
+        </div>
+      </Card>
     </section>
   );
 }
