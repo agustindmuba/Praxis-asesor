@@ -14,6 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { getApiContextServer } from "@/lib/api/context-server";
 import { previewBriefingDiario } from "@/lib/api/endpoints";
+
+import { EnviarAhoraButton } from "./enviar-ahora-button";
 import type {
   AccionSugerida,
   BriefingDiarioItemDTO,
@@ -62,6 +64,8 @@ export async function BriefingPreviewSection() {
           Preview
         </Badge>
       </div>
+
+      <EnviarAhoraButton />
 
       <Card className="border-border bg-card p-5 shadow-none">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
