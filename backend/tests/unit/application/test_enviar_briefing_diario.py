@@ -25,7 +25,7 @@ from praxis.application.ports import ResultadoEnvioWhatsApp
 from praxis.application.use_cases import EnviarBriefingDiario
 from praxis.application.use_cases.enviar_briefing_diario import (
     META_CODE_OPT_OUT,
-    _componer_resumen,
+    _componer_resumen_corto,
     _primer_nombre,
 )
 from praxis.domain import (
@@ -254,24 +254,24 @@ class TestHelpersPuros:
         assert _primer_nombre("Pablo") == "Pablo"
         assert _primer_nombre("   ") == "Despacho"
 
-    def test_componer_resumen_solo_bo(self) -> None:
-        r = _componer_resumen(n_bo=2, n_noticias=0)
+    def test_componer_resumen_corto_solo_bo(self) -> None:
+        r = _componer_resumen_corto(n_bo=2, n_noticias=0)
         assert "2 normas accionables" in r
         assert "noticia" not in r
 
-    def test_componer_resumen_solo_noticias(self) -> None:
-        r = _componer_resumen(n_bo=0, n_noticias=1)
+    def test_componer_resumen_corto_solo_noticias(self) -> None:
+        r = _componer_resumen_corto(n_bo=0, n_noticias=1)
         assert "1 noticia" in r
         assert "norma" not in r
 
-    def test_componer_resumen_ambos(self) -> None:
-        r = _componer_resumen(n_bo=3, n_noticias=5)
+    def test_componer_resumen_corto_ambos(self) -> None:
+        r = _componer_resumen_corto(n_bo=3, n_noticias=5)
         assert "3 normas accionables" in r
         assert "5 noticias" in r
         assert " y " in r
 
-    def test_componer_resumen_singular(self) -> None:
-        r = _componer_resumen(n_bo=1, n_noticias=1)
+    def test_componer_resumen_corto_singular(self) -> None:
+        r = _componer_resumen_corto(n_bo=1, n_noticias=1)
         assert "1 norma accionable" in r
         assert "1 noticia" in r
         # Sin "s" extra.
@@ -311,7 +311,10 @@ async def test_sin_destinatarios_devuelve_cero() -> None:
     r = await uc.ejecutar(despacho_id=despacho_id, fecha=date(2026, 6, 1))
     assert r.destinatarios_objetivo == 0
     assert r.enviados_ok == 0
-    assert r.sin_contenido is False  # short-circuit antes de chequear contenido
+    # feat-42.4: el use case computa el contenido SIEMPRE (para alimentar
+    # el preview UI). Con 0 BO + 0 noticias, sin_contenido queda True
+    # aunque tampoco haya destinatarios.
+    assert r.sin_contenido is True
 
 
 async def test_sin_contenido_no_manda_y_marca_sin_contenido() -> None:
@@ -354,7 +357,7 @@ async def test_envio_exitoso() -> None:
     # Verifica payload del sender.
     assert len(sender.llamadas) == 1
     call = sender.llamadas[0]
-    assert call["plantilla"] == "briefing_diario"
+    assert call["plantilla"] == "praxis_briefing_diario"
     assert call["params"][0] == "Pablo"  # primer nombre
     assert call["params"][1] == "2026-06-01"
     assert "norma" in call["params"][2]

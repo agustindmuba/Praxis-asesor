@@ -201,6 +201,11 @@ class FakeLlmProviderClasificadorBO(LlmProvider):
         return self._result
 
     # Métodos no usados en este test.
+    async def razonar_libre(
+        self, *, system: str, user: str, max_tokens: int = 2000,
+    ) -> tuple[str, str]:
+        raise NotImplementedError
+
     async def generar_resumen_ejecutivo(self, expediente: Expediente) -> str:
         raise NotImplementedError
 
