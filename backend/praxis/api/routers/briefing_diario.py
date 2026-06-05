@@ -1,12 +1,10 @@
-"""Router REST /briefing-diario/preview (feat-42.4).
+"""Router REST /briefing-diario (feat-42.4 + feat-41.7).
 
-Endpoint readonly que muestra cómo va a quedar el briefing diario que
-se le va a enviar al destinatario por WhatsApp.
-
-- GET /briefing-diario/preview?fecha=YYYY-MM-DD
-  Default: fecha de hoy. Sin destinatarios involucrados — solo
-  ejecuta el use case en modo "preview" (con FakeSender stub) y
-  devuelve el resumen_corto + body_rich + lista de items.
+- GET  /briefing-diario/preview?fecha=YYYY-MM-DD
+- POST /briefing-diario/enviar-ahora
+  Dispara EnviarBriefingDiario con el sender REAL (Meta WhatsApp si
+  hay creds, sino Fake) para todos los destinatarios elegibles del
+  despacho. Útil cuando uno no quiere esperar al cron 7am.
 """
 
 from __future__ import annotations
@@ -14,10 +12,10 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 
-from praxis.api.deps import CurrentContext, SessionDep
+from praxis.api.deps import CurrentContext, SessionDep, WhatsAppSenderDep
 from praxis.application.use_cases.enviar_briefing_diario import (
     EnviarBriefingDiario,
 )
@@ -108,4 +106,77 @@ async def preview_briefing_diario(
             )
             for it in resultado.items_noticias
         ],
+    )
+
+
+# ---------------------------------------------------------------------------
+# Enviar AHORA (feat-41.7)
+# ---------------------------------------------------------------------------
+
+
+class ResultadoEnvioAhoraDTO(BaseModel):
+    despacho_id: str
+    destinatarios_objetivo: int
+    enviados_ok: int
+    fallidos_transitorios: int
+    rechazados: int
+    sin_contenido: bool
+    sender_real: bool                     # True si fue WhatsAppCloudApiSender
+    errores: list[str]
+
+
+@router.post(
+    "/enviar-ahora",
+    response_model=ResultadoEnvioAhoraDTO,
+    summary=(
+        "Dispara el briefing diario para todos los destinatarios elegibles "
+        "del despacho. Si hay creds Meta, usa el sender real (cuesta plata)."
+    ),
+)
+async def enviar_briefing_ahora(
+    ctx: CurrentContext,
+    session: SessionDep,
+    sender: WhatsAppSenderDep,
+) -> ResultadoEnvioAhoraDTO:
+    from praxis.infrastructure.whatsapp.cloud_api import WhatsAppCloudApiSender
+    es_real = isinstance(sender, WhatsAppCloudApiSender)
+
+    uc = EnviarBriefingDiario(
+        destinatarios=SqlAlchemyDestinatarioRepository(session),
+        envios=SqlAlchemyEnvioWhatsAppRepository(session),
+        accionables_bo=SqlAlchemyNormaBOAccionableRepository(session),
+        relevantes_noticias=SqlAlchemyArticuloRelevanteRepository(session),
+        sender=sender,
+        normas_bo=SqlAlchemyNormaBORepository(session),
+        articulos=SqlAlchemyArticuloRepository(session),
+        accionables_enriquecidos=SqlAlchemyAccionableEventoRepository(session),
+    )
+
+    ahora = datetime.now(UTC)
+    resultado = await uc.ejecutar(
+        despacho_id=ctx.despacho.id,
+        fecha=ahora.date(),
+        ahora=ahora,
+    )
+    await session.commit()
+
+    if resultado.destinatarios_objetivo == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "No hay destinatarios activos con `recibe_briefing_diario=True` "
+                "y opt-in confirmado. Cargá uno en /configuracion y verificá "
+                "que tenga opt_in_en seteado."
+            ),
+        )
+
+    return ResultadoEnvioAhoraDTO(
+        despacho_id=str(ctx.despacho.id),
+        destinatarios_objetivo=resultado.destinatarios_objetivo,
+        enviados_ok=resultado.enviados_ok,
+        fallidos_transitorios=resultado.fallidos_transitorios,
+        rechazados=resultado.rechazados,
+        sin_contenido=resultado.sin_contenido,
+        sender_real=es_real,
+        errores=list(resultado.errores),
     )

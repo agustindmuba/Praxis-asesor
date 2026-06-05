@@ -539,3 +539,13 @@ export function validarConflictosNormativos(ctx: ApiContext, id: string) {
     { ctx },
   );
 }
+
+import type { ResultadoEnvioAhoraDTO } from "./types";
+
+export function enviarBriefingAhora(ctx: ApiContext) {
+  return apiPost<ResultadoEnvioAhoraDTO>(
+    "/api/v1/briefing-diario/enviar-ahora",
+    {},
+    { ctx },
+  );
+}

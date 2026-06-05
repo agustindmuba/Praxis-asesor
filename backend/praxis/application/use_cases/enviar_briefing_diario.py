@@ -58,7 +58,7 @@ from praxis.domain import (
 
 log = logging.getLogger(__name__)
 
-PLANTILLA_BRIEFING_DIARIO = "briefing_diario"
+PLANTILLA_BRIEFING_DIARIO = "praxis_briefing_diario"
 TOP_BO_DEFAULT = 3
 TOP_NOTICIAS_DEFAULT = 3
 MAX_RESUMEN_CORTO_CHARS = 180

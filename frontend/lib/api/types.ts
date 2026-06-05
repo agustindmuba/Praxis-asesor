@@ -811,3 +811,18 @@ export interface ResultadoValidacionDTO {
   conflictos: ConflictoDetectadoDTO[];
   sin_conflictos: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Briefing diario — enviar ahora (feat-41.7)
+// ---------------------------------------------------------------------------
+
+export interface ResultadoEnvioAhoraDTO {
+  despacho_id: string;
+  destinatarios_objetivo: number;
+  enviados_ok: number;
+  fallidos_transitorios: number;
+  rechazados: number;
+  sin_contenido: boolean;
+  sender_real: boolean;
+  errores: string[];
+}
