@@ -21,7 +21,7 @@ Cada una abre su propia sesión + adapters y cierra al final.
 
 from __future__ import annotations
 
-import asyncio
+import asyncio        # noqa: F401  — legacy, sustituido por run_task_async
 import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid5
@@ -56,6 +56,7 @@ from praxis.infrastructure.persistence.repositories import (
     SqlAlchemyMencionRepository,
     SqlAlchemyPerfilInteresDespachoRepository,
 )
+from praxis.infrastructure.queue._async_runtime import run_task_async
 from praxis.infrastructure.queue.celery_app import celery_app
 
 log = logging.getLogger(__name__)
@@ -88,7 +89,7 @@ def procesar_fuentes_task() -> dict[str, int]:
     Devuelve un agregado de contadores para verificación rápida en
     Flower. Logs detallados por fuente.
     """
-    return asyncio.run(_procesar_fuentes_async())
+    return run_task_async(_procesar_fuentes_async())
 
 
 async def _procesar_fuentes_async() -> dict[str, int]:
@@ -185,7 +186,7 @@ def enviar_alertas_pendientes_task() -> dict[str, int]:
     cuántas menciones se marcaron como notificadas por despacho. Cuando
     feat-41 esté, el sender escucha la intención y dispara la API de Meta.
     """
-    return asyncio.run(_enviar_alertas_async())
+    return run_task_async(_enviar_alertas_async())
 
 
 async def _enviar_alertas_async() -> dict[str, int]:
