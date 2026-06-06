@@ -35,6 +35,42 @@ uv run python -c "from praxis.infrastructure.queue.tasks import ping; print(ping
 - **Idempotencia**: las tareas deben ser seguras de re-ejecutar. Si modifican estado, usar `idempotency_key` o equivalente.
 - **Programación periódica**: definir en un `celery_app.conf.beat_schedule` (se agrega cuando aparezca la primera tarea periódica).
 
+## Runbook de operación (feat-42.9)
+
+El sistema requiere **3 procesos** corriendo en paralelo:
+
+```bash
+# Terminal 1: backend FastAPI
+cd backend && uv run uvicorn praxis.api.main:app --port 8000
+
+# Terminal 2: worker (consume todas las tareas, incluyendo RAG)
+cd backend && uv run celery -A praxis.infrastructure.queue.celery_app worker \
+    --loglevel=info --pool=solo
+
+# Terminal 3: scheduler (dispara las tareas periódicas a la hora correcta)
+cd backend && uv run celery -A praxis.infrastructure.queue.celery_app beat \
+    --loglevel=info
+```
+
+El beat publica en Redis a las horas indicadas en `beat_schedule`. El
+worker consume. Si el worker está abajo cuando beat publica, la tarea
+queda encolada y se ejecuta cuando vuelva (`task_acks_late=True`).
+
+**Issue Windows + asyncio + solo pool**: el `engine` global de
+SQLAlchemy queda atado al primer event loop. Si una task usa
+`asyncio.run` directamente, la 2ª task rompe con
+`AttributeError: 'NoneType' object has no attribute 'send'` (proactor
+del loop anterior). **Solución**: todas las tasks usan
+`run_task_async(coro)` de `_async_runtime.py`, que crea loop fresco
++ `engine.dispose()` al final. Si agregás una nueva task con
+`asyncio.run`, va a romper — usá el helper.
+
+Smoke verificado (feat-42.9):
+- `ping` → pong ✓
+- `praxis.rag.embeber_textos` → 384-dim vectors ✓
+- `praxis.bo.ingestar_diario` → 24 normas ✓
+- `praxis.bo.clasificar_pendientes` (DESPUÉS de otra task) → 23 OK ✓
+
 ## Worker dedicado para RAG (feat-42.8)
 
 `tasks_rag.embeber_textos_task` carga sentence-transformers (~120MB) y

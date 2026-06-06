@@ -45,6 +45,7 @@ from praxis.infrastructure.persistence.repositories import (
     SqlAlchemyNormaBOTextoRepository,
     SqlAlchemyPerfilInteresDespachoRepository,
 )
+from praxis.infrastructure.queue._async_runtime import run_task_async
 from praxis.infrastructure.queue.celery_app import celery_app
 
 log = logging.getLogger(__name__)
@@ -58,7 +59,7 @@ log = logging.getLogger(__name__)
 @celery_app.task(name="praxis.bo.ingestar_diario")  # type: ignore[untyped-decorator]
 def ingestar_diario_task() -> int:
     """Baja PDFs del BO del día corriente y persiste normas + textos."""
-    return asyncio.run(_ingestar_diario_async())
+    return run_task_async(_ingestar_diario_async())
 
 
 async def _ingestar_diario_async() -> int:
@@ -88,7 +89,7 @@ async def _ingestar_diario_async() -> int:
 @celery_app.task(name="praxis.bo.clasificar_pendientes")  # type: ignore[untyped-decorator]
 def clasificar_pendientes_task() -> int:
     """Clasifica con LLM todas las normas del día sin cache."""
-    return asyncio.run(_clasificar_pendientes_async())
+    return run_task_async(_clasificar_pendientes_async())
 
 
 async def _clasificar_pendientes_async() -> int:
@@ -140,7 +141,7 @@ async def _clasificar_pendientes_async() -> int:
 @celery_app.task(name="praxis.bo.evaluar_accionables_por_despacho")  # type: ignore[untyped-decorator]
 def evaluar_accionables_por_despacho_task() -> int:
     """Para cada despacho con perfil, calcula y persiste accionables."""
-    return asyncio.run(_evaluar_accionables_async())
+    return run_task_async(_evaluar_accionables_async())
 
 
 async def _evaluar_accionables_async() -> int:

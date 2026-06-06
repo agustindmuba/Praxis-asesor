@@ -14,7 +14,7 @@ gasta API, no manda nada real).
 
 from __future__ import annotations
 
-import asyncio
+import asyncio        # noqa: F401  — legacy, sustituido por run_task_async
 import logging
 from datetime import UTC, datetime
 
@@ -30,6 +30,7 @@ from praxis.infrastructure.persistence.repositories import (
     SqlAlchemyEnvioWhatsAppRepository,
     SqlAlchemyNormaBOAccionableRepository,
 )
+from praxis.infrastructure.queue._async_runtime import run_task_async
 from praxis.infrastructure.queue.celery_app import celery_app
 from praxis.infrastructure.whatsapp import (
     FakeWhatsAppSender,
@@ -45,7 +46,7 @@ def enviar_briefings_diarios_task() -> dict[str, int]:
     WhatsApp.
 
     Devuelve un agregado de contadores para Flower."""
-    return asyncio.run(_enviar_briefings_diarios_async())
+    return run_task_async(_enviar_briefings_diarios_async())
 
 
 async def _enviar_briefings_diarios_async() -> dict[str, int]:
