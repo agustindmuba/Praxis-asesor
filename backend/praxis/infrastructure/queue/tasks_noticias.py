@@ -82,7 +82,14 @@ def legislador_uuid(*, slug: str, camara: Camara) -> UUID:
 # ---------------------------------------------------------------------------
 
 
-@celery_app.task(name="praxis.noticias.procesar_fuentes")  # type: ignore[untyped-decorator]
+@celery_app.task(  # type: ignore[untyped-decorator]
+    name="praxis.noticias.procesar_fuentes",
+    # Polling cada 15 min con N fuentes × M artículos × LLM clasificar.
+    # En la práctica: 5-10 fuentes × ~20 artículos × ~3s LLM = 5-10 min.
+    # Le doy 20 min hard, 18 min soft para tener aire.
+    time_limit=1200,
+    soft_time_limit=1080,
+)
 def procesar_fuentes_task() -> dict[str, int]:
     """Pollea todas las fuentes activas y procesa los artículos nuevos.
 

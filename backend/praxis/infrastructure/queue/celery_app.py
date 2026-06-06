@@ -42,8 +42,14 @@ celery_app.conf.update(
     # Tracking de estado.
     task_track_started=True,
     # Límites duros y suaves para evitar workers atascados.
-    task_time_limit=300,  # 5 min: aborta el proceso.
-    task_soft_time_limit=240,  # 4 min: dispara SoftTimeLimitExceeded para cleanup.
+    # Default 900s/840s = 15min hard / 14min soft. Es el techo razonable
+    # para una task individual; ajuste de 300s original (feat-10) que se
+    # quedó corto cuando aparecieron tasks que scrapean N fuentes con
+    # LLM por artículo (feat-40.5.B) y batch de briefings WhatsApp con
+    # N despachos (feat-41.4). Per-task overrides via decorator
+    # `@celery_app.task(time_limit=..., soft_time_limit=...)`.
+    task_time_limit=900,
+    task_soft_time_limit=840,
     # Acknowledge late: la tarea se considera consumida cuando termina,
     # no cuando se toma del broker. Si el worker muere mid-task, la tarea
     # vuelve a la cola (visible al siguiente worker).
