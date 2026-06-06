@@ -86,7 +86,13 @@ async def _ingestar_diario_async() -> int:
 # ---------------------------------------------------------------------------
 
 
-@celery_app.task(name="praxis.bo.clasificar_pendientes")  # type: ignore[untyped-decorator]
+@celery_app.task(  # type: ignore[untyped-decorator]
+    name="praxis.bo.clasificar_pendientes",
+    # 1 LLM call por norma. Un día tipo del BO trae 20-40 normas →
+    # ~2 min con Anthropic. Le doy 20 min hard para días pesados.
+    time_limit=1200,
+    soft_time_limit=1080,
+)
 def clasificar_pendientes_task() -> int:
     """Clasifica con LLM todas las normas del día sin cache."""
     return run_task_async(_clasificar_pendientes_async())

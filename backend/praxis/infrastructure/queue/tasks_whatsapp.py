@@ -40,7 +40,14 @@ from praxis.infrastructure.whatsapp import (
 log = logging.getLogger(__name__)
 
 
-@celery_app.task(name="praxis.whatsapp.enviar_briefings_diarios")  # type: ignore[untyped-decorator]
+@celery_app.task(  # type: ignore[untyped-decorator]
+    name="praxis.whatsapp.enviar_briefings_diarios",
+    # N despachos × M destinatarios × latencia Meta (~0.5-2s por envío).
+    # En MVP con ≤100 despachos × ≤5 destinatarios ≈ ≤500 envíos × 2s
+    # ≈ ~17 min. Margen 20 min hard.
+    time_limit=1200,
+    soft_time_limit=1080,
+)
 def enviar_briefings_diarios_task() -> dict[str, int]:
     """Por cada despacho activo, manda el briefing diario por
     WhatsApp.
