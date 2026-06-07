@@ -680,6 +680,34 @@ export interface EstadoAccionableUpdate {
   nota?: string;        // obligatoria si estado=adaptado
 }
 
+// Insights del feedback (feat-43.3).
+export interface DistribucionAccionDTO {
+  accion: AccionSugerida;
+  total: number;
+  pendientes: number;
+  hechos: number;
+  ignorados: number;
+  adaptados: number;
+  pct_ignorado: number;
+  pct_hecho: number;
+  pct_adaptado: number;
+}
+
+export interface SugerenciaInsightDTO {
+  tipo: "bajar_tono" | "revisar_patron_adaptado" | "backlog";
+  accion_objetivo: AccionSugerida | null;
+  mensaje: string;
+  severidad: "alta" | "media" | "baja";
+}
+
+export interface InsightsFeedbackDTO {
+  ventana_dias: number;
+  total_accionables: number;
+  total_con_feedback: number;
+  distribucion: DistribucionAccionDTO[];
+  sugerencias: SugerenciaInsightDTO[];
+}
+
 // ---------------------------------------------------------------------------
 // Briefing diario preview (feat-42.4)
 // ---------------------------------------------------------------------------

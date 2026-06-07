@@ -54,3 +54,35 @@ class ActualizarPerfilBody(BaseModel):
     adversarios: list[FiguraReferidaDTO] | None = None
     aliados: list[FiguraReferidaDTO] | None = None
     linea_de_bloque: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Insights del feedback (feat-43.3)
+# ---------------------------------------------------------------------------
+
+
+class DistribucionAccionDTO(BaseModel):
+    accion: str
+    total: int
+    pendientes: int
+    hechos: int
+    ignorados: int
+    adaptados: int
+    pct_ignorado: float        # 0-1
+    pct_hecho: float
+    pct_adaptado: float
+
+
+class SugerenciaInsightDTO(BaseModel):
+    tipo: str
+    accion_objetivo: str | None
+    mensaje: str
+    severidad: str             # "alta" | "media" | "baja"
+
+
+class InsightsFeedbackDTO(BaseModel):
+    ventana_dias: int
+    total_accionables: int
+    total_con_feedback: int
+    distribucion: list[DistribucionAccionDTO]
+    sugerencias: list[SugerenciaInsightDTO]

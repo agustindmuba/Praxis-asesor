@@ -14,9 +14,15 @@ from fastapi import APIRouter, HTTPException, status
 from praxis.api.deps import CurrentContext, LlmProviderDep, SessionDep
 from praxis.api.schemas.perfil_opositor import (
     ActualizarPerfilBody,
+    DistribucionAccionDTO,
     FiguraReferidaDTO,
     InferirPerfilBody,
+    InsightsFeedbackDTO,
     PerfilOpositorDTO,
+    SugerenciaInsightDTO,
+)
+from praxis.application.use_cases.calcular_insights_feedback import (
+    CalcularInsightsFeedback,
 )
 from praxis.domain import PerfilOpositorDespacho
 
@@ -140,3 +146,52 @@ async def actualizar_perfil(
     nuevo = await repo.upsert(actual)
     await session.commit()
     return _to_dto(nuevo)
+
+
+# ---------------------------------------------------------------------------
+# Insights del feedback (feat-43.3)
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/insights-feedback",
+    response_model=InsightsFeedbackDTO,
+    summary=(
+        "Insights del feedback del asesor en accionables (últimos 28 días): "
+        "distribución por tipo de acción + sugerencias automáticas para el perfil."
+    ),
+)
+async def get_insights_feedback(
+    ctx: CurrentContext,
+    session: SessionDep,
+) -> InsightsFeedbackDTO:
+    uc = CalcularInsightsFeedback(session=session)
+    r = await uc.ejecutar(despacho_id=ctx.despacho.id)
+    return InsightsFeedbackDTO(
+        ventana_dias=r.ventana_dias,
+        total_accionables=r.total_accionables,
+        total_con_feedback=r.total_con_feedback,
+        distribucion=[
+            DistribucionAccionDTO(
+                accion=d.accion,
+                total=d.total,
+                pendientes=d.pendientes,
+                hechos=d.hechos,
+                ignorados=d.ignorados,
+                adaptados=d.adaptados,
+                pct_ignorado=d.pct_ignorado,
+                pct_hecho=d.pct_hecho,
+                pct_adaptado=d.pct_adaptado,
+            )
+            for d in r.distribucion
+        ],
+        sugerencias=[
+            SugerenciaInsightDTO(
+                tipo=s.tipo,
+                accion_objetivo=s.accion_objetivo,
+                mensaje=s.mensaje,
+                severidad=s.severidad,
+            )
+            for s in r.sugerencias
+        ],
+    )
