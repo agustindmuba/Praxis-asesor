@@ -70,7 +70,20 @@ async function DevLoginForm({
             </p>
           </div>
 
-          <form action={devLoginAction} className="space-y-4">
+          {/*
+            autoComplete="off" + role="presentation" en el form +
+            data-1p-ignore + data-lpignore en cada input desactivan el
+            prompt de "guardar contraseña" / "rellenar contraseña" que
+            Chrome/1Password/LastPass infieren por heurística cuando ven
+            un form con inputs + botón "Entrar". Este form NO tiene
+            campo de password real — todo es dev-only.
+          */}
+          <form
+            action={devLoginAction}
+            className="space-y-4"
+            autoComplete="off"
+            role="presentation"
+          >
             <div className="space-y-1.5">
               <label
                 htmlFor="clerkId"
@@ -84,6 +97,8 @@ async function DevLoginForm({
                 defaultValue={presetClerk}
                 required
                 autoComplete="off"
+                data-1p-ignore
+                data-lpignore="true"
               />
             </div>
 
@@ -101,6 +116,8 @@ async function DevLoginForm({
                 placeholder="0a8cf4c0-3b95-44bf-93c5-c8aebff97306"
                 required
                 autoComplete="off"
+                data-1p-ignore
+                data-lpignore="true"
                 pattern="^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
               />
             </div>
