@@ -238,3 +238,54 @@ async def obtener_briefing_pdf(
             "Content-Disposition": f'inline; filename="{filename}"',
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Detección automática de OD desde HCDN (feat-45.3)
+# ---------------------------------------------------------------------------
+
+
+from pydantic import BaseModel  # noqa: E402
+
+
+class ResultadoDetectarODDTO(BaseModel):
+    sesiones_disponibles_total: int
+    sesiones_nuevas: int
+    ods_creados: int
+    expedientes_resueltos_total: int
+    expedientes_no_encontrados_total: int
+    detalle_por_sesion: list[dict]
+
+
+@router_ordenes.post(
+    "/detectar-nuevo-hcdn",
+    response_model=ResultadoDetectarODDTO,
+    summary=(
+        "Detecta sesiones nuevas en el portal HCDN, las importa como "
+        "OrdenDelDia con id_sesion_externa para idempotencia. "
+        "Resuelve cada N° expediente a Expediente.id buscando en la "
+        "DB local. Los no encontrados se reportan pero no detienen "
+        "la importación."
+    ),
+)
+async def detectar_nuevo_od_hcdn(
+    ctx: CurrentContext,
+    session: SessionDep,
+    max_nuevas: int = 5,
+) -> ResultadoDetectarODDTO:
+    from praxis.application.use_cases.detectar_nuevo_od import DetectarNuevoOd
+
+    del ctx  # exige auth, pero la importación es global (no tenant-scoped)
+    uc = DetectarNuevoOd(
+        session=session,
+        ordenes_repo=SqlAlchemyOrdenDelDiaRepository(session),
+    )
+    r = await uc.ejecutar(max_nuevas=max_nuevas)
+    return ResultadoDetectarODDTO(
+        sesiones_disponibles_total=r.sesiones_disponibles_total,
+        sesiones_nuevas=r.sesiones_nuevas,
+        ods_creados=r.ods_creados,
+        expedientes_resueltos_total=r.expedientes_resueltos_total,
+        expedientes_no_encontrados_total=r.expedientes_no_encontrados_total,
+        detalle_por_sesion=r.detalle_por_sesion,
+    )

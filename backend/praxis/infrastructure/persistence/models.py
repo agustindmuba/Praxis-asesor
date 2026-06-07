@@ -441,6 +441,10 @@ class OrdenDelDiaOrm(Base, kw_only=True):
         String(30), nullable=False, default="upload_manual",
     )
     expedientes_ids: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
+    # id_sesion del portal HCDN para idempotencia (feat-45.3).
+    id_sesion_externa: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, default=None,
+    )
     creado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
