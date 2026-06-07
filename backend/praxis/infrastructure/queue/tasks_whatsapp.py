@@ -139,3 +139,52 @@ def _construir_sender() -> FakeWhatsAppSender | WhatsAppCloudApiSender:
             phone_number_id=settings.meta_whatsapp_phone_number_id,
         )
     return FakeWhatsAppSender()
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    name="praxis.whatsapp.enviar_avisos_proxima_sesion",
+    bind=True,
+    autoretry_for=(Exception,),
+    max_retries=1,
+)
+def enviar_avisos_proxima_sesion_task(self) -> dict:  # type: ignore[no-untyped-def]
+    """Aviso WhatsApp del briefing pre-sesión (feat-45.5).
+
+    Corre el día anterior a la sesión, a las 18 ART. Para cada OD con
+    fecha_sesion=mañana, manda WhatsApp a los destinatarios elegibles
+    con plantilla `praxis_briefing_proxima_sesion`.
+    """
+    async def _correr() -> dict:
+        from praxis.application.use_cases.enviar_aviso_sesion_manana import (
+            EnviarAvisoSesionManana,
+        )
+        from praxis.config import get_settings
+        from praxis.infrastructure.db.engine import SessionLocal
+        from praxis.infrastructure.whatsapp.fake import FakeWhatsAppSender
+        from praxis.infrastructure.whatsapp.cloud_api import (
+            WhatsAppCloudApiSender,
+        )
+
+        s = get_settings()
+        if s.meta_whatsapp_token and s.meta_whatsapp_phone_number_id:
+            sender = WhatsAppCloudApiSender(
+                access_token=s.meta_whatsapp_token,
+                phone_number_id=s.meta_whatsapp_phone_number_id,
+            )
+        else:
+            sender = FakeWhatsAppSender()
+
+        async with SessionLocal() as session:
+            uc = EnviarAvisoSesionManana(session=session, sender=sender)
+            r = await uc.ejecutar()
+            await session.commit()
+            return {
+                "fecha_destino": str(r.fecha_destino),
+                "ods_encontrados": r.ods_encontrados,
+                "destinatarios_objetivo": r.destinatarios_objetivo,
+                "enviados_ok": r.enviados_ok,
+                "fallidos": r.fallidos,
+                "duplicados": r.duplicados,
+            }
+
+    return run_task_async(_correr())

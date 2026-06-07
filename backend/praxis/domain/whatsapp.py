@@ -102,6 +102,7 @@ class TipoEnvio(StrEnum):
     """Categoría del envío para reporting y filtros del histórico."""
 
     BRIEFING_DIARIO = "briefing_diario"
+    BRIEFING_PROXIMA_SESION = "briefing_proxima_sesion"   # feat-45.5
     ALERTA_MENCION = "alerta_mencion"
     ALERTA_BO = "alerta_bo"
     OTRO = "otro"

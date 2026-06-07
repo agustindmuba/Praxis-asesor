@@ -34,8 +34,20 @@ class OrdenDelDia:
     hora_sesion: time | None = None
     fuente: FuenteOd = "upload_manual"
     titulo: str | None = None              # ej "Sesión Ordinaria N° 7"
+    # id_sesion del portal HCDN para idempotencia (feat-45.3). Solo
+    # aplica cuando `fuente="scraping_hcdn"`.
+    id_sesion_externa: int | None = None
     creado_en: datetime | None = None
 
     def __post_init__(self) -> None:
-        if not self.expedientes_ids:
-            raise ValueError("OrdenDelDia.expedientes_ids no puede ser vacío")
+        # Manual: debe tener al menos un expediente. Scraping puede
+        # quedar vacío si todos los expedientes del temario aún no
+        # están ingestados en la DB local (feat-45.3).
+        if self.fuente == "upload_manual" and not self.expedientes_ids:
+            raise ValueError(
+                "OrdenDelDia (manual).expedientes_ids no puede ser vacío",
+            )
+        if self.fuente == "scraping_hcdn" and self.id_sesion_externa is None:
+            raise ValueError(
+                "OrdenDelDia (scraping).id_sesion_externa es obligatorio",
+            )

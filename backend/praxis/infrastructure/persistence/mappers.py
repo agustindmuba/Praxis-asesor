@@ -505,6 +505,7 @@ def to_orden_del_dia(orm: OrdenDelDiaOrm) -> OrdenDelDia:
         titulo=orm.titulo,
         fuente=cast(FuenteOd, orm.fuente),
         expedientes_ids=[UUID(str(i)) for i in orm.expedientes_ids],
+        id_sesion_externa=orm.id_sesion_externa,
         creado_en=orm.creado_en,
     )
 
@@ -525,6 +526,7 @@ def from_orden_del_dia(
         "titulo": domain.titulo,
         "fuente": domain.fuente,
         "expedientes_ids": [str(i) for i in domain.expedientes_ids],
+        "id_sesion_externa": domain.id_sesion_externa,
     }
     if domain.id is not None:
         kwargs["id"] = domain.id

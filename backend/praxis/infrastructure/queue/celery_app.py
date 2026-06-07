@@ -27,6 +27,7 @@ celery_app = Celery(
         "praxis.infrastructure.queue.tasks_noticias",
         "praxis.infrastructure.queue.tasks_whatsapp",
         "praxis.infrastructure.queue.tasks_rag",
+        "praxis.infrastructure.queue.tasks_hcdn",
     ],
 )
 
@@ -98,6 +99,25 @@ celery_app.conf.update(
         "whatsapp-enviar-briefings-diarios": {
             "task": "praxis.whatsapp.enviar_briefings_diarios",
             "schedule": crontab(hour="11", minute="0"),
+        },
+        # HCDN: detectar OD nuevo del Plan de Labor (feat-45.4).
+        # Corre cada 1 hora durante horario de sesiones argentino:
+        # martes y jueves entre 12:00 y 22:00 UTC (9-19 ART).
+        # Fuera de ese rango el portal HCDN no actualiza temarios.
+        "hcdn-detectar-od": {
+            "task": "praxis.hcdn.detectar_od",
+            "schedule": crontab(
+                minute="0",
+                hour="12-22",
+                day_of_week="tue,thu",
+            ),
+        },
+        # WhatsApp aviso "mañana hay sesión" (feat-45.5).
+        # 21:00 UTC = 18:00 ART, día anterior a la sesión. Para cada
+        # OD con fecha_sesion=mañana, manda WhatsApp con link al briefing.
+        "whatsapp-aviso-proxima-sesion": {
+            "task": "praxis.whatsapp.enviar_avisos_proxima_sesion",
+            "schedule": crontab(hour="21", minute="0"),
         },
     },
 )
