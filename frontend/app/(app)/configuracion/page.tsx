@@ -163,8 +163,15 @@ function DestinatariosSection({
       <DestinatarioFormulario />
 
       {destinatarios.length === 0 ? (
-        <Card className="border-border bg-card p-5 text-sm text-muted-foreground shadow-none">
-          Todavía no hay destinatarios cargados. Agregá uno arriba.
+        <Card className="border-border bg-card p-6 text-center shadow-none">
+          <UserPlus className="mx-auto size-8 text-[var(--color-praxis-salmon)]" />
+          <p className="mt-2.5 text-sm font-medium text-foreground">
+            Sin destinatarios cargados
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Agregá uno con el formulario de arriba — al menos el tuyo, para
+            recibir el briefing diario en tu WhatsApp.
+          </p>
         </Card>
       ) : (
         <Card className="overflow-hidden border-border bg-card p-0 shadow-none">
