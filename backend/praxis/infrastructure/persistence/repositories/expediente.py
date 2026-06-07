@@ -18,9 +18,11 @@ from praxis.domain import (
 )
 from praxis.infrastructure.persistence.mappers import from_expediente, to_expediente
 from praxis.infrastructure.persistence.models import (
+    ExpedienteAreaTematicaOrm,
     ExpedienteOrm,
     FirmanteOrm,
     GiroOrm,
+    SeguimientoExpedienteOrm,
 )
 
 
@@ -170,6 +172,70 @@ class SqlAlchemyExpedienteRepository(ExpedienteRepository):
                 .exists()
             )
             conds.append(subq)
+
+        # ----- Filtros derivados del despacho (feat-43.1) -----
+
+        if query.area_tematica is not None:
+            subq = (
+                select(ExpedienteAreaTematicaOrm.expediente_id)
+                .where(
+                    ExpedienteAreaTematicaOrm.expediente_id == ExpedienteOrm.id,
+                    ExpedienteAreaTematicaOrm.area == query.area_tematica.value,
+                )
+                .exists()
+            )
+            conds.append(subq)
+
+        if query.con_dictamen:
+            # "Con dictamen" = expedientes que YA pasaron de mero ingreso/comision.
+            # Incluye dictamen firmado, media sancion y sancionado.
+            conds.append(
+                ExpedienteOrm.estado.in_([
+                    "con_dictamen",
+                    "media_sancion_hcdn",
+                    "media_sancion_hsn",
+                    "sancionado",
+                ])
+            )
+
+        if query.por_caducar_dias is not None:
+            # Ley 13.640: caduca si no avanza. Mostramos solo los que vencen
+            # dentro de los proximos N dias (y todavia no estan caducos).
+            from datetime import date as _date, timedelta as _timedelta
+            limite = _date.today() + _timedelta(days=query.por_caducar_dias)
+            conds.append(ExpedienteOrm.fecha_caducidad.is_not(None))
+            conds.append(ExpedienteOrm.fecha_caducidad <= limite)
+            conds.append(ExpedienteOrm.fecha_caducidad >= _date.today())
+            conds.append(ExpedienteOrm.estado != "caduco")
+            conds.append(ExpedienteOrm.estado != "sancionado")
+
+        if query.con_seguimiento_del_despacho is not None:
+            subq = (
+                select(SeguimientoExpedienteOrm.expediente_id)
+                .where(
+                    SeguimientoExpedienteOrm.expediente_id == ExpedienteOrm.id,
+                    SeguimientoExpedienteOrm.despacho_id
+                    == query.con_seguimiento_del_despacho,
+                )
+                .exists()
+            )
+            conds.append(subq)
+
+        if query.firmados_por_titular_slug is not None:
+            # Match laxo: el slug es "JULIANO, PABLO" -> matchea por
+            # "juliano" en LOWER(firmante.nombre). Permite que el slug del
+            # despacho sea distinto del nombre exacto que cargo HCDN.
+            slug = query.firmados_por_titular_slug.strip().split(",")[0].strip().lower()
+            if slug:
+                subq = (
+                    select(FirmanteOrm.id)
+                    .where(
+                        FirmanteOrm.expediente_id == ExpedienteOrm.id,
+                        _ilike_contains(FirmanteOrm.nombre, slug),
+                    )
+                    .exists()
+                )
+                conds.append(subq)
 
         return conds
 
