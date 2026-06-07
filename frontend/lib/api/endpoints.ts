@@ -588,3 +588,45 @@ export function setFotoLegislador(ctx: ApiContext, fotoUrl: string | null) {
     { ctx },
   );
 }
+
+
+/** Onboarding (feat-44). */
+export interface EstadoOnboardingDTO {
+  despacho_id: string;
+  paso_1_legislador_cargado: boolean;
+  paso_2_perfil_opositor_cargado: boolean;
+  paso_3_destinatarios_cargados: boolean;
+  paso_4_primer_accionable: boolean;
+  todo_listo: boolean;
+}
+
+export interface ConfigurarDespachoBody {
+  legislador_titular_slug: string;
+  camara?: "HCDN" | "HSN";
+  foto_url?: string | null;
+  inferir_perfil?: boolean;
+}
+
+export interface ConfigurarDespachoResponse {
+  despacho_id: string;
+  legislador_titular_slug: string;
+  foto_url: string | null;
+  perfil_inferido: boolean;
+  perfil_id: string | null;
+  mensaje: string;
+  error_inferencia: string | null;
+}
+
+export function getEstadoOnboarding(ctx: ApiContext) {
+  return apiGet<EstadoOnboardingDTO>("/api/v1/onboarding/estado", { ctx });
+}
+
+export function configurarDespacho(
+  ctx: ApiContext, body: ConfigurarDespachoBody,
+) {
+  return apiPost<ConfigurarDespachoResponse>(
+    "/api/v1/onboarding/configurar-despacho",
+    body,
+    { ctx },
+  );
+}

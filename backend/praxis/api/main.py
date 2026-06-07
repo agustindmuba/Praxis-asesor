@@ -151,6 +151,7 @@ from praxis.api.routers import hub_diario as hub_diario_router  # noqa: E402
 from praxis.api.routers import proyectos_redaccion as proyectos_redaccion_router  # noqa: E402
 from praxis.api.routers import normativa as normativa_router  # noqa: E402
 from praxis.api.routers import legislador_titular as legislador_titular_router  # noqa: E402
+from praxis.api.routers import onboarding as onboarding_router  # noqa: E402
 
 API_V1 = "/api/v1"
 app.include_router(auth_router.router, prefix=API_V1)
@@ -175,6 +176,7 @@ app.include_router(proyectos_redaccion_router.router, prefix=API_V1)
 app.include_router(normativa_router.router, prefix=API_V1)
 app.include_router(normativa_router.router_validar, prefix=API_V1)
 app.include_router(legislador_titular_router.router, prefix=API_V1)
+app.include_router(onboarding_router.router, prefix=API_V1)
 
 
 # -----------------------------------------------------------------------------

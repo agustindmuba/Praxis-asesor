@@ -25,7 +25,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { HuellaLegisladorPanel } from "@/components/features/legislador/huella-panel";
 import { getApiContextServer } from "@/lib/api/context-server";
-import { getHubDiario } from "@/lib/api/endpoints";
+import { getEstadoOnboarding, getHubDiario } from "@/lib/api/endpoints";
+import { redirect } from "next/navigation";
 import type {
   AccionSugerida,
   ConfianzaAccionable,
@@ -81,6 +82,13 @@ function formatFechaLarga(iso: string): string {
 
 export default async function DashboardPage() {
   const ctx = await getApiContextServer();
+  // Onboarding gate (feat-44.3): si el despacho no tiene legislador
+  // titular cargado, llevamos al asesor al wizard antes que se vea
+  // un dashboard vacío.
+  const estado = await getEstadoOnboarding(ctx).catch(() => null);
+  if (estado && !estado.paso_1_legislador_cargado) {
+    redirect("/onboarding");
+  }
   const hub = await getHubDiario(ctx).catch(() => null);
 
   if (hub === null) {
