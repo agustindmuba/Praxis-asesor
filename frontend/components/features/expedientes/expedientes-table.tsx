@@ -1,24 +1,24 @@
 /**
  * Tabla de expedientes (Server Component).
  *
- * Recibe el `ResultadoBusquedaDTO` ya resuelto (la página padre hace el fetch
- * en RSC). Renderiza filas con número, título, tipo, estado, fecha.
+ * v2 (feat-43.1.2): pasa de tabla excel-style a filas con jerarquía:
+ * - Tipo (badge color) a la izquierda → escaneo rápido por categoría.
+ * - Título en sentence case → deja de gritar en MAYÚSCULAS.
+ * - N° + fecha + cámara en metadata gris debajo del título.
+ * - Estado (badge) + bandera de caducidad a la derecha.
+ *
+ * Las filas siguen siendo clickeables (link al detalle) — mantenemos la
+ * affordance, mejoramos el ritmo visual.
  */
 import Link from "next/link";
 import { FileText } from "lucide-react";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import type { ExpedienteResumen, ResultadoBusquedaDTO } from "@/lib/api/types";
 
+import { CaducidadWarning } from "./caducidad-warning";
 import { EstadoBadge } from "./estado-badge";
+import { TipoBadge } from "./tipo-badge";
 
 function formatNumero(e: ExpedienteResumen): string {
   if (e.numero.camara === "HCDN") {
@@ -28,14 +28,74 @@ function formatNumero(e: ExpedienteResumen): string {
   return `${e.numero.numero}/${(e.numero.anio % 100).toString().padStart(2, "0")}`;
 }
 
+const MESES = [
+  "ene", "feb", "mar", "abr", "may", "jun",
+  "jul", "ago", "sep", "oct", "nov", "dic",
+];
+
 function formatFecha(iso: string | null): string {
   if (!iso) return "—";
-  // YYYY-MM-DD → DD/MM/YYYY para legibilidad de asesor argentino.
   const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
+  const mes = MESES[Number(m) - 1] ?? m;
+  return `${d} ${mes} ${y}`;
 }
 
-export function ExpedientesTable({ resultado }: { resultado: ResultadoBusquedaDTO }) {
+/**
+ * Convierte "PEDIDO DE INFORMES AL PODER EJECUTIVO..." a sentence case.
+ * Mantiene siglas comunes en mayúsculas (PEN, PE, ANSES, AFIP, INDEC, etc.)
+ * para no perder información.
+ */
+const SIGLAS = new Set([
+  "PEN", "PE", "PEJ", "ANSES", "AFIP", "ARCA", "INDEC", "BCRA", "ANMAT",
+  "ENACOM", "AABE", "JGM", "HSN", "HCDN", "CSJN", "DNU", "DNI", "DNRPA",
+  "OEA", "ONU", "PBI", "PCIA", "PCIAS", "PROV", "S.A", "SA", "SRL", "AMBA",
+  "INTA", "INTI", "CONICET", "IAF", "ARSAT", "AYSA", "GBA",
+]);
+
+function toSentenceCase(s: string): string {
+  if (!s) return s;
+  // Si NO está todo en mayúsculas, dejamos como está.
+  if (s !== s.toUpperCase()) return s;
+  const lower = s.toLowerCase();
+  // Capitalizamos: primera letra de la oración + primera de cada token
+  // que era una sigla original.
+  const tokens = s.split(/(\s+|[.,;:()/-])/);
+  const lowerTokens = lower.split(/(\s+|[.,;:()/-])/);
+  const out: string[] = [];
+  let isStart = true;
+  for (let i = 0; i < tokens.length; i++) {
+    const original = tokens[i] ?? "";
+    const cur = lowerTokens[i] ?? "";
+    if (/^\s+$/.test(original) || /^[.,;:()/-]+$/.test(original)) {
+      out.push(original);
+      if (/[.!?]/.test(original)) isStart = true;
+      continue;
+    }
+    if (!cur) {
+      out.push(original);
+      continue;
+    }
+    // Mantener siglas como vinieron.
+    if (SIGLAS.has(original)) {
+      out.push(original);
+      isStart = false;
+      continue;
+    }
+    if (isStart) {
+      out.push(cur.charAt(0).toUpperCase() + cur.slice(1));
+      isStart = false;
+    } else {
+      out.push(cur);
+    }
+  }
+  return out.join("");
+}
+
+export function ExpedientesTable({
+  resultado,
+}: {
+  resultado: ResultadoBusquedaDTO;
+}) {
   if (resultado.items.length === 0) {
     return (
       <Card className="flex flex-col items-center justify-center gap-3 border-border bg-card py-16 text-center shadow-none">
@@ -52,71 +112,50 @@ export function ExpedientesTable({ resultado }: { resultado: ResultadoBusquedaDT
 
   return (
     <Card className="overflow-hidden border-border bg-card p-0 shadow-none">
-      <Table>
-        <TableHeader className="bg-[var(--color-praxis-crema)]/60">
-          <TableRow className="border-border">
-            <TableHead className="w-[160px] text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-praxis-azul)]">
-              N°
-            </TableHead>
-            <TableHead className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-praxis-azul)]">
-              Título
-            </TableHead>
-            <TableHead className="w-[120px] text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-praxis-azul)]">
-              Cámara
-            </TableHead>
-            <TableHead className="w-[180px] text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-praxis-azul)]">
-              Estado
-            </TableHead>
-            <TableHead className="w-[120px] text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-praxis-azul)]">
-              Ingreso
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {resultado.items.map((e) => (
-            <TableRow
-              key={e.id}
-              className="cursor-pointer border-border transition-colors hover:bg-[var(--color-praxis-crema)]/60"
+      <ul className="divide-y divide-border">
+        {resultado.items.map((e) => (
+          <li key={e.id}>
+            <Link
+              href={`/expedientes/${e.id}`}
+              className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-praxis-crema)]/60"
             >
-              <TableCell className="font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
-                <Link href={`/expedientes/${e.id}`} className="block">
-                  {formatNumero(e)}
-                </Link>
-              </TableCell>
-              <TableCell>
-                <Link href={`/expedientes/${e.id}`} className="block">
-                  <span className="line-clamp-1 text-[13.5px] font-medium leading-snug">
-                    {e.titulo}
+              {/* Tipo: chip color a la izquierda — escaneo rápido */}
+              <div className="pt-0.5">
+                <TipoBadge tipo={e.tipo} />
+              </div>
+
+              {/* Título + metadata abajo */}
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 text-[13.5px] font-medium leading-snug text-foreground">
+                  {toSentenceCase(e.titulo)}
+                </p>
+                {e.sumario && (
+                  <p className="mt-0.5 line-clamp-1 text-[11.5px] text-muted-foreground">
+                    {toSentenceCase(e.sumario)}
+                  </p>
+                )}
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10.5px] text-muted-foreground">
+                  <span className="font-mono uppercase tracking-wide">
+                    {formatNumero(e)}
                   </span>
-                  {e.sumario && (
-                    <span className="line-clamp-1 text-[11.5px] text-muted-foreground">
-                      {e.sumario}
-                    </span>
-                  )}
-                </Link>
-              </TableCell>
-              <TableCell>
-                <Link
-                  href={`/expedientes/${e.id}`}
-                  className="block text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground"
-                >
-                  {e.numero.camara}
-                </Link>
-              </TableCell>
-              <TableCell>
-                <Link href={`/expedientes/${e.id}`} className="block">
-                  <EstadoBadge estado={e.estado} />
-                </Link>
-              </TableCell>
-              <TableCell className="text-xs text-muted-foreground">
-                <Link href={`/expedientes/${e.id}`} className="block">
-                  {formatFecha(e.fecha_ingreso)}
-                </Link>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                  <span className="text-border">·</span>
+                  <span className="font-semibold uppercase tracking-wide">
+                    {e.numero.camara}
+                  </span>
+                  <span className="text-border">·</span>
+                  <span>{formatFecha(e.fecha_ingreso)}</span>
+                </div>
+              </div>
+
+              {/* Estado + caducidad a la derecha */}
+              <div className="flex shrink-0 flex-col items-end gap-1 pt-0.5">
+                <EstadoBadge estado={e.estado} />
+                <CaducidadWarning fechaCaducidad={e.fecha_caducidad} />
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }
