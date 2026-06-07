@@ -58,23 +58,24 @@ celery_app.conf.update(
     # Evita acumular tareas en workers que después mueren.
     worker_prefetch_multiplier=1,
     # Beat schedule (UTC). Horarios pensados para Buenos Aires
-    # (UTC-3): 05:00 ART = 08:00 UTC, 05:30 ART = 08:30 UTC,
-    # 06:00 ART = 09:00 UTC. Ver spec 15 §"Pipeline diario".
+    # (UTC-3). El asesor recibe el briefing diario a las 8:00 ART;
+    # el pipeline de BO + clasificación corre antes para que llegue
+    # con todo procesado.
     beat_schedule={
         "bo-ingestar-diario": {
             "task": "praxis.bo.ingestar_diario",
-            # 08:00 UTC = 05:00 ART
-            "schedule": crontab(hour="8", minute="0"),
-        },
-        "bo-clasificar-pendientes": {
-            "task": "praxis.bo.clasificar_pendientes",
             # 08:30 UTC = 05:30 ART
             "schedule": crontab(hour="8", minute="30"),
         },
-        "bo-evaluar-accionables-por-despacho": {
-            "task": "praxis.bo.evaluar_accionables_por_despacho",
+        "bo-clasificar-pendientes": {
+            "task": "praxis.bo.clasificar_pendientes",
             # 09:00 UTC = 06:00 ART
             "schedule": crontab(hour="9", minute="0"),
+        },
+        "bo-evaluar-accionables-por-despacho": {
+            "task": "praxis.bo.evaluar_accionables_por_despacho",
+            # 10:00 UTC = 07:00 ART
+            "schedule": crontab(hour="10", minute="0"),
         },
         # Noticias (spec 16, feat-40.5.D). Polling continuo
         # durante el día — los medios actualizan a lo largo del día.
@@ -92,12 +93,11 @@ celery_app.conf.update(
             "schedule": crontab(minute="*/10"),
         },
         # WhatsApp briefing diario (spec 17, feat-41.4).
-        # Default 07:00 ART = 10:00 UTC. Si el polling de noticias
-        # corre a las 15 min de la hora y BO se evalúa a 09:00 UTC,
-        # cuando esta task corre ya está todo listo para resumir.
+        # 11:00 UTC = 08:00 ART. El BO ya está ingestado + clasificado
+        # + accionable evaluado para cuando dispara.
         "whatsapp-enviar-briefings-diarios": {
             "task": "praxis.whatsapp.enviar_briefings_diarios",
-            "schedule": crontab(hour="10", minute="0"),
+            "schedule": crontab(hour="11", minute="0"),
         },
     },
 )
