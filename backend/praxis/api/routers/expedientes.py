@@ -52,9 +52,10 @@ async def listar_expedientes(
 
     Igualmente exigimos auth (`ctx`) para no servir el catálogo a anónimos.
     """
-    del ctx  # exige auth pero no se usa en este handler (reservado para autz por rol).
+    # Los toggles `solo_seguidos` / `solo_titular` se resuelven con el
+    # despacho activo del request (feat-43.1).
     repo = SqlAlchemyExpedienteRepository(session)
-    resultado = await repo.buscar(filtros.to_domain())
+    resultado = await repo.buscar(filtros.to_domain(despacho=ctx.despacho))
     return ResultadoBusquedaDTO.from_domain(resultado)
 
 
