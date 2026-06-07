@@ -64,8 +64,12 @@ export function FiltrosBar({ initial }: Props) {
   const [conDictamen, setConDictamen] = useState(initial.con_dictamen ?? false);
   const [porCaducar, setPorCaducar] = useState(initial.por_caducar ?? false);
 
-  function apply(e: React.FormEvent) {
-    e.preventDefault();
+  /**
+   * Arma el objeto de filtros y dispara el router.push.
+   * `overrides` permite a los chips/dropdown aplicar su nuevo valor sin
+   * esperar al setState (que es asíncrono): "click → push" directo.
+   */
+  function dispararBusqueda(overrides: Partial<FiltrosExpediente> = {}) {
     const filtros: FiltrosExpediente = {};
     if (texto.trim()) filtros.texto = texto.trim();
     if (anio.trim()) {
@@ -82,12 +86,49 @@ export function FiltrosBar({ initial }: Props) {
     if (soloSeguidos) filtros.solo_seguidos = true;
     if (conDictamen) filtros.con_dictamen = true;
     if (porCaducar) filtros.por_caducar = true;
-    // Aplicar filtros vuelve a la primera página.
+    // overrides pisan los valores capturados del state — necesario porque
+    // setState es async y el handler del click no ve el valor actualizado.
+    Object.assign(filtros, overrides);
     filtros.offset = 0;
-
     const qs = filtrosToSearchParams(filtros).toString();
     startTransition(() => {
       router.push(qs ? `/expedientes?${qs}` : "/expedientes");
+    });
+  }
+
+  function apply(e: React.FormEvent) {
+    e.preventDefault();
+    dispararBusqueda();
+  }
+
+  /**
+   * Helpers para que los chips toggle apliquen el filtro inmediatamente
+   * (un toggle sin feedback es confuso — debe responder al click).
+   */
+  function toggleSoloTitular() {
+    const nuevo = !soloTitular;
+    setSoloTitular(nuevo);
+    dispararBusqueda({ solo_titular: nuevo || undefined });
+  }
+  function toggleSoloSeguidos() {
+    const nuevo = !soloSeguidos;
+    setSoloSeguidos(nuevo);
+    dispararBusqueda({ solo_seguidos: nuevo || undefined });
+  }
+  function toggleConDictamen() {
+    const nuevo = !conDictamen;
+    setConDictamen(nuevo);
+    dispararBusqueda({ con_dictamen: nuevo || undefined });
+  }
+  function togglePorCaducar() {
+    const nuevo = !porCaducar;
+    setPorCaducar(nuevo);
+    dispararBusqueda({ por_caducar: nuevo || undefined });
+  }
+  function cambiarArea(nueva: string) {
+    setArea(nueva);
+    dispararBusqueda({
+      area_tematica: nueva === NONE ? undefined : (nueva as AreaTematica),
     });
   }
 
@@ -190,25 +231,25 @@ export function FiltrosBar({ initial }: Props) {
         <FiltroChip
           label="Mi legislador"
           active={soloTitular}
-          onClick={() => setSoloTitular((v) => !v)}
+          onClick={toggleSoloTitular}
         />
         <FiltroChip
           label="Mis seguimientos"
           active={soloSeguidos}
-          onClick={() => setSoloSeguidos((v) => !v)}
+          onClick={toggleSoloSeguidos}
         />
         <FiltroChip
           label="Con dictamen"
           active={conDictamen}
-          onClick={() => setConDictamen((v) => !v)}
+          onClick={toggleConDictamen}
         />
         <FiltroChip
           label="Por caducar (60 días)"
           active={porCaducar}
-          onClick={() => setPorCaducar((v) => !v)}
+          onClick={togglePorCaducar}
         />
         <div className="ml-auto min-w-[180px]">
-          <Select value={area} onValueChange={setArea}>
+          <Select value={area} onValueChange={cambiarArea}>
             <SelectTrigger>
               <SelectValue placeholder="Área temática" />
             </SelectTrigger>
