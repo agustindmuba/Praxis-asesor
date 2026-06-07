@@ -35,13 +35,17 @@ log = logging.getLogger(__name__)
 
 # Patrón canónico del N° de expediente HCDN: NNNN-X-AAAA o NNNN-X-AA.
 # X es una letra única (D, S, PE, JGM, CD, CS, P, OV, OTRO — feat-1).
+# Hint: algunos N° vienen con 1-4 dígitos (ej. "1-PE-2026", "95-S-2018").
+# Para idempotencia / display, normalizamos a 4 dígitos zero-padded.
 _NUM_EXP_RE = re.compile(
-    r"(?P<num>\d{4})-(?P<origen>[A-Z]{1,4})-(?P<anio>\d{2,4})"
+    r"(?P<num>\d{1,4})-(?P<origen>[A-Z]{1,4})-(?P<anio>\d{2,4})"
 )
 
 # Tipo del proyecto: viene después del N° con "DE LEY." / "DE RESOLUCIÓN." etc.
+# Algunos PDF traen tracking de letras roto: "D E LEY" en lugar de "DE LEY".
+# Toleramos espacios entre D y E.
 _TIPO_RE = re.compile(
-    r"\bDE\s+(LEY|RESOLUCI[OÓ]N|DECLARACI[OÓ]N|COMUNICACI[OÓ]N)\b",
+    r"\bD\s*E\s+(LEY|RESOLUCI[OÓ]N|DECLARACI[OÓ]N|COMUNICACI[OÓ]N)\b",
     re.IGNORECASE,
 )
 
@@ -188,8 +192,10 @@ def _parsear_bloque(lineas: list[str]) -> ItemOrdenDelDia | None:
     m_num = _NUM_EXP_RE.search(primera)
     if not m_num:
         return None
+    # Normalizamos N° a 4 dígitos zero-padded para que "1-PE-2026" y
+    # "0001-PE-2026" sean iguales al resolver contra la DB.
     numero = (
-        f"{m_num.group('num')}-{m_num.group('origen')}-{m_num.group('anio')}"
+        f"{int(m_num.group('num')):04d}-{m_num.group('origen')}-{m_num.group('anio')}"
     )
 
     m_tipo = _TIPO_RE.search(primera)

@@ -168,14 +168,25 @@ class EnviarAvisoSesionManana:
     # ------------------------------------------------------------------
 
     async def _ods_para_fecha(self, f: date) -> list[dict]:
+        """Lista OD para una fecha. Filtra los que tienen 0 items
+        (defensa contra parsers que fallaron y dejaron el OD vacío —
+        mejor no avisar que avisar de algo sin contenido)."""
         r = await self._session.execute(text("""
-            SELECT id, titulo, fecha_sesion FROM orden_del_dia
+            SELECT id, titulo, fecha_sesion, expedientes_ids
+            FROM orden_del_dia
             WHERE fecha_sesion = :f AND fuente = 'scraping_hcdn'
         """), {"f": f})
-        return [
-            {"id": row[0], "titulo": row[1], "fecha_sesion": row[2]}
-            for row in r.all()
-        ]
+        out: list[dict] = []
+        for row in r.all():
+            ids = row[3] or []
+            if not ids:
+                log.warning(
+                    "ods_para_fecha: skip OD id=%s sin expedientes_ids",
+                    row[0],
+                )
+                continue
+            out.append({"id": row[0], "titulo": row[1], "fecha_sesion": row[2]})
+        return out
 
     async def _despachos_con_perfil_y_destinatarios(self) -> list[dict]:
         """Lista despachos con perfil opositor cargado + cuántos destinatarios."""

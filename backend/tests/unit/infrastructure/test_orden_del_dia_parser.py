@@ -128,3 +128,46 @@ def test_extraer_pdf_base64_normaliza_slash_escapado() -> None:
     html = f'abrirPDF("{b64_escapado}")'
     out = extraer_pdf_base64(html)
     assert out == pdf_bytes
+
+
+# ---------------------------------------------------------------------------
+# Bugs reportados — fixture od_3580.pdf (feat-47.D)
+# ---------------------------------------------------------------------------
+
+
+FIXTURE_PDF_3580 = (
+    Path(__file__).parent.parent.parent
+    / "fixtures" / "od_hcdn" / "od_3580.pdf"
+)
+
+
+@pytest.fixture
+def od_3580():
+    if not FIXTURE_PDF_3580.exists():
+        pytest.skip(f"Fixture no encontrado: {FIXTURE_PDF_3580}")
+    return parsear_pdf_temario(FIXTURE_PDF_3580.read_bytes())
+
+
+def test_3580_extrae_items_no_queda_vacio(od_3580) -> None:
+    """Bug original: parser caía a 0 items por (a) N° con 1 dígito
+    ("1-PE-2026") rechazado por \\d{4}, y (b) tipo "D E LEY" con espacio
+    entre D y E. Fix: regex tolerante. Mínimo 5 items en este fixture."""
+    assert len(od_3580.items) >= 5
+
+
+def test_3580_normaliza_numero_a_4_digitos(od_3580) -> None:
+    """N° crudo del PDF "1-PE-2026" se normaliza a "0001-PE-2026"
+    para que sea idéntico al formato canónico de la DB."""
+    primer = od_3580.items[0]
+    assert primer.numero_expediente == "0001-PE-2026"
+    # El tipo viene como "D E LEY" en el PDF — confirmamos que el regex
+    # tolera el espacio extra.
+    assert primer.tipo == "ley"
+
+
+def test_3580_segundo_item_es_convenio_alimentos(od_3580) -> None:
+    """El item 2 del PDF es 95-S-2018 (CONVENIO COBRO INTERNACIONAL
+    DE ALIMENTOS). Validamos normalización de N° y captura de sumario."""
+    items = [i for i in od_3580.items if "0095-S-2018" in i.numero_expediente]
+    assert len(items) == 1
+    assert "ALIMENTOS" in items[0].sumario.upper()
