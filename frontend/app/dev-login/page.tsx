@@ -12,14 +12,24 @@
  * Grotesk en el titular.
  */
 import Image from "next/image";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { devLoginAction } from "@/app/actions/despacho";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { DESPACHO_COOKIE } from "@/lib/api/context-server";
 
 export const metadata = { title: "Dev login" };
+
+/**
+ * UUID del despacho del usuario de dev por default. Solo afecta a
+ * /dev-login (página dev-only que 404 en producción). El usuario puede
+ * sobreescribirlo en el form o vía ?despachoId=. Tener un default acá
+ * evita que el form pida rellenar el UUID cada vez.
+ */
+const DESPACHO_DEFAULT_DEV = "bd71e5db-63fd-4207-b9ed-ad75fd60e715";
 
 export default function DevLoginPage({
   searchParams,
@@ -38,8 +48,17 @@ async function DevLoginForm({
   searchParams?: Promise<Record<string, string | undefined>>;
 }) {
   const params = (await searchParams) ?? {};
+  // Prioridad: ?clerkId= → cookie previa → "user_agustin".
   const presetClerk = params.clerkId ?? "user_agustin";
-  const presetDespacho = params.despachoId ?? "";
+  // Prioridad para despachoId:
+  //   1) ?despachoId= (override explícito)
+  //   2) cookie del último despacho usado (Next 15: cookies() es async)
+  //   3) UUID del usuario dev por default
+  const cookieStore = await cookies();
+  const presetDespacho =
+    params.despachoId ??
+    cookieStore.get(DESPACHO_COOKIE)?.value ??
+    DESPACHO_DEFAULT_DEV;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background p-6">
