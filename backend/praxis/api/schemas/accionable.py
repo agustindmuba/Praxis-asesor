@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict
 from praxis.domain import (
     AccionSugerida,
     ConfianzaAccionable,
+    EstadoAccionable,
     TipoEvento,
 )
 
@@ -36,3 +37,22 @@ class AccionableDTO(BaseModel):
     editado_en: datetime | None
     modelo: str | None
     prompt_version: str
+    # Feedback del asesor (feat-43.2).
+    estado: EstadoAccionable = EstadoAccionable.PENDIENTE
+    nota_asesor: str | None = None
+    marcado_en: datetime | None = None
+
+
+class EstadoAccionableUpdate(BaseModel):
+    """Body de POST /accionables/{id}/estado (feat-43.2)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    estado: EstadoAccionable
+    nota: str | None = None      # obligatoria si estado == ADAPTADO
+
+    def model_post_init(self, __context) -> None:  # type: ignore[override]
+        if self.estado == EstadoAccionable.ADAPTADO and not (self.nota or "").strip():
+            raise ValueError(
+                "nota es obligatoria cuando estado=adaptado (explicá qué hiciste diferente)",
+            )

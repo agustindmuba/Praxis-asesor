@@ -76,6 +76,20 @@ class ConfianzaAccionable(StrEnum):
     BAJA = "baja"
 
 
+class EstadoAccionable(StrEnum):
+    """Estado de seguimiento del accionable por parte del asesor (feat-43.2).
+
+    Alimenta el "feedback loop" que en feat-43.3 ajusta el tono del perfil
+    opositor: si el asesor ignora consistentemente cierto tipo de acción,
+    el bot lo aprende.
+    """
+
+    PENDIENTE = "pendiente"      # Default cuando se genera.
+    HECHO = "hecho"              # El asesor ejecutó la acción tal cual.
+    IGNORADO = "ignorado"        # El asesor decidió no actuar.
+    ADAPTADO = "adaptado"        # El asesor hizo algo distinto (con nota).
+
+
 @dataclass(frozen=True, slots=True)
 class TweetSugerido:
     """Una propuesta de tweet por el LLM con su tono pretendido.
@@ -121,8 +135,17 @@ class AccionableEvento:
     modelo: str | None = None
     prompt_version: str = ACCIONABLE_PROMPT_VERSION
 
+    # Feedback del asesor (feat-43.2).
+    estado: EstadoAccionable = EstadoAccionable.PENDIENTE
+    nota_asesor: str | None = None       # solo aplica si estado=ADAPTADO
+    marcado_en: datetime | None = None   # cuándo el asesor lo marcó
+
     def __post_init__(self) -> None:
         if not self.razon_para_despacho.strip():
             raise ValueError("razon_para_despacho no puede estar vacío")
         if not self.explicacion_accion.strip():
             raise ValueError("explicacion_accion no puede estar vacío")
+        if self.estado == EstadoAccionable.ADAPTADO and not (self.nota_asesor or "").strip():
+            raise ValueError(
+                "AccionableEvento.nota_asesor es obligatoria si estado=ADAPTADO",
+            )

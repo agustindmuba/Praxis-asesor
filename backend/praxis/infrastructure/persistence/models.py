@@ -760,6 +760,16 @@ class AccionableEventoOrm(Base, kw_only=True):
     prompt_version: Mapped[str] = mapped_column(
         String(10), nullable=False, default="v1",
     )
+    # Feedback del asesor (feat-43.2)
+    estado: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="pendiente",
+    )
+    nota_asesor: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None,
+    )
+    marcado_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
     creado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

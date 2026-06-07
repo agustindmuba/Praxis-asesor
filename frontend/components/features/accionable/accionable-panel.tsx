@@ -37,6 +37,8 @@ import type {
   TipoEvento,
 } from "@/lib/api/types";
 
+import { FeedbackButtons } from "./feedback-buttons";
+
 const ACCION_LABEL: Record<AccionSugerida, string> = {
   pedido_informes: "Pedido de informes",
   proyecto_contraposicion: "Proyecto de contraposición",
@@ -208,6 +210,16 @@ export function AccionablePanel({ tipo, eventoId, inicial }: Props) {
 
       {error && (
         <p className="text-[11px] text-[var(--color-praxis-salmon)]">{error}</p>
+      )}
+
+      {/* Feedback del asesor (feat-43.2) — sólo si ya tiene id (estoy
+          viendo un accionable persistido, no uno recién generado en
+          memoria). */}
+      {accionable.id && (
+        <FeedbackButtons
+          accionable={accionable}
+          onUpdated={(next) => setAccionable(next)}
+        />
       )}
     </div>
   );
