@@ -112,5 +112,12 @@ celery_app.conf.update(
                 day_of_week="tue,thu",
             ),
         },
+        # WhatsApp aviso "mañana hay sesión" (feat-45.5).
+        # 21:00 UTC = 18:00 ART, día anterior a la sesión. Para cada
+        # OD con fecha_sesion=mañana, manda WhatsApp con link al briefing.
+        "whatsapp-aviso-proxima-sesion": {
+            "task": "praxis.whatsapp.enviar_avisos_proxima_sesion",
+            "schedule": crontab(hour="21", minute="0"),
+        },
     },
 )
