@@ -708,6 +708,25 @@ export interface InsightsFeedbackDTO {
   sugerencias: SugerenciaInsightDTO[];
 }
 
+// Huella del legislador titular (feat-46).
+export interface CategoriaConPctDTO {
+  key: string;
+  total: number;
+  pct: number;   // 0-1
+}
+
+export interface HuellaLegisladorDTO {
+  nombre: string | null;
+  slug: string | null;
+  bloque_dominante: string | null;
+  distrito_dominante: string | null;
+  foto_url: string | null;
+  total_firmados: number;
+  por_estado: CategoriaConPctDTO[];
+  por_tipo: CategoriaConPctDTO[];
+  por_area: CategoriaConPctDTO[];
+}
+
 // ---------------------------------------------------------------------------
 // Briefing diario preview (feat-42.4)
 // ---------------------------------------------------------------------------

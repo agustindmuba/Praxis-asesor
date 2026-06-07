@@ -23,6 +23,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { HuellaLegisladorPanel } from "@/components/features/legislador/huella-panel";
 import { getApiContextServer } from "@/lib/api/context-server";
 import { getHubDiario } from "@/lib/api/endpoints";
 import type {
@@ -102,6 +103,9 @@ export default async function DashboardPage() {
           {formatFechaLarga(hub.fecha)}
         </h2>
       </header>
+
+      {/* Huella del legislador titular (feat-46) */}
+      <HuellaLegisladorPanel />
 
       {!hub.perfil_opositor_cargado && (
         <Card className="border-[var(--color-praxis-salmon)]/40 bg-[var(--color-praxis-salmon)]/5 p-4 shadow-none">

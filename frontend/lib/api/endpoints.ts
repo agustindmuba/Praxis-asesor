@@ -571,3 +571,20 @@ export function getInsightsFeedback(ctx: ApiContext) {
     { ctx },
   );
 }
+
+
+/** Huella del legislador titular (feat-46). */
+export function getHuellaLegislador(ctx: ApiContext) {
+  return apiGet<import("./types").HuellaLegisladorDTO>(
+    "/api/v1/legislador-titular/huella",
+    { ctx },
+  );
+}
+
+export function setFotoLegislador(ctx: ApiContext, fotoUrl: string | null) {
+  return apiPatch<void>(
+    "/api/v1/legislador-titular/foto",
+    { foto_url: fotoUrl },
+    { ctx },
+  );
+}

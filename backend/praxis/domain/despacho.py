@@ -24,6 +24,7 @@ class Despacho:
     id: UUID
     nombre: str
     legislador_titular_slug: str | None = None
+    legislador_foto_url: str | None = None
     configuracion: dict[str, Any] = field(default_factory=dict)
     creado_en: datetime | None = None
     actualizado_en: datetime | None = None
