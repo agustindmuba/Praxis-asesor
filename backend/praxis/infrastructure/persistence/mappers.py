@@ -115,6 +115,7 @@ def to_despacho(orm: DespachoOrm) -> Despacho:
         id=orm.id,
         nombre=orm.nombre,
         legislador_titular_slug=orm.legislador_titular_slug,
+        legislador_foto_url=orm.legislador_foto_url,
         configuracion=dict(orm.configuracion),
         creado_en=orm.creado_en,
         actualizado_en=orm.actualizado_en,
@@ -125,6 +126,7 @@ def from_despacho(domain: Despacho) -> DespachoOrm:
     kwargs: dict[str, Any] = {
         "nombre": domain.nombre,
         "legislador_titular_slug": domain.legislador_titular_slug,
+        "legislador_foto_url": domain.legislador_foto_url,
         "configuracion": dict(domain.configuracion),
     }
     if domain.id is not None:

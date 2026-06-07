@@ -51,6 +51,9 @@ class DespachoOrm(Base, TimestampsMixin, kw_only=True):
     legislador_titular_slug: Mapped[str | None] = mapped_column(
         String(100), nullable=True, default=None
     )
+    legislador_foto_url: Mapped[str | None] = mapped_column(
+        String(500), nullable=True, default=None
+    )
     configuracion: Mapped[dict[str, Any]] = mapped_column(
         JSON, nullable=False, default_factory=dict
     )
