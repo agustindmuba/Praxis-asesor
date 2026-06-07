@@ -10,6 +10,7 @@ El POST con ?regenerar=true fuerza re-generación.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -17,7 +18,11 @@ from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select
 
 from praxis.api.deps import CurrentContext, LlmProviderDep, SessionDep
-from praxis.api.schemas.accionable import AccionableDTO, TweetSugeridoDTO
+from praxis.api.schemas.accionable import (
+    AccionableDTO,
+    EstadoAccionableUpdate,
+    TweetSugeridoDTO,
+)
 from praxis.application.use_cases.generar_accionable_con_perfil import (
     GenerarAccionableConPerfil,
     PayloadEvento,
@@ -57,6 +62,9 @@ def _to_dto(acc: AccionableEvento) -> AccionableDTO:
         editado_en=acc.editado_en,
         modelo=acc.modelo,
         prompt_version=acc.prompt_version,
+        estado=acc.estado,
+        nota_asesor=acc.nota_asesor,
+        marcado_en=acc.marcado_en,
     )
 
 
@@ -207,3 +215,45 @@ async def generar_accionable_articulo(
     await session.commit()
     return _to_dto(acc)
 
+
+
+# ---------------------------------------------------------------------------
+# Feedback del asesor (feat-43.2)
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/{accionable_id}/estado",
+    response_model=AccionableDTO,
+    summary=(
+        "Marca el estado del accionable según el feedback del asesor: "
+        "pendiente / hecho / ignorado / adaptado. Tenant-scoped."
+    ),
+)
+async def marcar_estado_accionable(
+    accionable_id: UUID,
+    body: EstadoAccionableUpdate,
+    ctx: CurrentContext,
+    session: SessionDep,
+) -> AccionableDTO:
+    """Actualiza el estado de seguimiento del accionable.
+
+    El feedback se usa después (feat-43.3) para alimentar el perfil
+    opositor: si el asesor ignora consistentemente cierto tipo de
+    acción, el bot ajusta el tono.
+    """
+    repo = SqlAlchemyAccionableEventoRepository(session)
+    actualizado = await repo.marcar_estado(
+        accionable_id=accionable_id,
+        despacho_id=ctx.despacho.id,
+        estado=body.estado.value,
+        nota=body.nota,
+        marcado_en=datetime.now(UTC),
+    )
+    if actualizado is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Accionable no encontrado o no pertenece a este despacho",
+        )
+    await session.commit()
+    return _to_dto(actualizado)

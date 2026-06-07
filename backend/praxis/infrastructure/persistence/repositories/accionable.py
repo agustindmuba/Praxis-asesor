@@ -91,3 +91,38 @@ class SqlAlchemyAccionableEventoRepository(AccionableEventoRepository):
         )
         result = await self._session.execute(stmt)
         return [to_accionable(o) for o in result.scalars().all()]
+
+    async def buscar_por_id(
+        self, accionable_id: UUID,
+    ) -> AccionableEvento | None:
+        stmt = select(AccionableEventoOrm).where(
+            AccionableEventoOrm.id == accionable_id,
+        )
+        result = await self._session.execute(stmt)
+        orm = result.scalar_one_or_none()
+        return to_accionable(orm) if orm is not None else None
+
+    async def marcar_estado(
+        self,
+        *,
+        accionable_id: UUID,
+        despacho_id: UUID,
+        estado: str,
+        nota: str | None,
+        marcado_en,  # datetime
+    ) -> AccionableEvento | None:
+        """Actualiza el feedback del asesor (feat-43.2). Tenant-scoped:
+        verifica que el accionable sea del despacho que llama."""
+        stmt = select(AccionableEventoOrm).where(
+            AccionableEventoOrm.id == accionable_id,
+            AccionableEventoOrm.despacho_id == despacho_id,
+        )
+        result = await self._session.execute(stmt)
+        orm = result.scalar_one_or_none()
+        if orm is None:
+            return None
+        orm.estado = estado
+        orm.nota_asesor = nota
+        orm.marcado_en = marcado_en
+        await self._session.flush()
+        return to_accionable(orm)

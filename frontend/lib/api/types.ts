@@ -653,6 +653,8 @@ export interface TweetSugeridoDTO {
   caracteres: number;
 }
 
+export type EstadoAccionable = "pendiente" | "hecho" | "ignorado" | "adaptado";
+
 export interface AccionableDTO {
   id: string | null;
   despacho_id: string;
@@ -667,6 +669,15 @@ export interface AccionableDTO {
   editado_en: string | null;
   modelo: string | null;
   prompt_version: string;
+  // Feedback del asesor (feat-43.2).
+  estado: EstadoAccionable;
+  nota_asesor: string | null;
+  marcado_en: string | null;
+}
+
+export interface EstadoAccionableUpdate {
+  estado: EstadoAccionable;
+  nota?: string;        // obligatoria si estado=adaptado
 }
 
 // ---------------------------------------------------------------------------

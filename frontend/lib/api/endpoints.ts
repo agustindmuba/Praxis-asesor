@@ -439,6 +439,19 @@ export function generarAccionableArticulo(
   );
 }
 
+/** Feedback del asesor sobre un accionable (feat-43.2). */
+export function marcarEstadoAccionable(
+  ctx: ApiContext,
+  accionableId: string,
+  body: import("./types").EstadoAccionableUpdate,
+) {
+  return apiPost<AccionableDTO>(
+    `/api/v1/accionables/${accionableId}/estado`,
+    body,
+    { ctx },
+  );
+}
+
 // ---------------------------------------------------------------------------
 // /briefing-diario/preview (feat-42.4)
 // ---------------------------------------------------------------------------

@@ -112,6 +112,7 @@ from praxis.domain.accionable import (
     AccionableEvento,
     AccionSugerida,
     ConfianzaAccionable,
+    EstadoAccionable,
     TipoEvento,
     TweetSugerido,
 )
@@ -240,6 +241,7 @@ __all__ = [
     "AccionableEvento",
     "AccionSugerida",
     "ConfianzaAccionable",
+    "EstadoAccionable",
     "TipoEvento",
     "TweetSugerido",
     "REDACCION_PROMPT_VERSION",

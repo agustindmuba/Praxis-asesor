@@ -782,6 +782,7 @@ def to_accionable(orm: AccionableEventoOrm):  # type: ignore[no-untyped-def]
         AccionableEvento,
         AccionSugerida,
         ConfianzaAccionable,
+        EstadoAccionable,
         TipoEvento,
         TweetSugerido,
     )
@@ -797,6 +798,10 @@ def to_accionable(orm: AccionableEventoOrm):  # type: ignore[no-untyped-def]
         confianza = ConfianzaAccionable(orm.confianza)
     except ValueError:
         confianza = ConfianzaAccionable.MEDIA
+    try:
+        estado = EstadoAccionable(orm.estado)
+    except ValueError:
+        estado = EstadoAccionable.PENDIENTE
     tweets = [
         TweetSugerido(
             tono=t.get("tono", "neutro"),
@@ -820,6 +825,9 @@ def to_accionable(orm: AccionableEventoOrm):  # type: ignore[no-untyped-def]
         editado_en=orm.editado_en,
         modelo=orm.modelo,
         prompt_version=orm.prompt_version,
+        estado=estado,
+        nota_asesor=orm.nota_asesor,
+        marcado_en=orm.marcado_en,
     )
 
 
@@ -841,6 +849,9 @@ def from_accionable(domain) -> AccionableEventoOrm:  # type: ignore[no-untyped-d
         editado_en=domain.editado_en,
         modelo=domain.modelo,
         prompt_version=domain.prompt_version,
+        estado=domain.estado.value,
+        nota_asesor=domain.nota_asesor,
+        marcado_en=domain.marcado_en,
     )
 
 
