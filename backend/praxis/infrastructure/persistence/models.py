@@ -209,6 +209,10 @@ class ExpedienteOrm(Base, TimestampsMixin, kw_only=True):
     estado: Mapped[str] = mapped_column(String(40), nullable=False, default="desconocido")
     texto_url: Mapped[str | None] = mapped_column(String(2000), nullable=True, default=None)
     fuente_url: Mapped[str | None] = mapped_column(String(2000), nullable=True, default=None)
+    # Texto completo del PDF parseado por `scripts/bajar_textos_completos`
+    # (feat-48.4). Vacío cuando aún no se intentó descargar; el centinela
+    # `__NO_DISPONIBLE__` marca PDFs que dieron 404 para evitar reintentos.
+    texto_completo: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
 
     # Caducidad (Amendment 1 del ADR 0002).
     fecha_caducidad: Mapped[date | None] = mapped_column(Date, nullable=True, default=None)

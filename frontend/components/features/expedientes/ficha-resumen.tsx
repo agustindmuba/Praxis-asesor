@@ -32,33 +32,32 @@ export function FichaResumen({ expediente }: Props) {
         </Field>
       </div>
 
-      {(e.texto_url || e.fuente_url) && (
-        <div className="flex flex-wrap gap-3 pt-2">
-          {e.texto_url && (
-            <a
-              href={e.texto_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent"
-            >
-              <FileText className="size-3.5" />
-              Texto del expediente
-              <ExternalLink className="size-3" />
-            </a>
-          )}
-          {e.fuente_url && (
-            <a
-              href={e.fuente_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent"
-            >
-              Ver en portal oficial
-              <ExternalLink className="size-3" />
-            </a>
-          )}
-        </div>
-      )}
+      {/*
+        Solo mostramos un link cuando hay PDF disponible (texto_url).
+        El `fuente_url` (textoCompleto.jsp?exp=...) devuelve
+        "no se encontró el texto" cuando el PDF aún no está
+        subido — link roto. Cuando sí hay PDF, es duplicado del
+        texto_url. Por eso: si hay PDF, mostramos "Ver texto en
+        HCDN"; si no, un aviso aclaratorio.
+      */}
+      <div className="flex flex-wrap gap-3 pt-2">
+        {e.texto_url ? (
+          <a
+            href={e.texto_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent"
+          >
+            <FileText className="size-3.5" />
+            Ver texto en HCDN
+            <ExternalLink className="size-3" />
+          </a>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            El texto completo aún no fue subido al portal de HCDN.
+          </p>
+        )}
+      </div>
     </Card>
   );
 }

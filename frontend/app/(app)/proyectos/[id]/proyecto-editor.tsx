@@ -13,9 +13,9 @@ import { useRouter } from "next/navigation";
 import {
   Loader2,
   Save,
-  Sparkles,
+  PenLine,
   Trash2,
-  Wand2,
+  FileEdit,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -181,7 +181,7 @@ export function ProyectoEditor({ inicial }: Props) {
             {isPending ? (
               <Loader2 className="size-3 animate-spin" />
             ) : (
-              <Sparkles className="size-3" />
+              <PenLine className="size-3" />
             )}
             {proyecto.articulado.length === 0
               ? "Generar articulado"
@@ -215,7 +215,7 @@ export function ProyectoEditor({ inicial }: Props) {
               {isPending ? (
                 <Loader2 className="size-3 animate-spin" />
               ) : (
-                <Sparkles className="size-3" />
+                <PenLine className="size-3" />
               )}
               {proyecto.fundamentos
                 ? "Re-generar fundamentos"
@@ -364,7 +364,7 @@ function ArticuloEdit({
           onClick={() => setRefinarOpen(!refinarOpen)}
           className="inline-flex items-center gap-1 text-[10.5px] font-medium text-[var(--color-praxis-azul)] hover:underline"
         >
-          <Wand2 className="size-3" />
+          <FileEdit className="size-3" />
           Refinar
         </button>
         <button
