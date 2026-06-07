@@ -11,7 +11,7 @@
  * affordance, mejoramos el ritmo visual.
  */
 import Link from "next/link";
-import { FileText } from "lucide-react";
+import { ChevronRight, FileText } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import type { ExpedienteResumen, ResultadoBusquedaDTO } from "@/lib/api/types";
@@ -117,7 +117,7 @@ export function ExpedientesTable({
           <li key={e.id}>
             <Link
               href={`/expedientes/${e.id}`}
-              className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-praxis-crema)]/60"
+              className="group flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-praxis-crema)]"
             >
               {/* Tipo: chip color a la izquierda — escaneo rápido */}
               <div className="pt-0.5">
@@ -152,6 +152,12 @@ export function ExpedientesTable({
                 <EstadoBadge estado={e.estado} />
                 <CaducidadWarning fechaCaducidad={e.fecha_caducidad} />
               </div>
+
+              {/* Caret de "ir al detalle" — aparece on hover */}
+              <ChevronRight
+                className="mt-1 size-4 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-[var(--color-praxis-azul)]"
+                aria-hidden
+              />
             </Link>
           </li>
         ))}
