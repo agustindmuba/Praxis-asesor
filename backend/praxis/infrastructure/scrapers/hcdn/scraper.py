@@ -30,6 +30,20 @@ log = structlog.get_logger(__name__)
 HCDN_BASE = "https://www.diputados.gob.ar"
 HCDN_RESULTADO_URL = f"{HCDN_BASE}/proyectos/resultado.html"
 
+# URL canónica del proyecto individual (feat-43.1.5).
+# `https://www.hcdn.gob.ar/proyectos/textoCompleto.jsp?exp=NNNN-D-YYYY` devuelve
+# la ficha del expediente con sumario, firmantes, trámite, etc. La URL del POST
+# (HCDN_RESULTADO_URL) sirve para BUSCAR, pero no es linkeable porque requiere
+# form data. Esta sí es linkeable con GET.
+HCDN_EXPEDIENTE_URL_TEMPLATE = (
+    "https://www.hcdn.gob.ar/proyectos/textoCompleto.jsp?exp={numero:04d}-{origen}-{anio}"
+)
+
+
+def build_expediente_url(numero: int, origen: str, anio: int) -> str:
+    """URL pública del expediente individual en HCDN."""
+    return HCDN_EXPEDIENTE_URL_TEMPLATE.format(numero=numero, origen=origen, anio=anio)
+
 # User-Agent declarado en data-sources.md. Respetuoso: identifica al cliente
 # y da un contacto en caso de problemas. El portal HCDN bloquea bots
 # anónimos genéricos (Scrapy, HeadlessChrome) pero acepta este.
@@ -115,7 +129,12 @@ class HcdnScraper(FuenteExpedientes):
             log.error("hcdn.parse.error", numero=str(numero), error=str(exc))
             raise ExpedienteNoEncontrado(str(numero), fuente="HCDN") from exc
 
-        expediente.fuente_url = HCDN_RESULTADO_URL
+        # URL linkeable del expediente individual (feat-43.1.5).
+        expediente.fuente_url = build_expediente_url(
+            numero=numero.numero,
+            origen=numero.origen.value,
+            anio=numero.anio,
+        )
 
         # El portal HCDN no expone el estado del expediente de forma estructurada:
         # se infiere a partir de los eventos del trámite y la fecha de ingreso.
