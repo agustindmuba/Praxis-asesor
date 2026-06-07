@@ -158,37 +158,26 @@ _MENSAJE_PE_RE = re.compile(r"\bmensaje\b", re.IGNORECASE)
 
 
 def _inferir_tipo(extracto: str, sumario: str, origen: OrigenExpediente) -> TipoExpediente:
-    """Inferencia de TipoExpediente desde el texto del expediente.
+    """Inferencia de TipoExpediente — delega al inferidor de dominio
+    (feat-43.1.3) que tiene una heurística mucho más rica basada en
+    verbos imperativos típicos del corpus HCDN ("EXPRESAR BENEPLÁCITO",
+    "DECLARAR DE INTERÉS", "PEDIDO DE INFORMES", "INTERPELAR", etc.).
 
-    Heurística definida en Amendment 1 del ADR 0002 §6:
+    El parser pasaba antes "declaraci/resoluci/comunicaci" en los
+    primeros 80 chars y todo lo demás caía a PROYECTO_LEY. Eso clasifó
+    mal 163/443 expedientes en producción (feat-43.1.3 los reclasificó).
 
-    Si origen ∈ {EJECUTIVO, JEFATURA_GABINETE}:
-      1. Si el texto contiene la palabra completa "mensaje" → MENSAJE_PE.
-      2. Si contiene "proyecto de ley" o "proyecto de" → PROYECTO_LEY.
-      3. Else (ambiguo) → MENSAJE_PE (default conservador, porque los
-         mensajes son la mayoría en este origen).
-
-    Resto de orígenes: marcadores explícitos en los primeros 80 caracteres
-    (declaraci → DECLARACION, resoluci → RESOLUCION, comunicaci → COMUNICACION),
-    default PROYECTO_LEY (cubre el caso más frecuente).
+    Mantenemos el parámetro `extracto + sumario` para no romper el
+    contrato del parser, pero `inferir_tipo_desde_titulo` recibe
+    ambos y prioriza el primero.
     """
-    texto = (extracto + " " + sumario).lower()
+    from praxis.domain.inferencia_tipo import inferir_tipo_desde_titulo
 
-    if origen in (OrigenExpediente.EJECUTIVO, OrigenExpediente.JEFATURA_GABINETE):
-        if _MENSAJE_PE_RE.search(texto):
-            return TipoExpediente.MENSAJE_PE
-        if "proyecto de ley" in texto or "proyecto de" in texto:
-            return TipoExpediente.PROYECTO_LEY
-        return TipoExpediente.MENSAJE_PE  # default conservador para PE/JGM
-
-    # Resto de orígenes: marcadores al inicio del sumario.
-    if "declaraci" in texto[:80]:
-        return TipoExpediente.PROYECTO_DECLARACION
-    if "resoluci" in texto[:80]:
-        return TipoExpediente.PROYECTO_RESOLUCION
-    if "comunicaci" in texto[:80]:
-        return TipoExpediente.PROYECTO_COMUNICACION
-    return TipoExpediente.PROYECTO_LEY
+    return inferir_tipo_desde_titulo(
+        extracto,
+        sumario=sumario,
+        origen=origen,
+    )
 
 
 def _extract_firmantes(soup: BeautifulSoup) -> list[Firmante]:
