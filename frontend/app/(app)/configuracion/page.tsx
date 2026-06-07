@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { getApiContextServer } from "@/lib/api/context-server";
 import {
+  getHuellaLegislador,
   listarDestinatarios,
   listarEnviosWhatsApp,
 } from "@/lib/api/endpoints";
@@ -31,6 +32,7 @@ import type {
 
 import { BriefingPreviewSection } from "./briefing-preview";
 import { DestinatarioFormulario } from "./destinatario-formulario";
+import { FotoLegisladorForm } from "./foto-legislador-form";
 
 export const metadata = { title: "Configuración" };
 
@@ -76,9 +78,10 @@ function formatRol(rol: string): string {
 export default async function ConfiguracionPage() {
   const ctx = await getApiContextServer();
 
-  const [destinatarios, envios] = await Promise.all([
+  const [destinatarios, envios, huella] = await Promise.all([
     listarDestinatarios(ctx).catch(() => []),
     listarEnviosWhatsApp(ctx).catch(() => []),
+    getHuellaLegislador(ctx).catch(() => null),
   ]);
 
   return (
@@ -97,6 +100,11 @@ export default async function ConfiguracionPage() {
       </header>
 
       <PerfilOpositorLink />
+
+      <FotoLegisladorForm
+        fotoActual={huella?.foto_url ?? null}
+        nombreLegislador={huella?.nombre ?? null}
+      />
 
       <BriefingPreviewSection />
 
