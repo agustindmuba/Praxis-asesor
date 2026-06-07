@@ -562,3 +562,12 @@ export function enviarBriefingAhora(ctx: ApiContext) {
     { ctx },
   );
 }
+
+
+/** Insights del feedback (feat-43.3). */
+export function getInsightsFeedback(ctx: ApiContext) {
+  return apiGet<import("./types").InsightsFeedbackDTO>(
+    "/api/v1/perfil-opositor/insights-feedback",
+    { ctx },
+  );
+}

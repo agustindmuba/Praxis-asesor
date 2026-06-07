@@ -13,6 +13,8 @@ import { Card } from "@/components/ui/card";
 import { getApiContextServer } from "@/lib/api/context-server";
 import { getPerfilOpositor } from "@/lib/api/endpoints";
 
+import { InsightsFeedbackPanel } from "@/components/features/perfil-opositor/insights-feedback-panel";
+
 import { PerfilOpositorEditor } from "./perfil-opositor-editor";
 
 export const metadata = { title: "Perfil opositor" };
@@ -76,6 +78,11 @@ export default async function PerfilOpositorPage() {
       ) : null}
 
       <PerfilOpositorEditor inicial={perfil} />
+
+      {/* Insights del feedback (feat-43.3) — al final del page para
+          que el asesor primero vea/edite el perfil y después vea
+          cómo el feedback está sugiriendo ajustes. */}
+      {perfil !== null && <InsightsFeedbackPanel />}
     </div>
   );
 }
