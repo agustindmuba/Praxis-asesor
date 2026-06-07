@@ -139,6 +139,13 @@ export interface FiltrosExpediente {
   comision?: string;
   fecha_ingreso_desde?: string;
   fecha_ingreso_hasta?: string;
+  // Filtros derivados del despacho activo (feat-43.1).
+  area_tematica?: AreaTematica;
+  con_dictamen?: boolean;
+  por_caducar?: boolean;
+  por_caducar_dias?: number;
+  solo_seguidos?: boolean;   // con seguimiento del despacho actual
+  solo_titular?: boolean;    // firmados por el legislador titular
   limit?: number;
   offset?: number;
 }

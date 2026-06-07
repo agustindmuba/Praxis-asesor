@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { FiltrosExpediente } from "@/lib/api/types";
+import type { AreaTematica, FiltrosExpediente } from "@/lib/api/types";
 import { filtrosToSearchParams } from "@/lib/filtros-url";
 
 interface Props {
@@ -28,6 +28,21 @@ interface Props {
 
 /** Sentinel para representar "sin filtro" en los <Select>. */
 const NONE = "__none__";
+
+const AREAS_LABEL: Record<AreaTematica, string> = {
+  salud: "Salud",
+  educacion: "Educación",
+  ambiente: "Ambiente",
+  trabajo: "Trabajo",
+  derechos_humanos: "DDHH",
+  seguridad: "Seguridad",
+  transporte: "Transporte",
+  infraestructura: "Infraestructura",
+  justicia: "Justicia",
+  relaciones_exteriores: "Relaciones Ext.",
+  economia: "Economía",
+  otros: "Otros",
+};
 
 export function FiltrosBar({ initial }: Props) {
   const router = useRouter();
@@ -40,6 +55,14 @@ export function FiltrosBar({ initial }: Props) {
   const [tipo, setTipo] = useState<string>(initial.tipo ?? NONE);
   const [camara, setCamara] = useState<string>(initial.camara ?? NONE);
   const [estado, setEstado] = useState<string>(initial.estado ?? NONE);
+  // Filtros derivados del despacho (feat-43.1).
+  const [area, setArea] = useState<string>(initial.area_tematica ?? NONE);
+  const [soloTitular, setSoloTitular] = useState(initial.solo_titular ?? false);
+  const [soloSeguidos, setSoloSeguidos] = useState(
+    initial.solo_seguidos ?? false,
+  );
+  const [conDictamen, setConDictamen] = useState(initial.con_dictamen ?? false);
+  const [porCaducar, setPorCaducar] = useState(initial.por_caducar ?? false);
 
   function apply(e: React.FormEvent) {
     e.preventDefault();
@@ -54,6 +77,11 @@ export function FiltrosBar({ initial }: Props) {
     if (tipo !== NONE) filtros.tipo = tipo as FiltrosExpediente["tipo"];
     if (camara !== NONE) filtros.camara = camara as FiltrosExpediente["camara"];
     if (estado !== NONE) filtros.estado = estado as FiltrosExpediente["estado"];
+    if (area !== NONE) filtros.area_tematica = area as AreaTematica;
+    if (soloTitular) filtros.solo_titular = true;
+    if (soloSeguidos) filtros.solo_seguidos = true;
+    if (conDictamen) filtros.con_dictamen = true;
+    if (porCaducar) filtros.por_caducar = true;
     // Aplicar filtros vuelve a la primera página.
     filtros.offset = 0;
 
@@ -71,6 +99,11 @@ export function FiltrosBar({ initial }: Props) {
     setTipo(NONE);
     setCamara(NONE);
     setEstado(NONE);
+    setArea(NONE);
+    setSoloTitular(false);
+    setSoloSeguidos(false);
+    setConDictamen(false);
+    setPorCaducar(false);
     startTransition(() => router.push("/expedientes"));
   }
 
@@ -152,6 +185,45 @@ export function FiltrosBar({ initial }: Props) {
         />
       </div>
 
+      {/* Fila 3: chips contextuales del despacho + dropdown área (feat-43.1) */}
+      <div className="flex flex-wrap items-center gap-2 pt-1">
+        <FiltroChip
+          label="Mi legislador"
+          active={soloTitular}
+          onClick={() => setSoloTitular((v) => !v)}
+        />
+        <FiltroChip
+          label="Mis seguimientos"
+          active={soloSeguidos}
+          onClick={() => setSoloSeguidos((v) => !v)}
+        />
+        <FiltroChip
+          label="Con dictamen"
+          active={conDictamen}
+          onClick={() => setConDictamen((v) => !v)}
+        />
+        <FiltroChip
+          label="Por caducar (60 días)"
+          active={porCaducar}
+          onClick={() => setPorCaducar((v) => !v)}
+        />
+        <div className="ml-auto min-w-[180px]">
+          <Select value={area} onValueChange={setArea}>
+            <SelectTrigger>
+              <SelectValue placeholder="Área temática" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>Todas las áreas</SelectItem>
+              {Object.entries(AREAS_LABEL).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {/* Acciones */}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={clear} disabled={isPending}>
@@ -162,5 +234,34 @@ export function FiltrosBar({ initial }: Props) {
         </Button>
       </div>
     </form>
+  );
+}
+
+interface FiltroChipProps {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}
+
+/**
+ * Toggle tipo "chip" usado para los filtros derivados del despacho.
+ * Sin shadcn Checkbox: usamos un botón nativo con estados de color.
+ */
+function FiltroChip({ label, active, onClick }: FiltroChipProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors " +
+        (active
+          ? "border-[var(--color-praxis-azul)] bg-[var(--color-praxis-azul)] text-white"
+          : "border-border bg-card text-muted-foreground hover:border-[var(--color-praxis-azul)] hover:text-foreground")
+      }
+    >
+      {active && <span aria-hidden>✓</span>}
+      {label}
+    </button>
   );
 }

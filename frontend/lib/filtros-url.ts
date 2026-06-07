@@ -5,12 +5,28 @@
  * links/back-button funcionen y la página sea shareable.
  */
 import type {
+  AreaTematica,
   Camara,
   EstadoExpediente,
   FiltrosExpediente,
   OrigenExpediente,
   TipoExpediente,
 } from "@/lib/api/types";
+
+const AREAS: readonly AreaTematica[] = [
+  "salud",
+  "educacion",
+  "ambiente",
+  "trabajo",
+  "derechos_humanos",
+  "seguridad",
+  "transporte",
+  "infraestructura",
+  "justicia",
+  "relaciones_exteriores",
+  "economia",
+  "otros",
+];
 
 const TIPOS: readonly TipoExpediente[] = [
   "proyecto_ley",
@@ -91,6 +107,18 @@ export function parseFiltrosFromSearchParams(
   const hasta = pickDate(raw.fecha_ingreso_hasta);
   if (hasta) filtros.fecha_ingreso_hasta = hasta;
 
+  // Filtros derivados del despacho (feat-43.1).
+  const area = pickEnum(raw.area_tematica, AREAS);
+  if (area) filtros.area_tematica = area;
+
+  if (pickString(raw.con_dictamen) === "true") filtros.con_dictamen = true;
+  if (pickString(raw.por_caducar) === "true") filtros.por_caducar = true;
+  if (pickString(raw.solo_seguidos) === "true") filtros.solo_seguidos = true;
+  if (pickString(raw.solo_titular) === "true") filtros.solo_titular = true;
+
+  const dias = pickNumber(raw.por_caducar_dias);
+  if (dias && dias >= 1 && dias <= 365) filtros.por_caducar_dias = dias;
+
   const limit = pickNumber(raw.limit);
   filtros.limit = limit && limit >= 1 && limit <= LIMIT_MAX ? limit : LIMIT_DEFAULT;
 
@@ -110,9 +138,11 @@ export function filtrosToSearchParams(
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filtros)) {
     if (value === null || value === undefined || value === "") continue;
-    // No incluyas el limit ni offset si son los defaults — URL más limpia.
+    // Booleanos false / defaults: no contaminan la URL.
+    if (typeof value === "boolean" && value === false) continue;
     if (key === "limit" && value === LIMIT_DEFAULT) continue;
     if (key === "offset" && value === 0) continue;
+    if (key === "por_caducar_dias" && value === 60) continue;
     params.set(key, String(value));
   }
   return params;
