@@ -23,6 +23,11 @@ import sys
 import time
 from contextlib import suppress
 
+# Forzar UTF-8 en stdout para que los símbolos unicode (✓ ✗ ─ ↻ ·)
+# no exploten en Windows con codepage cp1252.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 import httpx
 import structlog
 from sqlalchemy.exc import IntegrityError

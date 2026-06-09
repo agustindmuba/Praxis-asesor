@@ -174,3 +174,34 @@ def test_parser_html_invalido_lanza() -> None:
             _numero_239(),
             TipoExpediente.PROYECTO_LEY,
         )
+
+
+# --- Anti-fantasma: cabecera presente pero TODO vacío -----------------------
+# Regresión feat-49.4.fix. El portal HSN devuelve HTTP 200 con cabecera
+# vacía para N° que no existen (no devuelve 404). El parser debe detectarlo
+# y lanzar ValueError para que el scraper lo trate como ExpedienteNoEncontrado.
+# Sin este check, el seed acumula ~75% de basura (35k/47k para HSN/S/2024).
+
+
+def _numero_fantasma() -> NumeroExpediente:
+    return NumeroExpediente(
+        numero=100759,
+        origen=OrigenExpediente.SENADOR,
+        anio=2024,
+        camara=Camara.HSN,
+    )
+
+
+def test_parser_expediente_fantasma_lanza() -> None:
+    """N° 100759/24 no existe — el portal devuelve cabecera vacía.
+
+    Antes del fix, este HTML se parseaba como expediente válido con
+    titulo='Expediente 100759-S-2024', sin firmantes, sin trámite —
+    basura que ensucia la búsqueda.
+    """
+    with pytest.raises(ValueError, match="no existe"):
+        parse_expediente_hsn(
+            _load("hsn_100759_24_S_PL_vacio.html"),
+            _numero_fantasma(),
+            TipoExpediente.PROYECTO_LEY,
+        )

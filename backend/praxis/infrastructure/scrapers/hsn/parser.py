@@ -243,13 +243,25 @@ def parse_expediente_hsn(
         if len(first) >= 4:
             extracto = first[3] or None
 
-    titulo = extracto or f"Expediente {numero}"
-
     # 2. Autores: tabla con summary "Listado de Autores".
     firmantes = _extract_firmantes(soup)
 
     # 3. Mesa de Entradas: fechas + DAE.
     mesa_entradas, dado_cuenta, numero_dae = _extract_mesa(soup)
+
+    # ----- Anti-fantasma HSN (feat-49.4.fix) -----
+    # El portal del Senado devuelve HTTP 200 con cabecera VACÍA para
+    # números que no existen — no devuelve 404. Para distinguir un
+    # expediente real de uno "fantasma" exigimos que tenga al menos
+    # UNA señal de existencia real (extracto, autor, o fecha en Mesa).
+    # Si las 3 están vacías, el N° no existe en el portal.
+    if not (extracto and extracto.strip()) and not firmantes and mesa_entradas is None:
+        raise ValueError(
+            f"El expediente {numero} no existe en HSN "
+            "(cabecera vacía sin extracto, autores ni fecha de Mesa)"
+        )
+
+    titulo = extracto or f"Expediente {numero}"
 
     # 4. Dir. Comisiones: fechas.
     fecha_dir_comisiones, fecha_dictamen_mesa = _extract_dir_comisiones(soup)
