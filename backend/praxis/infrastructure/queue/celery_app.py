@@ -59,24 +59,36 @@ celery_app.conf.update(
     # Evita acumular tareas en workers que después mueren.
     worker_prefetch_multiplier=1,
     # Beat schedule (UTC). Horarios pensados para Buenos Aires
-    # (UTC-3). El asesor recibe el briefing diario a las 8:00 ART;
-    # el pipeline de BO + clasificación corre antes para que llegue
-    # con todo procesado.
+    # (UTC-3).
+    #
+    # IMPORTANTE — feat-49.fix-bo-schedule:
+    # El Boletín Oficial nacional publica su edición diaria
+    # ALREDEDOR de las 8 hs ART. Antes de esa hora la edición del
+    # día NO existe (queda la del día anterior). Por eso el
+    # pipeline de BO arranca a partir de las 8 hs ART y NO antes —
+    # si scrapeaba a las 5:30 traía la edición vieja o vacía.
+    #
+    # Pipeline secuencial con margen de 30 min entre etapas para
+    # que cada una termine antes de que arranque la siguiente:
+    #   08:00 ART → ingestar la edición del día recién publicada
+    #   08:30 ART → clasificar las normas nuevas
+    #   09:00 ART → evaluar accionabilidad por despacho
+    #   09:30 ART → enviar briefing diario por WhatsApp con todo
     beat_schedule={
         "bo-ingestar-diario": {
             "task": "praxis.bo.ingestar_diario",
-            # 08:30 UTC = 05:30 ART
-            "schedule": crontab(hour="8", minute="30"),
+            # 11:00 UTC = 08:00 ART
+            "schedule": crontab(hour="11", minute="0"),
         },
         "bo-clasificar-pendientes": {
             "task": "praxis.bo.clasificar_pendientes",
-            # 09:00 UTC = 06:00 ART
-            "schedule": crontab(hour="9", minute="0"),
+            # 11:30 UTC = 08:30 ART
+            "schedule": crontab(hour="11", minute="30"),
         },
         "bo-evaluar-accionables-por-despacho": {
             "task": "praxis.bo.evaluar_accionables_por_despacho",
-            # 10:00 UTC = 07:00 ART
-            "schedule": crontab(hour="10", minute="0"),
+            # 12:00 UTC = 09:00 ART
+            "schedule": crontab(hour="12", minute="0"),
         },
         # Noticias (spec 16, feat-40.5.D). Polling continuo
         # durante el día — los medios actualizan a lo largo del día.
@@ -94,11 +106,13 @@ celery_app.conf.update(
             "schedule": crontab(minute="*/10"),
         },
         # WhatsApp briefing diario (spec 17, feat-41.4).
-        # 11:00 UTC = 08:00 ART. El BO ya está ingestado + clasificado
-        # + accionable evaluado para cuando dispara.
+        # 12:30 UTC = 09:30 ART. Corre DESPUÉS del pipeline BO
+        # (ingestar 08:00 → clasificar 08:30 → evaluar 09:00),
+        # por eso a las 09:30 ya tiene todo el material del día
+        # listo para empaquetar.
         "whatsapp-enviar-briefings-diarios": {
             "task": "praxis.whatsapp.enviar_briefings_diarios",
-            "schedule": crontab(hour="11", minute="0"),
+            "schedule": crontab(hour="12", minute="30"),
         },
         # HCDN: detectar OD nuevo del Plan de Labor (feat-45.4).
         # Corre cada 1 hora durante horario de sesiones argentino:
