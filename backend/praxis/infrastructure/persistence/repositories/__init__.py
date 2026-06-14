@@ -10,6 +10,9 @@ from praxis.infrastructure.persistence.repositories.briefing import (
 from praxis.infrastructure.persistence.repositories.despacho import (
     SqlAlchemyDespachoRepository,
 )
+from praxis.infrastructure.persistence.repositories.efemeride import (
+    SqlAlchemyEfemerideRepository,
+)
 from praxis.infrastructure.persistence.repositories.expediente import (
     SqlAlchemyExpedienteRepository,
 )
@@ -75,6 +78,7 @@ __all__ = [
     "SqlAlchemyClasificacionNormaBORepository",
     "SqlAlchemyDespachoRepository",
     "SqlAlchemyDestinatarioRepository",
+    "SqlAlchemyEfemerideRepository",
     "SqlAlchemyEnvioWhatsAppRepository",
     "SqlAlchemyExpedienteAreaTematicaRepository",
     "SqlAlchemyExpedienteRepository",

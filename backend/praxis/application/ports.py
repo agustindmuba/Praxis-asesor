@@ -31,6 +31,7 @@ from praxis.domain import (
     Comision,
     Destinatario,
     DisambiguacionMencion,
+    Efemeride,
     EnvioWhatsApp,
     Expediente,
     ExpedienteAreaTematica,
@@ -590,6 +591,34 @@ class ExpedienteAreaTematicaRepository(ABC):
         self, area: AreaTematica, *, limit: int = 100,
     ) -> list[ExpedienteAreaTematica]:
         """Útil para la página 3 del briefing (agrupar OD por área)."""
+        raise NotImplementedError
+
+
+class EfemerideRepository(ABC):
+    """Puerto: persistencia de Efemerides (feat-53.1)."""
+
+    @abstractmethod
+    async def buscar_por_id(self, efemeride_id: UUID) -> Efemeride | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def proximas(
+        self,
+        *,
+        desde_mes: int,
+        desde_dia: int,
+        dias: int = 30,
+        relevancia_minima: str = "media",
+    ) -> list[Efemeride]:
+        """Próximas N días desde una fecha (MM-DD), filtradas por relevancia
+        mínima ('alta' < 'media' < 'baja').
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_todas(
+        self, *, tipo: str | None = None, relevancia: str | None = None,
+    ) -> list[Efemeride]:
         raise NotImplementedError
 
 
