@@ -1359,5 +1359,52 @@ class AlertaMencionEnviadaOrm(Base, kw_only=True):
     error: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
 
 
+class EfemerideOrm(Base, kw_only=True):
+    """Efemérides — fechas conmemorativas (feat-53.1).
+
+    Únicas por (mes, dia, titulo) — dos efemérides el mismo día son
+    posibles. `anio_unico` distingue las recurrentes (NULL) de los
+    aniversarios puntuales (ej. 50° del Golpe en 2026).
+    """
+
+    __tablename__ = "efemeride"
+    __table_args__ = (
+        Index(
+            "uq_efemeride_fecha_titulo",
+            "mes",
+            "dia",
+            "titulo",
+            unique=True,
+        ),
+        Index("ix_efemeride_mes_dia", "mes", "dia"),
+        Index("ix_efemeride_tipo", "tipo"),
+        Index("ix_efemeride_relevancia", "relevancia"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    mes: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    dia: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    titulo: Mapped[str] = mapped_column(String(300), nullable=False)
+    tipo: Mapped[str] = mapped_column(String(30), nullable=False)
+    relevancia: Mapped[str] = mapped_column(String(10), nullable=False)
+    descripcion: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+    fuente: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
+    # Lista de strings (áreas temáticas). JSON evita una M:N que no
+    # aporta — el set de áreas es chico y estable.
+    areas_tematicas: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    # NULL = se repite todos los años. Año específico = aniversario puntual.
+    anio_unico: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, default=None
+    )
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+
 # Marker para que mypy/ruff entiendan que estos imports son legítimos.
 _ = datetime  # type: ignore[unused-ignore]

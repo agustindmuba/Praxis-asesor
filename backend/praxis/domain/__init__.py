@@ -39,6 +39,13 @@ from praxis.domain.briefing_similitud import (
 )
 from praxis.domain.comision import Comision, TipoComision
 from praxis.domain.despacho import Despacho
+from praxis.domain.efemeride import (
+    EFEMERIDE_RELEVANCIA_LABELS,
+    EFEMERIDE_TIPO_LABELS,
+    Efemeride,
+    RelevanciaEfemeride,
+    TipoEfemeride,
+)
 from praxis.domain.exceptions import (
     DomainError,
     ExpedienteNoEncontrado,
@@ -207,6 +214,7 @@ __all__ = [
     "Destinatario",
     "DisambiguacionMencion",
     "DomainError",
+    "Efemeride",
     "EnvioWhatsApp",
     "EstadoEnvio",
     "EstadoExpediente",
@@ -261,6 +269,9 @@ __all__ = [
     "ProgresoTramite",
     "ProyectoEnAreaBriefing",
     "RecomendacionVoto",
+    "EFEMERIDE_RELEVANCIA_LABELS",
+    "EFEMERIDE_TIPO_LABELS",
+    "RelevanciaEfemeride",
     "RequestContext",
     "ResultadoBusqueda",
     "ResumenEjecutivo",
@@ -273,6 +284,7 @@ __all__ = [
     "SeguimientoExpediente",
     "TipoComision",
     "TipoEnvio",
+    "TipoEfemeride",
     "TipoExpediente",
     "TipoFuenteNoticia",
     "TipoVotacion",
