@@ -84,10 +84,11 @@ export function OnboardingWizard({ estadoInicial }: Props) {
               1 · Quién es el legislador titular
             </h3>
             <p className="text-xs text-muted-foreground">
-              Usá el formato canónico de HCDN:{" "}
-              <code className="text-foreground">APELLIDO, NOMBRE</code>{" "}
-              (ej. <em>JULIANO, PABLO</em>). El bot lo va a buscar contra
-              los firmantes registrados en la base.
+              Escribí el nombre del legislador titular como te resulte
+              natural — <em>Pablo Juliano</em>, <em>Juliano, Pablo</em> o
+              el slug del padrón <code className="text-foreground">pjuliano</code>.
+              Praxis lo resuelve contra el padrón oficial y lo
+              normaliza para que el detector de menciones funcione.
             </p>
           </div>
 

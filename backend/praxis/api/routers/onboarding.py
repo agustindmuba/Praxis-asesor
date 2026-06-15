@@ -24,10 +24,66 @@ from praxis.api.schemas.onboarding import (
 from praxis.application.use_cases.inferir_perfil_opositor import (
     InferirPerfilOpositor,
 )
+from praxis.domain import Camara
+from praxis.infrastructure.padron.csv_repository import CsvPadronRepository
 from praxis.infrastructure.persistence.models import DespachoOrm
 from praxis.infrastructure.persistence.repositories import (
     SqlAlchemyPerfilOpositorRepository,
 )
+
+
+def _resolver_slug_padron(busqueda: str) -> str:
+    """Normaliza la entrada del usuario a un slug del padrón actual.
+
+    El wizard pide formato "APELLIDO, NOMBRE" (CSV viejo del Observatorio),
+    pero el padrón actual usa slugs como "pjuliano". Esta función intenta:
+
+    1. Match directo: si `busqueda` ya es un slug del padrón, devolverlo.
+    2. Búsqueda fuzzy: si contiene apellido y nombre (en cualquier orden),
+       buscar el legislador en el padrón y devolver SU slug.
+
+    Si no resuelve, devolvemos la entrada tal cual — el caso de uso de
+    inferencia tirará un error claro al usuario.
+
+    Sin alocaciones de LLM. Sin riesgo. $0.
+    """
+    padron = CsvPadronRepository()
+    entrada = busqueda.strip()
+    if not entrada:
+        return entrada
+
+    # 1. Match directo como slug.
+    for camara in (Camara.HCDN, Camara.HSN):
+        try:
+            padron.buscar_por_slug(entrada, camara)
+            return entrada
+        except KeyError:
+            continue
+        except Exception:  # noqa: BLE001
+            continue
+
+    # 2. Fuzzy: descomponer en partes y buscar por nombre.
+    # Soporta tanto "APELLIDO, NOMBRE" como "Nombre Apellido".
+    partes_raw = [p.strip() for p in entrada.replace(",", " ").split() if p.strip()]
+    if not partes_raw:
+        return entrada
+
+    candidatos = []
+    for parte in partes_raw:
+        if len(parte) < 3:
+            continue
+        candidatos.extend(padron.buscar_por_nombre(parte))
+
+    # Buscar el legislador cuyo (nombre + apellido) contenga TODAS las partes.
+    entrada_lower = entrada.lower()
+    for leg in candidatos:
+        nombre_completo = f"{leg.nombre} {leg.apellido}".lower()
+        if all(p.lower() in nombre_completo for p in partes_raw):
+            return leg.slug
+
+    # Sin match — devolvemos la entrada original para que el endpoint
+    # de inferencia falle con mensaje claro.
+    return entrada
 
 log = logging.getLogger(__name__)
 
@@ -48,10 +104,20 @@ async def configurar_despacho(
     session: SessionDep,
     llm: LlmProviderDep,
 ) -> ConfigurarDespachoResponse:
-    # 1) Persistir en despacho
+    # 1) Resolver slug del padrón (feat-57: el wizard envía
+    # "APELLIDO, NOMBRE" pero el detector de menciones necesita
+    # "pjuliano"). Si no resuelve, persiste la entrada original.
+    slug_normalizado = _resolver_slug_padron(body.legislador_titular_slug)
+    if slug_normalizado != body.legislador_titular_slug.strip():
+        log.info(
+            "onboarding: slug normalizado '%s' -> '%s'",
+            body.legislador_titular_slug, slug_normalizado,
+        )
+
+    # 2) Persistir en despacho
     stmt = select(DespachoOrm).where(DespachoOrm.id == ctx.despacho.id)
     despacho_orm = (await session.execute(stmt)).scalar_one()
-    despacho_orm.legislador_titular_slug = body.legislador_titular_slug.strip()
+    despacho_orm.legislador_titular_slug = slug_normalizado
     if body.foto_url is not None:
         despacho_orm.legislador_foto_url = body.foto_url.strip() or None
     await session.flush()
