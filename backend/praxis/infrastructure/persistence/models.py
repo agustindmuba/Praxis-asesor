@@ -54,6 +54,13 @@ class DespachoOrm(Base, TimestampsMixin, kw_only=True):
     legislador_foto_url: Mapped[str | None] = mapped_column(
         String(500), nullable=True, default=None
     )
+    # Token único para el feed iCal del despacho (feat-54.2).
+    # NULL = el despacho aún no generó su URL de calendario.
+    # Único globalmente para que la URL sea unguessable y revocable
+    # con un solo UPDATE.
+    calendar_token: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, default=None, unique=True, index=True,
+    )
     configuracion: Mapped[dict[str, Any]] = mapped_column(
         JSON, nullable=False, default_factory=dict
     )

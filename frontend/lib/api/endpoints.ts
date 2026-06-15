@@ -692,3 +692,24 @@ export function generarDeclaracionDesdeEfemeride(
     { ctx },
   );
 }
+
+// ---------------------------------------------------------------------------
+// /calendar (feat-54)
+// ---------------------------------------------------------------------------
+
+export interface CalendarUrlResponse {
+  url: string;
+  token: string;
+}
+
+export function getCalendarUrl(ctx: ApiContext) {
+  return apiGet<CalendarUrlResponse>("/api/v1/calendar/url", { ctx });
+}
+
+export function regenerarCalendarToken(ctx: ApiContext) {
+  return apiPost<CalendarUrlResponse>(
+    "/api/v1/calendar/regenerar-token",
+    {},
+    { ctx },
+  );
+}

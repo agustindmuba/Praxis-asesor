@@ -46,6 +46,11 @@ from praxis.domain.efemeride import (
     RelevanciaEfemeride,
     TipoEfemeride,
 )
+from praxis.domain.evento_agenda import (
+    EVENTO_AGENDA_PREFIX,
+    EventoAgenda,
+    TipoEventoAgenda,
+)
 from praxis.domain.exceptions import (
     DomainError,
     ExpedienteNoEncontrado,
@@ -216,6 +221,9 @@ __all__ = [
     "DomainError",
     "Efemeride",
     "EnvioWhatsApp",
+    "EVENTO_AGENDA_PREFIX",
+    "EventoAgenda",
+    "TipoEventoAgenda",
     "EstadoEnvio",
     "EstadoExpediente",
     "EstadoMetaPlantilla",

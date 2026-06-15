@@ -31,6 +31,7 @@ import type {
 } from "@/lib/api/types";
 
 import { BriefingPreviewSection } from "./briefing-preview";
+import { CalendarSection } from "./calendar-section";
 import { DestinatarioFormulario } from "./destinatario-formulario";
 import { FotoLegisladorForm } from "./foto-legislador-form";
 
@@ -107,6 +108,8 @@ export default async function ConfiguracionPage() {
       />
 
       <BriefingPreviewSection />
+
+      <CalendarSection />
 
       <DestinatariosSection destinatarios={destinatarios} />
 
