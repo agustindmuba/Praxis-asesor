@@ -10,6 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BookOpen,
+  Calendar,
   FileText,
   LayoutDashboard,
   ListChecks,
@@ -43,6 +44,7 @@ const NAV: NavItem[] = [
   { href: "/bo", label: "Boletín Oficial", icon: BookOpen },
   { href: "/noticias", label: "Noticias", icon: Radio },
   { href: "/menciones", label: "Menciones", icon: MessageSquare },
+  { href: "/efemerides", label: "Efemérides", icon: Calendar },
   { href: "/configuracion", label: "Configuración", icon: Settings },
   {
     href: "/seguimientos",

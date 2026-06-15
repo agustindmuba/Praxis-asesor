@@ -630,3 +630,65 @@ export function configurarDespacho(
     { ctx },
   );
 }
+
+// ---------------------------------------------------------------------------
+// /efemerides (feat-53)
+// ---------------------------------------------------------------------------
+
+export interface EfemerideDTO {
+  id: string;
+  mes: number;
+  dia: number;
+  fecha_corta: string;
+  titulo: string;
+  tipo: string;
+  tipo_label: string;
+  relevancia: string;
+  descripcion: string | null;
+  fuente: string | null;
+  areas_tematicas: string[];
+  anio_unico: number | null;
+  es_recurrente: boolean;
+}
+
+export interface GenerarDeclaracionResponse {
+  efemeride: EfemerideDTO;
+  tema_generado: string;
+  articulado: string[];
+  fundamentos: string;
+  modelo: string;
+}
+
+export function listarEfemerides(
+  ctx: ApiContext,
+  opts: { tipo?: string; relevancia?: string } = {},
+) {
+  return apiGet<EfemerideDTO[]>("/api/v1/efemerides", {
+    ctx,
+    params: opts as Record<string, string | number | undefined>,
+  });
+}
+
+export function proximasEfemerides(
+  ctx: ApiContext,
+  opts: { dias?: number; relevancia_minima?: string } = {},
+) {
+  return apiGet<EfemerideDTO[]>("/api/v1/efemerides/proximas", {
+    ctx,
+    params: {
+      dias: opts.dias ?? 30,
+      relevancia_minima: opts.relevancia_minima ?? "media",
+    } as Record<string, string | number | undefined>,
+  });
+}
+
+export function generarDeclaracionDesdeEfemeride(
+  ctx: ApiContext,
+  efemerideId: string,
+) {
+  return apiPost<GenerarDeclaracionResponse>(
+    `/api/v1/efemerides/${efemerideId}/generar-declaracion`,
+    {},
+    { ctx },
+  );
+}
