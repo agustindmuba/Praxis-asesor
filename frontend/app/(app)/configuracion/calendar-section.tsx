@@ -94,9 +94,10 @@ export function CalendarSection() {
 
       <p className="text-xs text-muted-foreground">
         Suscribite a esta URL desde Google Calendar, Apple Calendar,
-        Outlook o cualquier app que entienda iCal. Te aparecerán las
-        sesiones del Congreso, vencimientos de proyectos del despacho y
-        efemérides relevantes — todo actualizado automáticamente.
+        Outlook o cualquier app compatible con iCal. Vas a ver las
+        sesiones del Congreso, los vencimientos por caducidad de los
+        proyectos del despacho y las efemérides relevantes — siempre
+        sincronizados con Praxis.
       </p>
 
       {loading && (
@@ -150,15 +151,18 @@ export function CalendarSection() {
             <div className="mt-2 space-y-3 leading-relaxed text-muted-foreground">
               <div>
                 <strong className="text-foreground">Google Calendar:</strong>{" "}
-                ⚙️ Configuración → Agregar calendario → Desde URL → Pegá la URL → Agregar.
+                Configuración → Agregar calendario → Suscribirse a un
+                calendario → pegá la URL → Agregar calendario.
               </div>
               <div>
-                <strong className="text-foreground">Apple Calendar (Mac):</strong>{" "}
-                Archivo → Suscripción nueva al calendario → Pegá la URL → Suscribirse.
+                <strong className="text-foreground">Apple Calendar (macOS):</strong>{" "}
+                Menú Archivo → Nueva suscripción de calendario → pegá la
+                URL → Suscribirse.
               </div>
               <div>
-                <strong className="text-foreground">Outlook:</strong>{" "}
-                Agregar calendario → Suscribirse desde la web → Pegá la URL → Importar.
+                <strong className="text-foreground">Outlook (web):</strong>{" "}
+                Agregar calendario → Suscribirse desde Internet → pegá
+                la URL → Importar.
               </div>
             </div>
           </details>

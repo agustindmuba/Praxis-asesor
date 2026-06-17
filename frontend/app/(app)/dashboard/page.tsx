@@ -95,7 +95,8 @@ export default async function DashboardPage() {
     return (
       <Card className="border-border bg-card p-6 shadow-none">
         <p className="text-sm text-muted-foreground">
-          No se pudo cargar el hub. Verificá la conexión al backend.
+          No se pudo cargar tu vista del día. Verificá la conexión al
+          servidor.
         </p>
       </Card>
     );
@@ -124,7 +125,7 @@ export default async function DashboardPage() {
                 Perfil opositor sin cargar
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Cargá el perfil del despacho para que el bot conecte
+                Cargá el perfil del despacho para que Praxis conecte
                 cada evento con tu línea política.{" "}
                 <Link
                   href="/configuracion/perfil-opositor"
@@ -230,7 +231,7 @@ function AccionRequeridaSection({ items }: { items: HubItemDTO[] }) {
       {items.length === 0 ? (
         <Card className="border-border bg-card p-6 text-center shadow-none">
           <p className="text-sm text-muted-foreground">
-            Sin acciones pendientes generadas todavía. Generá acciones
+            Por ahora no hay accionables marcados para hoy. Generá uno
             desde{" "}
             <Link
               href="/bo"

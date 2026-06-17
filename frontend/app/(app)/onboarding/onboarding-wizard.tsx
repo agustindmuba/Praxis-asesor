@@ -84,11 +84,11 @@ export function OnboardingWizard({ estadoInicial }: Props) {
               1 · Quién es el legislador titular
             </h3>
             <p className="text-xs text-muted-foreground">
-              Escribí el nombre del legislador titular como te resulte
-              natural — <em>Pablo Juliano</em>, <em>Juliano, Pablo</em> o
-              el slug del padrón <code className="text-foreground">pjuliano</code>.
-              Praxis lo resuelve contra el padrón oficial y lo
-              normaliza para que el detector de menciones funcione.
+              Escribí el nombre como te resulte natural:{" "}
+              <em>Pablo Juliano</em> o <em>Juliano, Pablo</em>. Praxis
+              lo busca contra el padrón oficial y deja todo listo para
+              que las menciones del legislador en medios se detecten
+              correctamente.
             </p>
           </div>
 
@@ -99,7 +99,7 @@ export function OnboardingWizard({ estadoInicial }: Props) {
             <Input
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
-              placeholder="JULIANO, PABLO"
+              placeholder="Pablo Juliano"
               autoComplete="off"
             />
           </div>

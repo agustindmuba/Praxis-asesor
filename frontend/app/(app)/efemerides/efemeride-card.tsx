@@ -125,12 +125,12 @@ export function EfemerideCard({ efemeride }: Props) {
           {isPending ? (
             <>
               <Loader2 className="size-3.5 animate-spin" />
-              Generando con IA…
+              Redactando proyecto…
             </>
           ) : (
             <>
               <PenLine className="size-3.5" />
-              Generar declaración
+              Generar proyecto de declaración
             </>
           )}
         </button>
@@ -148,12 +148,12 @@ export function EfemerideCard({ efemeride }: Props) {
         <div className="space-y-2 rounded-md border border-[var(--color-praxis-verde)] bg-[var(--color-praxis-verde)]/5 p-3 text-xs">
           <div className="flex items-center gap-1.5 font-semibold text-[var(--color-praxis-verde)]">
             <FileEdit className="size-3.5" />
-            Declaración generada — modelo: {resultado.modelo}
+            Proyecto generado — {resultado.modelo}
           </div>
 
           <details open>
             <summary className="cursor-pointer text-[11px] font-medium text-foreground">
-              Articulado ({resultado.articulado.length} arts.)
+              Articulado · {resultado.articulado.length} artículo{resultado.articulado.length === 1 ? "" : "s"}
             </summary>
             <ol className="mt-1.5 space-y-1.5 pl-4 text-[11px]">
               {resultado.articulado.map((art, i) => (
@@ -173,7 +173,7 @@ export function EfemerideCard({ efemeride }: Props) {
 
           <details>
             <summary className="cursor-pointer text-[10px] font-medium text-muted-foreground">
-              Tema enviado al LLM (debug)
+              Contexto enviado al modelo (debug)
             </summary>
             <pre className="mt-1.5 whitespace-pre-wrap rounded bg-muted/30 p-2 text-[10px] text-muted-foreground">
               {resultado.tema_generado}

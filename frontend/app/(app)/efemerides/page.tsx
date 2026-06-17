@@ -46,20 +46,21 @@ export default async function EfemeridesPage() {
           <h1 className="font-display text-2xl font-semibold">Efemérides</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Calendario de fechas conmemorativas con valor parlamentario. Generá
-          un proyecto de declaración para cualquiera con un click.
+          Calendario de fechas conmemorativas con valor parlamentario.
+          Generá un proyecto de declaración con un click sobre
+          cualquiera.
         </p>
       </header>
 
-      {/* PRÓXIMAS 60 DÍAS */}
+      {/* PRÓXIMOS 60 DÍAS */}
       <section className="space-y-3">
         <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-[var(--color-praxis-azul)] flex items-center gap-2">
           <Sparkle className="size-4" />
-          Próximas 60 días — {proximas.length} efemérides
+          Próximos 60 días — {proximas.length} efemérides
         </h2>
         {proximas.length === 0 ? (
           <Card className="p-6 text-center text-sm text-muted-foreground">
-            No hay efemérides próximas relevantes en los siguientes 60 días.
+            No hay efemérides relevantes en los próximos 60 días.
           </Card>
         ) : (
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -73,7 +74,7 @@ export default async function EfemeridesPage() {
       {/* TODAS — agrupadas por mes */}
       <section className="space-y-3">
         <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-[var(--color-praxis-azul)]">
-          Año completo — {todas.length} efemérides
+          Calendario completo del año — {todas.length} efemérides
         </h2>
         <div className="space-y-2">
           {agruparPorMes(todas).map(({ mes, items }) => (
