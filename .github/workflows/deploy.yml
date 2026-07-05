@@ -1,0 +1,87 @@
+# Deploy automático a producción — Praxis Asesor.
+#
+# Se dispara al pushear a `main`. Estrategia:
+#   1. Build & test rápido (sanity check).
+#   2. SSH al VPS: pull, rebuild imágenes, up con zero-downtime.
+#
+# Requiere secrets del repo (Settings → Secrets):
+#   VPS_HOST          — IP del droplet DigitalOcean
+#   VPS_SSH_KEY       — clave privada SSH (la pública ya está en el droplet)
+#   VPS_USER          — usuario en el VPS (praxis)
+#   VPS_PROJECT_PATH  — path del proyecto en el VPS (/opt/praxis)
+
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main, develop]        # develop = piloto; main = release
+  workflow_dispatch:      # permite disparar manualmente desde GitHub UI
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  sanity-check:
+    name: Sanity check (backend + frontend build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Backend — install + tests unit
+        working-directory: backend
+        run: |
+          uv sync --frozen
+          uv run pytest tests/unit -q --no-header
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Frontend — install + typecheck + build
+        working-directory: frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm typecheck || pnpm tsc --noEmit
+          NEXT_PUBLIC_API_URL=http://localhost:8000 pnpm build
+
+  deploy:
+    name: Deploy al VPS
+    needs: sanity-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            set -euo pipefail
+            cd ${{ secrets.VPS_PROJECT_PATH }}
+            echo "==> git pull"
+            git pull --ff-only
+            echo "==> docker compose build (con cache)"
+            docker compose -f docker-compose.prod.yml build --pull
+            echo "==> docker compose up -d (rolling)"
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            echo "==> docker system prune (imágenes viejas)"
+            docker image prune -f
+            echo "==> health de servicios"
+            sleep 10
+            docker compose -f docker-compose.prod.yml ps

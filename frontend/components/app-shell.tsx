@@ -18,6 +18,7 @@ import {
   Newspaper,
   Radio,
   Settings,
+  Users,
   Wand2,
 } from "lucide-react";
 
@@ -45,6 +46,7 @@ const NAV: NavItem[] = [
   { href: "/noticias", label: "Noticias", icon: Radio },
   { href: "/menciones", label: "Menciones", icon: MessageSquare },
   { href: "/efemerides", label: "Efemérides", icon: Calendar },
+  { href: "/comisiones", label: "Comisiones", icon: Users },
   { href: "/configuracion", label: "Configuración", icon: Settings },
   {
     href: "/seguimientos",

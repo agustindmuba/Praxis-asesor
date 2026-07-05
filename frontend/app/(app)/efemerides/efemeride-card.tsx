@@ -8,12 +8,13 @@
  * se muestra en un panel desplegable abajo de la card.
  */
 import { useState, useTransition } from "react";
-import { FileEdit, PenLine, Loader2, AlertCircle } from "lucide-react";
+import { FileEdit, PenLine, Loader2, AlertCircle, Download } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useApiContext } from "@/lib/api/context-client";
 import {
+  descargarDeclaracionDocx,
   generarDeclaracionDesdeEfemeride,
   type EfemerideDTO,
   type GenerarDeclaracionResponse,
@@ -45,6 +46,7 @@ function relevanciaLabel(relevancia: string): string {
 export function EfemerideCard({ efemeride }: Props) {
   const resolveCtx = useApiContext();
   const [isPending, startTransition] = useTransition();
+  const [isDownloading, startDownload] = useTransition();
   const [resultado, setResultado] = useState<GenerarDeclaracionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,6 +63,25 @@ export function EfemerideCard({ efemeride }: Props) {
           err instanceof Error
             ? err.message
             : "No se pudo generar la declaración.",
+        );
+      }
+    });
+  }
+
+  function descargar() {
+    if (!resultado) return;
+    setError(null);
+    startDownload(async () => {
+      try {
+        const ctx = await resolveCtx();
+        await descargarDeclaracionDocx(ctx, {
+          titulo_efemeride: efemeride.titulo,
+          articulado: resultado.articulado,
+          fundamentos: resultado.fundamentos,
+        });
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "No se pudo descargar el .docx.",
         );
       }
     });
@@ -146,9 +167,29 @@ export function EfemerideCard({ efemeride }: Props) {
 
       {resultado && (
         <div className="space-y-2 rounded-md border border-[var(--color-praxis-verde)] bg-[var(--color-praxis-verde)]/5 p-3 text-xs">
-          <div className="flex items-center gap-1.5 font-semibold text-[var(--color-praxis-verde)]">
-            <FileEdit className="size-3.5" />
-            Proyecto generado — {resultado.modelo}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 font-semibold text-[var(--color-praxis-verde)]">
+              <FileEdit className="size-3.5" />
+              Proyecto generado — {resultado.modelo}
+            </div>
+            <button
+              type="button"
+              disabled={isDownloading}
+              onClick={descargar}
+              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-praxis-verde)] bg-white px-2 py-1 text-[10.5px] font-semibold text-[var(--color-praxis-verde)] transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 className="size-3 animate-spin" />
+                  Generando .docx…
+                </>
+              ) : (
+                <>
+                  <Download className="size-3" />
+                  Descargar .docx
+                </>
+              )}
+            </button>
           </div>
 
           <details open>

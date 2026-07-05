@@ -7,6 +7,9 @@ Convención: una clase por agregado raíz.
 from praxis.infrastructure.persistence.repositories.briefing import (
     SqlAlchemyBriefingRepository,
 )
+from praxis.infrastructure.persistence.repositories.comision_hcdn import (
+    SqlAlchemyComisionHcdnRepository,
+)
 from praxis.infrastructure.persistence.repositories.despacho import (
     SqlAlchemyDespachoRepository,
 )
@@ -76,6 +79,7 @@ __all__ = [
     "SqlAlchemyBriefingRepository",
     "SqlAlchemyClasificacionArticuloRepository",
     "SqlAlchemyClasificacionNormaBORepository",
+    "SqlAlchemyComisionHcdnRepository",
     "SqlAlchemyDespachoRepository",
     "SqlAlchemyDestinatarioRepository",
     "SqlAlchemyEfemerideRepository",

@@ -693,6 +693,52 @@ export function generarDeclaracionDesdeEfemeride(
   );
 }
 
+export async function descargarDeclaracionDocx(
+  ctx: ApiContext,
+  payload: {
+    titulo_efemeride: string;
+    articulado: string[];
+    fundamentos: string;
+  },
+): Promise<void> {
+  const url = `${API_BASE}/api/v1/efemerides/exportar-docx`;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  };
+  if (ctx.token) {
+    headers["Authorization"] = `Bearer ${ctx.token}`;
+  }
+  if (ctx.despachoId) {
+    headers["X-Despacho-Id"] = ctx.despachoId;
+  }
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(`No se pudo descargar el .docx (HTTP ${res.status})`);
+  }
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download =
+    "proyecto_declaracion_" +
+    payload.titulo_efemeride
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^\w-]+/g, "")
+      .slice(0, 60) +
+    ".docx";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
 // ---------------------------------------------------------------------------
 // /calendar (feat-54)
 // ---------------------------------------------------------------------------
@@ -709,6 +755,106 @@ export function getCalendarUrl(ctx: ApiContext) {
 export function regenerarCalendarToken(ctx: ApiContext) {
   return apiPost<CalendarUrlResponse>(
     "/api/v1/calendar/regenerar-token",
+    {},
+    { ctx },
+  );
+}
+
+
+// ---------------------------------------------------------------------------
+// /comisiones (feat-61.6)
+// ---------------------------------------------------------------------------
+
+export interface ComisionDTO {
+  id: string;
+  camara: string;
+  slug: string;
+  nombre: string;
+  tipo: string;
+  url_oficial: string;
+}
+
+export interface IntegranteDTO {
+  id: string;
+  nombre_diputado: string;
+  cargo: string;
+  partido: string | null;
+  distrito: string | null;
+}
+
+export interface ComisionDetalleDTO extends ComisionDTO {
+  integrantes: IntegranteDTO[];
+}
+
+export interface ReunionConComisionDTO {
+  id: string;
+  fecha: string;
+  titulo: string;
+  citacion_pdf_url: string | null;
+  comision_id: string;
+  comision_nombre: string;
+  rol_legislador: string | null;
+  hora: string | null;
+  sala: string | null;
+  descripcion: string | null;
+  tema_corto: string | null;
+  tipo_reunion: string | null;
+  convocada_por: string | null;
+  oportunidad_politica: string | null;
+  accion_sugerida: string | null;
+  expedientes_citados: string[];
+  enriquecida_en: string | null;
+}
+
+export function listarComisiones(ctx: ApiContext) {
+  return apiGet<ComisionDTO[]>("/api/v1/comisiones", { ctx });
+}
+
+export function comisionesDelDespacho(ctx: ApiContext) {
+  return apiGet<ComisionDTO[]>("/api/v1/comisiones/del-despacho", { ctx });
+}
+
+export function agendaDelDespacho(ctx: ApiContext, opts: { dias?: number } = {}) {
+  return apiGet<ReunionConComisionDTO[]>(
+    "/api/v1/comisiones/agenda-del-despacho",
+    { ctx, params: { dias: opts.dias ?? 30 } as Record<string, number> },
+  );
+}
+
+export function detalleComision(ctx: ApiContext, comisionId: string) {
+  return apiGet<ComisionDetalleDTO>(
+    `/api/v1/comisiones/${comisionId}`,
+    { ctx },
+  );
+}
+
+
+// ---------------------------------------------------------------------------
+// /comisiones — extensión enriquecimiento (feat-61.4.B)
+// ---------------------------------------------------------------------------
+
+export interface ReunionEnriquecidaDTO {
+  id: string;
+  fecha: string;
+  hora: string | null;
+  sala: string | null;
+  titulo: string;
+  descripcion: string | null;
+  comisiones_invitadas: string[];
+  citacion_pdf_url: string | null;
+  tema_corto: string | null;
+  tipo_reunion: string | null;
+  convocada_por: string | null;
+  expedientes_citados: string[];
+  oportunidad_politica: string | null;
+  accion_sugerida: string | null;
+  huella_historica: string | null;
+  enriquecida_en: string | null;
+}
+
+export function enriquecerReunion(ctx: ApiContext, reunionId: string) {
+  return apiPost<ReunionEnriquecidaDTO>(
+    `/api/v1/comisiones/reuniones/${reunionId}/enriquecer`,
     {},
     { ctx },
   );

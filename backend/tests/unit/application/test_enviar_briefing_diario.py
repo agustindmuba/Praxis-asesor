@@ -25,7 +25,9 @@ from praxis.application.ports import ResultadoEnvioWhatsApp
 from praxis.application.use_cases import EnviarBriefingDiario
 from praxis.application.use_cases.enviar_briefing_diario import (
     META_CODE_OPT_OUT,
-    _componer_resumen_corto,
+    ItemBriefing,
+    ResumenMenciones,
+    _componer_params_v2,
     _primer_nombre,
 )
 from praxis.domain import (
@@ -254,28 +256,95 @@ class TestHelpersPuros:
         assert _primer_nombre("Pablo") == "Pablo"
         assert _primer_nombre("   ") == "Despacho"
 
-    def test_componer_resumen_corto_solo_bo(self) -> None:
-        r = _componer_resumen_corto(n_bo=2, n_noticias=0)
-        assert "2 normas accionables" in r
-        assert "noticia" not in r
+    def test_componer_params_v2_vacio_devuelve_10_slots(self) -> None:
+        params = _componer_params_v2(
+            nombre="Pablo",
+            fecha=date(2026, 6, 24),
+            agenda=[],
+            proxima_sesion=None,
+            items_bo=[],
+            items_noticias=[],
+            resumen_menciones=ResumenMenciones(total=0, criticas=0, top=[]),
+        )
+        assert len(params) == 10
+        assert params[0] == "Pablo"
+        assert params[1] == "24 de junio"
+        # Cada slot vacío tiene un mensaje honesto, no strings vacíos.
+        for p in params[2:]:
+            assert p.strip(), f"slot vacío en el composer: {params}"
+        # Menciones sin novedades.
+        assert "menciones" in params[8].lower() or "menciones" in params[8]
 
-    def test_componer_resumen_corto_solo_noticias(self) -> None:
-        r = _componer_resumen_corto(n_bo=0, n_noticias=1)
-        assert "1 noticia" in r
-        assert "norma" not in r
+    def test_componer_params_v2_con_bo_y_url_lleva_link(self) -> None:
+        items = [
+            ItemBriefing(
+                titulo_corto="Decreto 456/2026 régimen jubilatorio",
+                accion=None,
+                razon_breve=None,
+                url="https://boletinoficial.gob.ar/d/456",
+            ),
+        ]
+        params = _componer_params_v2(
+            nombre="Pablo",
+            fecha=date(2026, 6, 24),
+            agenda=[],
+            proxima_sesion=None,
+            items_bo=items,
+            items_noticias=[],
+            resumen_menciones=ResumenMenciones(total=0, criticas=0, top=[]),
+        )
+        # p5 es el primer slot de BO.
+        assert "Decreto 456/2026" in params[4]
+        assert "boletinoficial.gob.ar" in params[4]
 
-    def test_componer_resumen_corto_ambos(self) -> None:
-        r = _componer_resumen_corto(n_bo=3, n_noticias=5)
-        assert "3 normas accionables" in r
-        assert "5 noticias" in r
-        assert " y " in r
+    def test_componer_params_v2_sanitiza_saltos_de_linea(self) -> None:
+        """Meta rechaza \\n en variables — el composer los mapea a ' '."""
+        items = [
+            ItemBriefing(
+                titulo_corto="Título\ncon\nsaltos",
+                accion=None,
+                razon_breve=None,
+                url="https://ejemplo.com",
+            ),
+        ]
+        params = _componer_params_v2(
+            nombre="Pablo",
+            fecha=date(2026, 6, 24),
+            agenda=[],
+            proxima_sesion=None,
+            items_bo=items,
+            items_noticias=[],
+            resumen_menciones=ResumenMenciones(total=0, criticas=0, top=[]),
+        )
+        for p in params:
+            assert "\n" not in p
+            assert "\t" not in p
 
-    def test_componer_resumen_corto_singular(self) -> None:
-        r = _componer_resumen_corto(n_bo=1, n_noticias=1)
-        assert "1 norma accionable" in r
-        assert "1 noticia" in r
-        # Sin "s" extra.
-        assert "1 normas" not in r
+    def test_componer_params_v2_dos_items_muestra_link_en_ambos(self) -> None:
+        items = [
+            ItemBriefing(
+                titulo_corto=f"Nota {i}",
+                accion=None,
+                razon_breve=None,
+                url=f"https://medio.com/nota-{i}",
+            )
+            for i in (1, 2, 3)
+        ]
+        params = _componer_params_v2(
+            nombre="Pablo",
+            fecha=date(2026, 6, 24),
+            agenda=[],
+            proxima_sesion=None,
+            items_bo=[],
+            items_noticias=items,
+            resumen_menciones=ResumenMenciones(total=0, criticas=0, top=[]),
+        )
+        # p7 y p8 son los 2 slots de noticias.
+        assert "Nota 1" in params[6]
+        assert "medio.com/nota-1" in params[6]
+        assert "Nota 2" in params[7]
+        # Con 3 items, el segundo lleva cola "Y 1 más en Praxis".
+        assert "1 más" in params[7]
 
 
 # ---------------------------------------------------------------------------
@@ -357,10 +426,14 @@ async def test_envio_exitoso() -> None:
     # Verifica payload del sender.
     assert len(sender.llamadas) == 1
     call = sender.llamadas[0]
-    assert call["plantilla"] == "praxis_briefing_diario"
-    assert call["params"][0] == "Pablo"  # primer nombre
-    assert call["params"][1] == "2026-06-01"
-    assert "norma" in call["params"][2]
+    assert call["plantilla"] == "briefing_diario_v2"
+    # v2: 10 params posicionales.
+    assert len(call["params"]) == 10
+    assert call["params"][0] == "Pablo"  # {{1}} primer nombre
+    assert call["params"][1] == "1 de junio"  # {{2}} fecha en español
+    # {{5}} y {{6}} son los slots de BO. Con 1 sola norma, el segundo dice
+    # "sin más" y el primero lleva el título de la norma.
+    assert "norma" in call["params"][4].lower() or "decreto" in call["params"][4].lower()
     # Envio fue creado + marcado enviado.
     assert len(envios.creados) == 1
     assert len(envios.marcado_enviado) == 1

@@ -58,3 +58,10 @@ tmp/
 .tmp/
 # DBs locales de smoke tests (feat-39.8 y similares).
 backend/tmp_*.db
+
+# --- Celery beat state (feat-65 deploy) ---
+celerybeat-schedule
+celerybeat-schedule.*
+
+# --- Claude Code session state ---
+.claude/

@@ -4,6 +4,10 @@ const config: NextConfig = {
   // React 19 strict mode.
   reactStrictMode: true,
 
+  // Output standalone: el Dockerfile de prod (feat-65) copia solo el
+  // .next/standalone al runtime en vez de node_modules completo.
+  output: "standalone",
+
   // Imágenes: dominios externos que vamos a permitir (Clerk avatares, etc).
   images: {
     remotePatterns: [

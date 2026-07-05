@@ -1,0 +1,61 @@
+# Caddy reverse proxy — Praxis Asesor producción.
+#
+# Sirve praxisconsultora.com con HTTPS automático via Let's Encrypt.
+# Ruteo:
+#   /api/*        → backend FastAPI (puerto 8000)
+#   /webhooks/*   → backend FastAPI (Meta, Clerk)
+#   /calendar/*   → backend FastAPI (iCal feeds públicos por token)
+#   /*            → frontend Next.js (puerto 3000)
+#
+# Caddy renueva certificados solo. No hay que tocar nada después de
+# `docker compose up -d`. Logs: `docker logs praxis_caddy`.
+
+{$PUBLIC_HOST} {
+	# Compresión moderna.
+	encode zstd gzip
+
+	# Headers de seguridad razonables para SaaS.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options    "nosniff"
+		X-Frame-Options           "SAMEORIGIN"
+		Referrer-Policy           "strict-origin-when-cross-origin"
+		Permissions-Policy        "camera=(), microphone=(), geolocation=()"
+		# Rem CSP acá cuando el frontend estabilice qué dominios necesita.
+	}
+
+	# API del backend — quitar el prefijo /api antes de proxear porque
+	# FastAPI monta rutas sin prefijo.
+	handle_path /api/* {
+		reverse_proxy backend:8000 {
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host  {host}
+		}
+	}
+
+	# Webhooks Meta / Clerk. NO stripear prefijo — FastAPI los espera con /webhooks.
+	handle /webhooks/* {
+		reverse_proxy backend:8000
+	}
+
+	# Feed iCal público (feat-54). Token va en la URL.
+	handle /calendar/* {
+		reverse_proxy backend:8000
+	}
+
+	# Todo lo demás al frontend Next.js.
+	handle {
+		reverse_proxy frontend:3000
+	}
+
+	# Access log estructurado (JSON) para poder grep-ear después.
+	log {
+		output stdout
+		format json
+	}
+}
+
+# Redirige www a apex (sin www).
+www.{$PUBLIC_HOST} {
+	redir https://{$PUBLIC_HOST}{uri} permanent
+}

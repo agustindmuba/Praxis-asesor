@@ -14,57 +14,44 @@ dependencies = [
     # Web framework + servidor ASGI.
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
-
     # Validación / configuración tipada.
     "pydantic>=2.9",
     "pydantic-settings>=2.5",
-
     # ORM async + driver Postgres + migraciones.
     "sqlalchemy[asyncio]>=2.0.35",
     "asyncpg>=0.30",
     "alembic>=1.13",
-
     # Cola de tareas.
     "celery[redis]>=5.4",
-
     # Cliente Redis directo (para readiness checks, cache, etc., además del uso vía Celery).
     "redis>=5.0",
-
     # HTTP client (scraping, integraciones).
     "httpx>=0.27",
-
     # Parseo HTML (scrapers HCDN y HSN).
     "beautifulsoup4>=4.12",
     "lxml>=5.0",
-
     # Logging estructurado.
     "structlog>=24.4",
-
     # JWT verification (Clerk auth — ver feat/14 spec 09).
     "pyjwt[crypto]>=2.9",
-
     # Webhook signature verification (Clerk webhooks via Svix — ver feat/16 spec 11).
     "svix>=1.30",
-
     # Templates HTML (briefing PDF, ver feat/30 spec 14).
     "jinja2>=3.1",
-
     # Claude API (feat/32). Solo se usa si ANTHROPIC_API_KEY está seteada.
     "anthropic>=0.40",
-
     # Parser PDF para BO (feat/39 spec 15 — los PDFs de boletinoficial.gob.ar
     # son la fuente principal tras el spike 39.1.5).
     "pdfplumber>=0.11",
-
     # Parser RSS/Atom para feat/40 spec 16 (Noticias). RssFeedAdapter
     # consume feeds de medios nacionales y políticos.
     "feedparser>=6.0",
-
     # RAG normativo (feat/42.6). pgvector para queries de similaridad
     # sobre la tabla norma_juridica_chunk. sentence-transformers para
     # generar embeddings locales (sin dependencia de API externa).
     "pgvector>=0.3",
     "sentence-transformers>=3.0",
+    "python-docx>=1.2.0",
 ]
 
 # Dependencias de desarrollo (PEP 735 — soportado por uv).

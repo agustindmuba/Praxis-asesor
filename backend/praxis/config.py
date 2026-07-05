@@ -57,12 +57,12 @@ class Settings(BaseSettings):
         ),
     )
     anthropic_model: str = Field(
-        default="claude-sonnet-4-5-20250929",
+        default="claude-sonnet-4-6",
         description=(
-            "Modelo Anthropic a usar. Default: Claude Sonnet 4.5 (snapshot "
-            "20250929). Para bajar gasto: 'claude-haiku-4-5-20251001' "
-            "(~4x más barato, calidad menor). Para subir: 'claude-opus-4-8' "
-            "(snapshot más nuevo de Opus al momento del commit)."
+            "Modelo Anthropic a usar. Default: Claude Sonnet 4.6 (mejora "
+            "sobre 4.5, mismo precio). Para bajar gasto: "
+            "'claude-haiku-4-5-20251001' (~4x más barato, calidad menor). "
+            "Para subir: 'claude-opus-4-8'."
         ),
     )
 

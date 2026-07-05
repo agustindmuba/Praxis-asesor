@@ -1413,5 +1413,133 @@ class EfemerideOrm(Base, kw_only=True):
     )
 
 
+class ComisionHcdnOrm(Base, kw_only=True):
+    """Comisión del portal HCDN persistida (feat-61).
+
+    Únicas por (camara, slug). Hidratada por el scraper.
+    """
+
+    __tablename__ = "comision_hcdn"
+    __table_args__ = (
+        UniqueConstraint("camara", "slug", name="uq_comision_hcdn_camara_slug"),
+        Index("ix_comision_hcdn_camara", "camara"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    camara: Mapped[str] = mapped_column(String(20), nullable=False)
+    slug: Mapped[str] = mapped_column(String(80), nullable=False)
+    nombre: Mapped[str] = mapped_column(String(300), nullable=False)
+    tipo: Mapped[str] = mapped_column(String(30), nullable=False)
+    url_oficial: Mapped[str] = mapped_column(String(500), nullable=False)
+    descripcion: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+    capturado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+
+class IntegranteComisionOrm(Base, kw_only=True):
+    """Integrante de comisión HCDN — scrap del listado oficial.
+
+    `legislador_id` queda NULL cuando el matching contra el padrón falla
+    (legislador nuevo, error de tipeo del portal, etc.).
+    """
+
+    __tablename__ = "integrante_comision"
+    __table_args__ = (
+        Index("ix_integrante_comision_comision", "comision_id"),
+        Index("ix_integrante_comision_legislador", "legislador_id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    comision_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("comision_hcdn.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    nombre_diputado: Mapped[str] = mapped_column(String(200), nullable=False)
+    cargo: Mapped[str] = mapped_column(String(40), nullable=False)
+    partido: Mapped[str | None] = mapped_column(String(200), nullable=True, default=None)
+    distrito: Mapped[str | None] = mapped_column(
+        String(80), nullable=True, default=None,
+    )
+    legislador_id: Mapped[UUID | None] = mapped_column(
+        Uuid, nullable=True, default=None,
+    )
+    capturado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+
+class ReunionComisionOrm(Base, kw_only=True):
+    """Reunión convocada por una comisión HCDN.
+
+    Únicas por (comision_id, fecha, titulo). El histórico se conserva
+    (no hay DELETE automático).
+    """
+
+    __tablename__ = "reunion_comision"
+    __table_args__ = (
+        UniqueConstraint(
+            "comision_id", "fecha", "titulo",
+            name="uq_reunion_comision_fecha_titulo",
+        ),
+        Index("ix_reunion_comision_fecha", "fecha"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default_factory=uuid7)
+    comision_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("comision_hcdn.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    fecha: Mapped[date] = mapped_column(Date, nullable=False)
+    titulo: Mapped[str] = mapped_column(String(500), nullable=False)
+    hora: Mapped[Any] = mapped_column(Time, nullable=True, default=None)
+    sala: Mapped[str | None] = mapped_column(String(120), nullable=True, default=None)
+    citacion_pdf_url: Mapped[str | None] = mapped_column(
+        String(500), nullable=True, default=None,
+    )
+    descripcion: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+    comisiones_invitadas: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    tema_corto: Mapped[str | None] = mapped_column(
+        String(500), nullable=True, default=None,
+    )
+    tipo_reunion: Mapped[str | None] = mapped_column(
+        String(80), nullable=True, default=None,
+    )
+    convocada_por: Mapped[str | None] = mapped_column(
+        String(200), nullable=True, default=None,
+    )
+    expedientes_citados: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default_factory=list,
+    )
+    oportunidad_politica: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None,
+    )
+    accion_sugerida: Mapped[str | None] = mapped_column(
+        String(200), nullable=True, default=None,
+    )
+    huella_historica: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None,
+    )
+    enriquecida_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None,
+    )
+    capturado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default_factory=lambda: datetime.now(UTC),
+        server_default=sa_func_now(),
+    )
+
+
 # Marker para que mypy/ruff entiendan que estos imports son legítimos.
 _ = datetime  # type: ignore[unused-ignore]

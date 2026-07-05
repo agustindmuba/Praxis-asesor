@@ -1,0 +1,200 @@
+# Stack productivo de Praxis Asesor.
+#
+# Corre en el VPS DigitalOcean. Todos los servicios en la misma red
+# Docker interna (`praxis_net`). Solo Caddy expone puertos al host
+# (80 + 443). El resto (postgres, redis, backend, frontend) hablan
+# entre sí por nombre de servicio.
+#
+# Deploy: `docker compose -f docker-compose.prod.yml up -d --build`
+# Update: `docker compose -f docker-compose.prod.yml pull && ... up -d`
+# Logs:   `docker compose -f docker-compose.prod.yml logs -f <servicio>`
+#
+# El archivo .env con secretos vive junto a este compose y NO se
+# commitea. Ver .env.production.example para la lista.
+
+x-backend-env: &backend-env
+  # Todos los servicios que corren código backend comparten estas envs.
+  DATABASE_URL: postgresql+asyncpg://praxis:${POSTGRES_PASSWORD}@postgres:5432/praxis
+  REDIS_URL: redis://redis:6379/0
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+  ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
+  META_WHATSAPP_TOKEN: ${META_WHATSAPP_TOKEN}
+  META_WHATSAPP_PHONE_NUMBER_ID: ${META_WHATSAPP_PHONE_NUMBER_ID}
+  META_WHATSAPP_VERIFY_TOKEN: ${META_WHATSAPP_VERIFY_TOKEN}
+  CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+  CLERK_JWT_ISSUER: ${CLERK_JWT_ISSUER}
+  ENV: production
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: praxis_postgres
+    environment:
+      POSTGRES_USER: praxis
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: praxis
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U praxis -d praxis"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - praxis_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: praxis_redis
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - praxis_net
+
+  # ---------------- Backend FastAPI ----------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: praxis-backend:latest
+    container_name: praxis_backend
+    environment:
+      <<: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - >
+        alembic upgrade head &&
+        uvicorn praxis.api.main:app --host 0.0.0.0 --port 8000 --proxy-headers
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - praxis_net
+
+  # ---------------- Celery worker (procesa tasks) ----------------
+  worker:
+    image: praxis-backend:latest
+    container_name: praxis_worker
+    environment:
+      <<: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    command:
+      - python
+      - -m
+      - celery
+      - -A
+      - praxis.infrastructure.queue.celery_app
+      - worker
+      - --loglevel=info
+      - --concurrency=4
+    restart: unless-stopped
+    networks:
+      - praxis_net
+
+  # ---------------- Celery beat (scheduler) ----------------
+  beat:
+    image: praxis-backend:latest
+    container_name: praxis_beat
+    environment:
+      <<: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    command:
+      - python
+      - -m
+      - celery
+      - -A
+      - praxis.infrastructure.queue.celery_app
+      - beat
+      - --loglevel=info
+    restart: unless-stopped
+    networks:
+      - praxis_net
+
+  # ---------------- Frontend Next.js ----------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # La URL de la API que se compila al bundle del cliente.
+        # En producción, el cliente llama a https://praxisconsultora.com/api,
+        # que Caddy proxea al backend interno.
+        NEXT_PUBLIC_API_URL: https://${PUBLIC_HOST}/api
+    image: praxis-frontend:latest
+    container_name: praxis_frontend
+    environment:
+      # Server-side (SSR) llama al backend por la red interna.
+      NEXT_PUBLIC_API_URL: https://${PUBLIC_HOST}/api
+      # Clerk publishable key: SÍ es pública, va al bundle.
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      NODE_ENV: production
+    restart: unless-stopped
+    networks:
+      - praxis_net
+
+  # ---------------- Caddy reverse proxy + HTTPS auto ----------------
+  caddy:
+    image: caddy:2-alpine
+    container_name: praxis_caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"      # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST}
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    networks:
+      - praxis_net
+
+networks:
+  praxis_net:
+    name: praxis_net
+
+volumes:
+  postgres_data:
+    name: praxis_postgres_data
+  redis_data:
+    name: praxis_redis_data
+  caddy_data:
+    name: praxis_caddy_data
+  caddy_config:
+    name: praxis_caddy_config

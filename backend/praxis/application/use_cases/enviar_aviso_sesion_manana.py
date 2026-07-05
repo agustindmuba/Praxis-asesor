@@ -37,7 +37,7 @@ from praxis.domain import EstadoEnvio, TipoEnvio
 log = logging.getLogger(__name__)
 
 
-PLANTILLA_PROXIMA_SESION = "praxis_briefing_proxima_sesion"
+PLANTILLA_PROXIMA_SESION = "briefing_proxima_sesion"
 
 # Labels legibles de tipo de sesión para el param {{2}}.
 TIPO_SESION_LABELS = {

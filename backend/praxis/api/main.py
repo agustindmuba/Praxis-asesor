@@ -150,6 +150,7 @@ from praxis.api.routers import briefing_diario as briefing_diario_router  # noqa
 from praxis.api.routers import hub_diario as hub_diario_router  # noqa: E402
 from praxis.api.routers import proyectos_redaccion as proyectos_redaccion_router  # noqa: E402
 from praxis.api.routers import calendar as calendar_router  # noqa: E402
+from praxis.api.routers import comisiones as comisiones_router  # noqa: E402
 from praxis.api.routers import efemerides as efemerides_router  # noqa: E402
 from praxis.api.routers import normativa as normativa_router  # noqa: E402
 from praxis.api.routers import legislador_titular as legislador_titular_router  # noqa: E402
@@ -176,6 +177,7 @@ app.include_router(briefing_diario_router.router, prefix=API_V1)
 app.include_router(hub_diario_router.router, prefix=API_V1)
 app.include_router(proyectos_redaccion_router.router, prefix=API_V1)
 app.include_router(efemerides_router.router, prefix=API_V1)
+app.include_router(comisiones_router.router, prefix=API_V1)
 # Feed iCal: SIN /api/v1 — el cliente del calendario lo pide directo.
 app.include_router(calendar_router.router_feed)
 # Gestión del token: tenant-scoped, va con /api/v1.

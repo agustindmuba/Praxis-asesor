@@ -24,14 +24,32 @@ from praxis.infrastructure.persistence.repositories import (
     SqlAlchemyAccionableEventoRepository,
     SqlAlchemyArticuloRelevanteRepository,
     SqlAlchemyArticuloRepository,
+    SqlAlchemyComisionHcdnRepository,
     SqlAlchemyDestinatarioRepository,
     SqlAlchemyEnvioWhatsAppRepository,
+    SqlAlchemyMencionRepository,
     SqlAlchemyNormaBOAccionableRepository,
     SqlAlchemyNormaBORepository,
+    SqlAlchemyOrdenDelDiaRepository,
 )
 from praxis.infrastructure.whatsapp.fake import FakeWhatsAppSender
 
 router = APIRouter(prefix="/briefing-diario", tags=["briefing-diario"])
+
+
+def _extraer_apellido(slug: str | None) -> str | None:
+    """Heurística MVP, igual que la del router de comisiones."""
+    if not slug:
+        return None
+    s = slug.strip()
+    if "," in s:
+        return s.split(",", 1)[0].strip().split()[-1]
+    palabras = s.replace("_", " ").split()
+    if len(palabras) >= 2:
+        return palabras[-1]
+    if len(s) >= 4 and s[1:].isalpha():
+        return s[1:]
+    return s
 
 
 class ItemPreviewDTO(BaseModel):
@@ -74,6 +92,12 @@ async def preview_briefing_diario(
         normas_bo=SqlAlchemyNormaBORepository(session),
         articulos=SqlAlchemyArticuloRepository(session),
         accionables_enriquecidos=SqlAlchemyAccionableEventoRepository(session),
+        menciones=SqlAlchemyMencionRepository(session),
+        ordenes_del_dia=SqlAlchemyOrdenDelDiaRepository(session),
+        comisiones=SqlAlchemyComisionHcdnRepository(session),
+        legislador_titular_apellido=_extraer_apellido(
+            ctx.despacho.legislador_titular_slug,
+        ),
     )
     # Forzamos preview: ahorramos pasarle destinatarios eliminándolos
     # del resultado. El use case ya distingue "sin destinatarios pero
@@ -150,6 +174,12 @@ async def enviar_briefing_ahora(
         normas_bo=SqlAlchemyNormaBORepository(session),
         articulos=SqlAlchemyArticuloRepository(session),
         accionables_enriquecidos=SqlAlchemyAccionableEventoRepository(session),
+        menciones=SqlAlchemyMencionRepository(session),
+        ordenes_del_dia=SqlAlchemyOrdenDelDiaRepository(session),
+        comisiones=SqlAlchemyComisionHcdnRepository(session),
+        legislador_titular_apellido=_extraer_apellido(
+            ctx.despacho.legislador_titular_slug,
+        ),
     )
 
     ahora = datetime.now(UTC)

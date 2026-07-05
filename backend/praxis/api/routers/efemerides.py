@@ -19,11 +19,15 @@ sí: usa el perfil opositor del despacho del request.
 
 from __future__ import annotations
 
+import io
 from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Pt
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
 
 from praxis.api.deps import CurrentContext, LlmProviderDep, SessionDep
@@ -92,6 +96,12 @@ class GenerarDeclaracionResponse(BaseModel):
     articulado: list[str]
     fundamentos: str
     modelo: str
+
+
+class ExportarDocxRequest(BaseModel):
+    titulo_efemeride: str
+    articulado: list[str]
+    fundamentos: str
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +195,7 @@ async def generar_declaracion(
     try:
         resultado = await uc.ejecutar(
             efemeride_id=efemeride_id,
-            despacho_id=ctx.despacho_id,
+            despacho_id=ctx.despacho.id,
         )
     except EfemerideNoEncontrada as exc:
         raise HTTPException(
@@ -199,4 +209,106 @@ async def generar_declaracion(
         articulado=resultado.articulado,
         fundamentos=resultado.fundamentos,
         modelo=resultado.modelo,
+    )
+
+
+@router.post("/exportar-docx")
+async def exportar_declaracion_docx(
+    payload: ExportarDocxRequest,
+    ctx: CurrentContext,
+) -> Response:
+    """Renderiza un proyecto de declaración como archivo Word editable.
+
+    El frontend pasa el articulado + fundamentos ya generados (para no
+    re-llamar al LLM) y el endpoint los compone en un .docx con
+    encabezado del despacho.
+    """
+    doc = Document()
+
+    # Estilo base
+    style = doc.styles["Normal"]
+    style.font.name = "Times New Roman"
+    style.font.size = Pt(12)
+
+    # Encabezado: nombre del legislador titular del despacho
+    legislador = ctx.despacho.legislador_titular_slug or "Despacho parlamentario"
+    p_header = doc.add_paragraph()
+    p_header.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    run = p_header.add_run(legislador.upper())
+    run.bold = True
+
+    doc.add_paragraph()
+
+    # Título
+    p_titulo = doc.add_paragraph()
+    p_titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p_titulo.add_run("PROYECTO DE DECLARACIÓN")
+    run.bold = True
+    run.font.size = Pt(14)
+
+    doc.add_paragraph()
+
+    # Articulado
+    for i, articulo in enumerate(payload.articulado, start=1):
+        p = doc.add_paragraph()
+        run = p.add_run(f"Artículo {i}°.- ")
+        run.bold = True
+        p.add_run(articulo)
+
+    # Fórmula de cierre del articulado
+    if payload.articulado:
+        p_cierre = doc.add_paragraph()
+        run = p_cierre.add_run(f"Artículo {len(payload.articulado) + 1}°.- ")
+        run.bold = True
+        p_cierre.add_run("Comuníquese al Poder Ejecutivo nacional.")
+
+    doc.add_paragraph()
+
+    # Fundamentos
+    p_fund = doc.add_paragraph()
+    p_fund.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p_fund.add_run("FUNDAMENTOS")
+    run.bold = True
+    run.font.size = Pt(13)
+
+    doc.add_paragraph()
+
+    # Saludo + cuerpo de los fundamentos
+    p_saludo = doc.add_paragraph()
+    run = p_saludo.add_run("Señor Presidente:")
+    run.bold = True
+
+    for parrafo in payload.fundamentos.split("\n"):
+        texto = parrafo.strip()
+        if texto:
+            doc.add_paragraph(texto)
+
+    # Firma
+    doc.add_paragraph()
+    doc.add_paragraph()
+    p_firma = doc.add_paragraph()
+    p_firma.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_firma.add_run("_______________________________")
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+
+    nombre_archivo = (
+        "proyecto_declaracion_"
+        + payload.titulo_efemeride.lower()
+            .replace(" ", "_")
+            .replace("/", "_")[:60]
+        + ".docx"
+    )
+
+    return Response(
+        content=buf.read(),
+        media_type=(
+            "application/vnd.openxmlformats-officedocument"
+            ".wordprocessingml.document"
+        ),
+        headers={
+            "Content-Disposition": f'attachment; filename="{nombre_archivo}"',
+        },
     )

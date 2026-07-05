@@ -28,6 +28,7 @@ celery_app = Celery(
         "praxis.infrastructure.queue.tasks_whatsapp",
         "praxis.infrastructure.queue.tasks_rag",
         "praxis.infrastructure.queue.tasks_hcdn",
+        "praxis.infrastructure.queue.tasks_comisiones",
     ],
 )
 
@@ -68,12 +69,14 @@ celery_app.conf.update(
     # pipeline de BO arranca a partir de las 8 hs ART y NO antes —
     # si scrapeaba a las 5:30 traía la edición vieja o vacía.
     #
-    # Pipeline secuencial con margen de 30 min entre etapas para
-    # que cada una termine antes de que arranque la siguiente:
-    #   08:00 ART → ingestar la edición del día recién publicada
-    #   08:30 ART → clasificar las normas nuevas
-    #   09:00 ART → evaluar accionabilidad por despacho
-    #   09:30 ART → enviar briefing diario por WhatsApp con todo
+    # feat-64 — PIPELINE EXPRESS. El asesor no puede esperar hasta
+    # las 9:30 para su briefing: a las 9 ya está en reunión. Bajamos
+    # los tiempos entre etapas a 5-10 min. TODO al unísono a las 8:20.
+    #   08:00 ART → ingestar la edición del día recién publicada (~2 min)
+    #   08:05 ART → clasificar las normas nuevas con LLM (~5 min)
+    #   08:15 ART → evaluar accionabilidad por despacho (~2 min)
+    #   08:20 ART → enviar briefing diario por WhatsApp
+    #               (comisiones ya enriquecidas desde las 07:00 ART)
     beat_schedule={
         "bo-ingestar-diario": {
             "task": "praxis.bo.ingestar_diario",
@@ -82,13 +85,13 @@ celery_app.conf.update(
         },
         "bo-clasificar-pendientes": {
             "task": "praxis.bo.clasificar_pendientes",
-            # 11:30 UTC = 08:30 ART
-            "schedule": crontab(hour="11", minute="30"),
+            # 11:05 UTC = 08:05 ART
+            "schedule": crontab(hour="11", minute="5"),
         },
         "bo-evaluar-accionables-por-despacho": {
             "task": "praxis.bo.evaluar_accionables_por_despacho",
-            # 12:00 UTC = 09:00 ART
-            "schedule": crontab(hour="12", minute="0"),
+            # 11:15 UTC = 08:15 ART
+            "schedule": crontab(hour="11", minute="15"),
         },
         # Noticias (spec 16, feat-40.5.D). Polling continuo
         # durante el día — los medios actualizan a lo largo del día.
@@ -106,13 +109,13 @@ celery_app.conf.update(
             "schedule": crontab(minute="*/10"),
         },
         # WhatsApp briefing diario (spec 17, feat-41.4).
-        # 12:30 UTC = 09:30 ART. Corre DESPUÉS del pipeline BO
-        # (ingestar 08:00 → clasificar 08:30 → evaluar 09:00),
-        # por eso a las 09:30 ya tiene todo el material del día
-        # listo para empaquetar.
+        # feat-64: 11:20 UTC = 08:20 ART. Corre DESPUÉS del pipeline BO
+        # express (ingestar 08:00 → clasificar 08:05 → evaluar 08:15),
+        # por eso a las 08:20 ya tiene TODO el material fresco del día.
+        # El asesor recibe todo antes de arrancar su primera reunión.
         "whatsapp-enviar-briefings-diarios": {
             "task": "praxis.whatsapp.enviar_briefings_diarios",
-            "schedule": crontab(hour="12", minute="30"),
+            "schedule": crontab(hour="11", minute="20"),
         },
         # HCDN: detectar OD nuevo del Plan de Labor (feat-45.4).
         # Corre cada 1 hora durante horario de sesiones argentino:
@@ -132,6 +135,18 @@ celery_app.conf.update(
         "whatsapp-aviso-proxima-sesion": {
             "task": "praxis.whatsapp.enviar_avisos_proxima_sesion",
             "schedule": crontab(hour="21", minute="0"),
+        },
+        # Comisiones HCDN (feat-61). Scrape diario madrugada + enriquecer
+        # antes del briefing 08:20 ART (feat-64).
+        # 07:00 UTC = 04:00 ART → scrape.
+        # 10:00 UTC = 07:00 ART → enriquecer.
+        "comisiones-scrape-diario": {
+            "task": "praxis.comisiones.scrape_diario",
+            "schedule": crontab(hour="7", minute="0"),
+        },
+        "comisiones-enriquecer-pendientes": {
+            "task": "praxis.comisiones.enriquecer_pendientes",
+            "schedule": crontab(hour="10", minute="0"),
         },
     },
 )

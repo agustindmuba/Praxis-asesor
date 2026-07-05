@@ -127,7 +127,7 @@ async def obtener_url_calendar(
     Si el despacho aún no tiene token, lo genera y persiste al vuelo.
     Permite que el frontend muestre la URL para copiar al primer load.
     """
-    stmt = select(DespachoOrm).where(DespachoOrm.id == ctx.despacho_id)
+    stmt = select(DespachoOrm).where(DespachoOrm.id == ctx.despacho.id)
     result = await session.execute(stmt)
     despacho = result.scalar_one()
 
@@ -159,7 +159,7 @@ async def regenerar_token(
     nuevo = _generar_token()
     await session.execute(
         update(DespachoOrm)
-        .where(DespachoOrm.id == ctx.despacho_id)
+        .where(DespachoOrm.id == ctx.despacho.id)
         .values(calendar_token=nuevo)
     )
     await session.commit()

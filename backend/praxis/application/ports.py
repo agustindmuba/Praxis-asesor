@@ -29,7 +29,10 @@ from praxis.domain import (
     ClasificacionNormaBO,
     ClasificacionNormaBOResult,
     Comision,
+    ComisionHcdn,
     Destinatario,
+    IntegranteComision,
+    ReunionComision,
     DisambiguacionMencion,
     Efemeride,
     EnvioWhatsApp,
@@ -637,6 +640,104 @@ class OrdenDelDiaRepository(ABC):
     async def listar_por_despacho(
         self, despacho_id: UUID, *, limit: int = 20,
     ) -> list[OrdenDelDia]:
+        raise NotImplementedError
+
+
+class ComisionHcdnRepository(ABC):
+    """Puerto: persistencia de comisiones HCDN + integrantes + agenda.
+
+    Upsert por `(camara, slug)`. Integrantes y reuniones se cargan
+    aparte por comisión. Idempotente — el scraper corre cada N horas.
+    """
+
+    @abstractmethod
+    async def upsert(self, comision: ComisionHcdn) -> ComisionHcdn:
+        """Crea o actualiza la comisión. Devuelve la versión persistida
+        con id asignado. No toca integrantes ni reuniones (esos van
+        por sus propios métodos)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_por_slug(
+        self, *, camara: Camara, slug: str,
+    ) -> ComisionHcdn | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_todas(
+        self, *, camara: Camara | None = None,
+    ) -> list[ComisionHcdn]:
+        """Lista las comisiones SIN hidratar integrantes ni reuniones
+        (para no traer todo el grafo)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def listar_del_legislador(
+        self, *, legislador_id: UUID,
+    ) -> list[ComisionHcdn]:
+        """Comisiones donde figura el legislador como integrante."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def reemplazar_integrantes(
+        self, *, comision_id: UUID, integrantes: list[IntegranteComision],
+    ) -> None:
+        """DELETE + INSERT atómico — el scraper trae el listado completo
+        cada vez, queremos reflejarlo tal cual."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def upsert_reuniones(
+        self, *, comision_id: UUID, reuniones: list[ReunionComision],
+    ) -> None:
+        """Idempotente por `(comision_id, fecha, titulo)`. Las reuniones
+        viejas no se borran — sirven como histórico."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def proximas_reuniones(
+        self, *, comisiones_ids: list[UUID], desde: date, hasta: date,
+    ) -> list[ReunionComision]:
+        """Devuelve reuniones en el rango, de las comisiones dadas,
+        ordenadas por fecha asc."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def proximas_reuniones_por_apellido(
+        self,
+        *,
+        apellido: str,
+        desde: date,
+        hasta: date,
+        limit: int = 5,
+    ) -> list[tuple[ReunionComision, str, str]]:
+        """Devuelve `(reunion, nombre_comision, url_oficial_comision)` para
+        reuniones de comisiones donde figura el legislador con
+        `nombre_diputado ILIKE '%{apellido}%'`. Heurística mientras no
+        tengamos `legislador_id` enlazado. La `url_oficial_comision` va
+        directo al briefing WhatsApp como link clickeable."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def buscar_reunion_por_id(
+        self, reunion_id: UUID,
+    ) -> ReunionComision | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def actualizar_enriquecimiento_reunion(
+        self,
+        *,
+        reunion_id: UUID,
+        tema_corto: str,
+        tipo_reunion: str,
+        convocada_por: str,
+        expedientes_citados: list[str],
+        oportunidad_politica: str,
+        accion_sugerida: str,
+        huella_historica: str | None,
+        enriquecida_en: datetime,
+    ) -> None:
         raise NotImplementedError
 
 

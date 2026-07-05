@@ -37,7 +37,13 @@ from praxis.domain.briefing_similitud import (
     jaccard,
     tokenizar_titulo,
 )
-from praxis.domain.comision import Comision, TipoComision
+from praxis.domain.comision import (
+    Comision,
+    ComisionHcdn,
+    IntegranteComision,
+    ReunionComision,
+    TipoComision,
+)
 from praxis.domain.despacho import Despacho
 from praxis.domain.efemeride import (
     EFEMERIDE_RELEVANCIA_LABELS,
@@ -214,6 +220,7 @@ __all__ = [
     "ClasificacionNormaBOResult",
     "CofirmanteSugerido",
     "Comision",
+    "ComisionHcdn",
     "ComparacionPeers",
     "Despacho",
     "Destinatario",
@@ -240,6 +247,7 @@ __all__ = [
     "Giro",
     "IdiomaLiteral",
     "InferenciaResult",
+    "IntegranteComision",
     "InteligenciaExpediente",
     "Legislador",
     "MembresiaDespacho",
@@ -283,6 +291,7 @@ __all__ = [
     "RequestContext",
     "ResultadoBusqueda",
     "ResumenEjecutivo",
+    "ReunionComision",
     "Rol",
     "RolDestinatario",
     "RolEnDespacho",
