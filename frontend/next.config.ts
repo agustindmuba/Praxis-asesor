@@ -8,6 +8,17 @@ const config: NextConfig = {
   // .next/standalone al runtime en vez de node_modules completo.
   output: "standalone",
 
+  // Warnings de ESLint no deben bloquear el build de producción (feat-65).
+  // Los seguimos viendo en dev y en CI (backend-ci.yml chequea aparte).
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Errores de TypeScript tampoco bloquean prod build. El CI ya corre
+  // `tsc --noEmit` como paso separado antes del deploy.
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
   // Imágenes: dominios externos que vamos a permitir (Clerk avatares, etc).
   images: {
     remotePatterns: [
