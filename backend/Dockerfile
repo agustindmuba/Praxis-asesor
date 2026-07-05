@@ -45,8 +45,12 @@ COPY scripts ./scripts
 COPY alembic ./alembic
 COPY alembic.ini ./
 
+# `--no-editable`: instala el proyecto como wheel regular en vez de
+# editable install. En editable, hatchling arma el build en un tmp dir
+# fuera de /app y ahí no tiene README.md que pyproject.toml referencia.
+# Con --no-editable, el build corre en /app y encuentra el README.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+    uv sync --frozen --no-dev --no-editable
 
 # ---------- runtime ----------
 FROM python:3.12-slim AS runtime
