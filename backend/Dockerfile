@@ -33,7 +33,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Instala deps primero, sin código, para maximizar cache.
-COPY pyproject.toml uv.lock ./
+# README.md hace falta porque pyproject.toml lo referencia como `readme`
+# y hatchling lo lee al resolver metadata del propio proyecto.
+COPY pyproject.toml uv.lock README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
 
