@@ -154,6 +154,13 @@ services:
         NEXT_PUBLIC_API_URL: https://${PUBLIC_HOST}/api
         # Publishable de Clerk: pública, se compila al bundle.
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        # Rutas embebidas de sign-in/up (no usar el Account Portal externo,
+        # que en producción se queda en blanco por algún tema con Clerk).
+        # Estas rutas ya existen: /sign-in y /sign-up con <SignIn/> y <SignUp/>.
+        NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+        NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
+        NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL: /dashboard
+        NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL: /onboarding
     image: praxis-frontend:latest
     container_name: praxis_frontend
     environment:
@@ -165,6 +172,11 @@ services:
       # middleware de auth y las llamadas server-side. No se compila al
       # bundle (no la ve el cliente).
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      # Mismas 4 rutas también en runtime para el middleware server-side.
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
+      NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL: /dashboard
+      NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL: /onboarding
       NODE_ENV: production
     restart: unless-stopped
     networks:
