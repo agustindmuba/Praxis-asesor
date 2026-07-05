@@ -34,7 +34,9 @@ COPY . .
 # NEXT_PUBLIC_* se compila al bundle, así que se debe pasar acá.
 # El resto (server-only) se lee en runtime.
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://backend:8000}
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
 
 # Build de producción. Turbopack.
 ENV NEXT_TELEMETRY_DISABLED=1

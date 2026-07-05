@@ -152,6 +152,8 @@ services:
         # En producción, el cliente llama a https://praxisconsultora.com/api,
         # que Caddy proxea al backend interno.
         NEXT_PUBLIC_API_URL: https://${PUBLIC_HOST}/api
+        # Publishable de Clerk: pública, se compila al bundle.
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
     image: praxis-frontend:latest
     container_name: praxis_frontend
     environment:
