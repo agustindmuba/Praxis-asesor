@@ -92,7 +92,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <ClerkProvider appearance={{ variables: { colorPrimary: "#2A3D75" } }}>
+    <ClerkProvider
+      appearance={{ variables: { colorPrimary: "#2A3D75" } }}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/onboarding"
+      // afterSignOutUrl absolute-safe: si Clerk borra sesión, mandarlo
+      // al login sin loop.
+      afterSignOutUrl="/sign-in"
+    >
       {body}
     </ClerkProvider>
   );
